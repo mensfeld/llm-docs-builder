@@ -26,13 +26,9 @@ Gem::Specification.new do |spec|
   spec.metadata['changelog_uri'] = 'https://github.com/mensfeld/llms-txt-ruby/blob/main/CHANGELOG.md'
   spec.metadata['documentation_uri'] = 'https://github.com/mensfeld/llms-txt-ruby'
 
-  spec.files = Dir.chdir(__dir__) do
-    `git ls-files -z`.split('\x0').reject do |f|
-      (File.expand_path(f) == __FILE__) || f.start_with?(*%w[bin/ test/ spec/ features/ .git .circleci appveyor])
-    end
-  end
+  spec.files = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(spec)/}) }
 
-  spec.bindir = 'exe'
+  spec.bindir = 'bin'
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 end
