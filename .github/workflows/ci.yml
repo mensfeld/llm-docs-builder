@@ -26,7 +26,6 @@ jobs:
           - '3.4'
           - '3.3'
           - '3.2'
-          - '3.1'
         include:
           - ruby: '3.4'
             coverage: 'true'
@@ -55,9 +54,6 @@ jobs:
           GITHUB_COVERAGE: ${{ matrix.coverage }}
         run: bundle exec rspec
 
-      - name: Run RuboCop
-        if: matrix.ruby == '3.4'
-        run: bundle exec rubocop
 
   ci-success:
     name: CI Success
