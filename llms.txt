@@ -1,0 +1,30 @@
+# llms-txt-ruby
+
+> Ruby implementation of the llms.txt specification for LLM-friendly content
+
+## Documentation
+
+- [API Documentation](https://rubydoc.info/gems/my_awesome_gem)
+- [Getting Started Guide](https://llms-txt-ruby.io/docs/getting_started.md)
+- [Configuration Guide](https://llms-txt-ruby.io/docs/configuration.md)
+- [Contributing Guidelines](https://llms-txt-ruby.io/CONTRIBUTING.md)
+- [API Documentation](https://github.com/mensfeld/llms-txt-ruby): Complete API reference
+- [Getting Started with llms-txt-ruby](wiki/getting-started.md): Beginner guide (1 min)
+
+## Examples
+
+- [Basic usage example for llms-txt-ruby](examples/basic_usage.rb): !/usr/bin/env ruby frozen_string_literal: true Basic usage example for llms-txt-ruby This example shows how to generate an llms.txt file using the Ruby API
+- [Example of custom configuration for llms-txt-ruby](examples/custom_config.rb): !/usr/bin/env ruby frozen_string_literal: true Example of custom configuration for llms-txt-ruby Shows advanced configuration options
+- [DSL usage examples for llms-txt-ruby](examples/dsl_usage.rb): !/usr/bin/env ruby frozen_string_literal: true DSL usage examples for llms-txt-ruby Shows the new composable DSL for building llms.txt files
+- [Wiki processing example for llms-txt-ruby](examples/wiki_processing.rb): !/usr/bin/env ruby frozen_string_literal: true Wiki processing example for llms-txt-ruby Shows how to use the gem with wiki directories and link processing
+- [Example of using llms-txt-ruby with Claude AI](examples/with_claude.rb): !/usr/bin/env ruby frozen_string_literal: true Example of using llms-txt-ruby with Claude AI This example requires an Anthropic API key
+- [LlmsTxt#configuration Example](#)
+- [LlmsTxt#configure Example](#): Configure with Claude AI
+- [LlmsTxt#generate Example](#): Generate with AI
+
+## Optional
+
+- [Changelog](CHANGELOG.md): Version history and release notes
+- [Contributing Guide](CONTRIBUTING.md): How to contribute to this project
+- [License](LICENSE): MIT
+- [Project Homepage](https://github.com/mensfeld/llms-txt-ruby): Main project website
