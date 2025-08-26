@@ -1,53 +1,75 @@
 name: CI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ master ]
+  push:
+    branches: [ master ]
+  schedule:
+    - cron: '0 1 * * *'
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  specs:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
-    
     strategy:
+      fail-fast: false
       matrix:
-        ruby-version: ['3.1', '3.2', '3.3']
-    
+        ruby:
+          - '3.4'
+          - '3.3'
+          - '3.2'
+          - '3.1'
+        include:
+          - ruby: '3.4'
+            coverage: 'true'
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby ${{ matrix.ruby-version }}
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby-version }}
-        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-    
-    - name: Run tests
-      run: bundle exec rspec
-    
-    - name: Run RuboCop
-      run: bundle exec rubocop
-      if: matrix.ruby-version == '3.3' # Only run rubocop on latest Ruby version
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  coverage:
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          bundler: 'latest'
+
+      - name: Install latest bundler
+        run: |
+          gem install bundler --no-document
+          bundle config set without 'tools benchmarks docs'
+
+      - name: Bundle install
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Run all tests
+        env:
+          GITHUB_COVERAGE: ${{ matrix.coverage }}
+        run: bundle exec rspec
+
+      - name: Run RuboCop
+        if: matrix.ruby == '3.4'
+        run: bundle exec rubocop
+
+  ci-success:
+    name: CI Success
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    
+    if: always()
+    needs:
+      - specs
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.3'
-        bundler-cache: true
-    
-    - name: Run tests with coverage
-      run: bundle exec rspec
-    
-    - name: Upload coverage reports
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report
-        path: coverage/
+      - name: Check all jobs passed
+        if: |
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          contains(needs.*.result, 'skipped')
+        run: exit 1
+      - run: echo "All CI checks passed!"
