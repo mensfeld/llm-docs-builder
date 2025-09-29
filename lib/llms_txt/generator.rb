@@ -1,143 +1,153 @@
 # frozen_string_literal: true
 
 module LlmsTxt
+  # Simple generator that creates llms.txt from existing markdown documentation
   class Generator
-    attr_reader :options, :project_root
+    attr_reader :docs_path, :options
 
-    def initialize(options = {})
+    def initialize(docs_path, options = {})
+      @docs_path = docs_path
       @options = options
-      @project_root = options[:project_root] || Dir.pwd
-      @config = LlmsTxt.configuration
     end
 
     def generate
-      validate_project!
+      docs = find_documentation_files
 
-      project_data = analyze_project
-      prompt = build_prompt(project_data)
+      content = build_llms_txt(docs)
 
-      if options[:no_llm]
-        generate_template(project_data)
-      else
-        generate_with_llm(prompt, project_data)
+      if output_path = options[:output]
+        File.write(output_path, content)
       end
+
+      content
     end
 
     private
 
-    def validate_project!
-      gemspec_path = Dir.glob(File.join(project_root, '*.gemspec')).first
-      raise GenerationError, 'No gemspec file found in project root' unless gemspec_path
+    def find_documentation_files
+      return [] unless File.exist?(docs_path)
 
-      return if File.exist?(File.join(project_root, 'lib'))
-
-      raise GenerationError, 'No lib directory found in project root'
-    end
-
-    def analyze_project
-      data = {}
-
-      @config.file_analyzers.each do |analyzer_name|
-        analyzer = load_analyzer(analyzer_name)
-        next unless analyzer
-
-        puts "Analyzing #{analyzer_name}..." if @config.verbose
-        data[analyzer_name] = analyzer.analyze
-      end
-
-      data
-    end
-
-    def load_analyzer(name)
-      case name
-      when :readme
-        Analyzers::Readme.new(project_root)
-      when :gemspec
-        Analyzers::Gemspec.new(project_root)
-      when :yard
-        Analyzers::Yard.new(project_root)
-      when :changelog
-        Analyzers::Changelog.new(project_root)
-      when :examples
-        Analyzers::Examples.new(project_root)
-      when :docs
-        Analyzers::Docs.new(project_root)
-      when :wiki
-        Analyzers::Wiki.new(project_root)
+      if File.file?(docs_path)
+        [analyze_file(docs_path)]
+      else
+        find_markdown_files_in_directory
       end
     end
 
-    def build_prompt(project_data)
-      Builders::PromptBuilder.new(project_data, options).build
-    end
+    def find_markdown_files_in_directory
+      files = []
 
-    def generate_template(project_data)
-      content = Builders::ContentBuilder.new(project_data, options).build_template
-      output_path = options[:output] || @config.output_path
-      File.write(output_path, content)
-      puts "Template saved to #{output_path}" if @config.verbose
-      content
-    end
+      Find.find(docs_path) do |path|
+        next unless File.file?(path)
+        next unless path.match?(/\.md$/i)
+        next if File.basename(path).start_with?('.')
 
-    def generate_with_llm(prompt, project_data)
-      response = @config.llm_client.complete(prompt)
-
-      content = if response.is_a?(String) && !response.empty?
-                  response
-                else
-                  # Fallback to template generation if LLM returns nil or empty
-                  Builders::ContentBuilder.new(project_data, options).build_template
-                end
-
-      validate_and_save(content)
-    end
-
-    def validate_and_save(content)
-      # Post-process content if needed
-      content = post_process_content(content)
-
-      validator = Validator.new(content)
-
-      unless validator.valid?
-        puts 'Warning: Generated content has validation issues:' if @config.verbose
-        validator.errors.each { |error| puts "  - #{error}" } if @config.verbose
+        files << analyze_file(path)
       end
 
-      output_path = options[:output] || @config.output_path
-      File.write(output_path, content)
-
-      puts "Successfully generated #{output_path}" if @config.verbose
-      content
+      files.sort_by { |f| f[:priority] }
     end
 
-    def post_process_content(content)
-      # Apply link expansion if requested
-      if options[:expand_links]
-        require 'tempfile'
-        temp_file = Tempfile.new(['llms_txt', '.md'])
-        temp_file.write(content)
-        temp_file.close
+    def analyze_file(file_path)
+      # Handle single file case differently
+      relative_path = if File.file?(docs_path)
+                       File.basename(file_path)
+                     else
+                       Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
+                     end
 
-        expander = Utils::MarkdownLinkExpander.new(temp_file.path, options[:expand_links])
-        content = expander.to_s
+      content = File.read(file_path)
 
-        temp_file.unlink
+      {
+        path: relative_path,
+        title: extract_title(content, file_path),
+        description: extract_description(content),
+        priority: calculate_priority(file_path)
+      }
+    end
+
+    def extract_title(content, file_path)
+      # Try to extract title from first # header
+      if content.match(/^#\s+(.+)/)
+        $1.strip
+      else
+        # Use filename as fallback
+        File.basename(file_path, '.md').gsub(/[_-]/, ' ').split.map(&:capitalize).join(' ')
+      end
+    end
+
+    def extract_description(content)
+      lines = content.lines
+
+      # Skip title line and empty lines
+      description_lines = lines.drop_while { |line| line.start_with?('#') || line.strip.empty? }
+
+      # Get first paragraph
+      first_paragraph = description_lines.take_while { |line| !line.strip.empty? }
+
+      first_paragraph.join(' ').strip.slice(0, 200)
+    end
+
+    def calculate_priority(file_path)
+      basename = File.basename(file_path).downcase
+
+      return 1 if basename.start_with?('readme')
+      return 2 if basename.include?('getting')
+      return 3 if basename.include?('guide')
+      return 4 if basename.include?('tutorial')
+      return 5 if basename.include?('api')
+      return 6 if basename.include?('reference')
+
+      7 # default priority
+    end
+
+    def build_llms_txt(docs)
+      title = options[:title] || detect_project_title(docs)
+      description = options[:description] || detect_project_description(docs)
+
+      content = []
+      content << "# #{title}"
+      content << ""
+      content << "> #{description}" if description
+      content << ""
+
+      if docs.any?
+        content << "## Documentation"
+        content << ""
+
+        docs.each do |doc|
+          url = build_url(doc[:path])
+          if doc[:description] && !doc[:description].empty?
+            content << "- [#{doc[:title]}](#{url}): #{doc[:description]}"
+          else
+            content << "- [#{doc[:title]}](#{url})"
+          end
+        end
       end
 
-      # Apply URL conversion if requested
-      if options[:convert_urls]
-        require 'tempfile'
-        temp_file = Tempfile.new(['llms_txt', '.md'])
-        temp_file.write(content)
-        temp_file.close
+      content.join("\n") + "\n"
+    end
 
-        converter = Utils::MarkdownUrlConverter.new(temp_file.path)
-        content = converter.to_s
+    def detect_project_title(docs)
+      readme = docs.find { |doc| doc[:path].downcase.include?('readme') }
+      return readme[:title] if readme
 
-        temp_file.unlink
+      File.basename(File.expand_path('.'))
+    end
+
+    def detect_project_description(docs)
+      readme = docs.find { |doc| doc[:path].downcase.include?('readme') }
+      return readme[:description] if readme&.fetch(:description, nil)
+
+      nil
+    end
+
+    def build_url(path)
+      if base_url = options[:base_url]
+        File.join(base_url, path)
+      else
+        path
       end
-
-      content
     end
   end
 end

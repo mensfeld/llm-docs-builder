@@ -2,8 +2,6 @@ PATH
   remote: .
   specs:
     llms-txt-ruby (0.1.0)
-      thor (~> 1.0)
-      yard (~> 0.9)
       zeitwerk (~> 2.6)
 
 GEM
@@ -67,11 +65,9 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    thor (1.4.0)
     unicode-display_width (3.1.5)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
-    yard (0.9.37)
     zeitwerk (2.7.3)
 
 PLATFORMS

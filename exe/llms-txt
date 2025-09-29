@@ -12,17 +12,16 @@ module LlmsTxt
 
     def run(argv)
       options = parse_options(argv)
-      configure_from_options(options)
 
       case options[:command]
       when 'generate', nil
         generate(options)
+      when 'transform'
+        transform(options)
       when 'parse'
         parse(options)
       when 'validate'
         validate(options)
-      when 'process'
-        process_markdown(options)
       when 'version'
         show_version
       else
@@ -35,7 +34,7 @@ module LlmsTxt
       exit 1
     rescue StandardError => e
       puts "Unexpected error: #{e.message}"
-      puts e.backtrace if options[:verbose]
+      puts e.backtrace.join("\n") if options&.fetch(:verbose, false)
       exit 1
     end
 
@@ -47,12 +46,12 @@ module LlmsTxt
       }
 
       OptionParser.new do |opts|
-        opts.banner = banner_text
+        opts.banner = "llms-txt - Simple tool for generating llms.txt from markdown documentation\n\nUsage: llms-txt [command] [options]"
 
         opts.separator ''
         opts.separator 'Commands:'
-        opts.separator '  generate    Generate llms.txt file (default)'
-        opts.separator '  process     Process markdown files for LLM consumption'
+        opts.separator '  generate    Generate llms.txt from documentation (default)'
+        opts.separator '  transform   Transform a markdown file to be AI-friendly'
         opts.separator '  parse       Parse existing llms.txt file'
         opts.separator '  validate    Validate llms.txt file'
         opts.separator '  version     Show version'
@@ -60,44 +59,28 @@ module LlmsTxt
         opts.separator ''
         opts.separator 'Options:'
 
+        opts.on('-d', '--docs PATH', 'Path to documentation directory or file (required for generate)') do |path|
+          options[:docs] = path
+        end
+
         opts.on('-o', '--output PATH', 'Output file path (default: llms.txt)') do |path|
           options[:output] = path
         end
 
-        opts.on('-p', '--provider PROVIDER', 'LLM provider: claude, openai, local (default: claude)') do |provider|
-          options[:provider] = provider.to_sym
+        opts.on('-u', '--base-url URL', 'Base URL for expanding relative links') do |url|
+          options[:base_url] = url
         end
 
-        opts.on('-k', '--api-key KEY', 'API key for LLM provider') do |key|
-          options[:api_key] = key
-        end
-
-        opts.on('-m', '--model MODEL', 'LLM model to use') do |model|
-          options[:model] = model
-        end
-
-        opts.on('--no-llm', 'Generate template without LLM (local mode)') do
-          options[:no_llm] = true
-        end
-
-        opts.on('--no-optional', 'Exclude optional section') do
-          options[:include_optional] = false
-        end
-
-        opts.on('-d', '--directory PATH', 'Project directory (default: current directory)') do |path|
-          options[:project_root] = File.expand_path(path)
-        end
-
-        opts.on('-c', '--config PATH', 'Configuration file path') do |path|
-          options[:config_file] = path
-        end
-
-        opts.on('--expand-links URL', 'Expand relative links to absolute URLs using base URL') do |url|
-          options[:expand_links] = url
-        end
-
-        opts.on('--convert-urls', 'Convert HTML URLs to markdown-friendly URLs') do
+        opts.on('--convert-urls', 'Convert HTML URLs to markdown format') do
           options[:convert_urls] = true
+        end
+
+        opts.on('-t', '--title TITLE', 'Project title (auto-detected if not provided)') do |title|
+          options[:title] = title
+        end
+
+        opts.on('--description DESC', 'Project description (auto-detected if not provided)') do |desc|
+          options[:description] = desc
         end
 
         opts.on('-v', '--verbose', 'Verbose output') do
@@ -119,51 +102,55 @@ module LlmsTxt
       options
     end
 
-    def banner_text
-      <<~BANNER
-        llms-txt - Generate llms.txt files for Ruby projects
+    def generate(options)
+      docs_path = options[:docs] || '.'
 
-        Usage: llms-txt [command] [options]
-      BANNER
-    end
+      unless File.exist?(docs_path)
+        puts "Documentation path not found: #{docs_path}"
+        exit 1
+      end
 
-    def configure_from_options(options)
-      load_config_file(options[:config_file]) if options[:config_file]
+      puts "Generating llms.txt from #{docs_path}..." if options[:verbose]
 
-      LlmsTxt.configure do |config|
-        config.llm_provider = options[:provider] if options[:provider]
-        config.api_key = options[:api_key] if options[:api_key]
-        config.model = options[:model] if options[:model]
-        config.output_path = options[:output] if options[:output]
-        config.include_optional = options[:include_optional] unless options[:include_optional].nil?
-        config.verbose = options[:verbose] if options[:verbose]
+      content = LlmsTxt.generate_from_docs(docs_path, options)
+      output_path = options[:output] || 'llms.txt'
 
-        config.llm_provider = :local if options[:no_llm]
+      File.write(output_path, content)
+      puts "Successfully generated #{output_path}"
+
+      if options[:verbose]
+        validator = LlmsTxt::Validator.new(content)
+        if validator.valid?
+          puts "Valid llms.txt format"
+        else
+          puts "Validation warnings:"
+          validator.errors.each { |error| puts "  - #{error}" }
+        end
       end
     end
 
-    def load_config_file(path)
-      require path
-    rescue LoadError => e
-      puts "Failed to load configuration file: #{e.message}"
-      exit 1
-    end
+    def transform(options)
+      file_path = options[:file_path]
 
-    def generate(options)
-      puts 'Generating llms.txt file...' if LlmsTxt.configuration.verbose
+      unless file_path
+        puts "File path required for transform command"
+        exit 1
+      end
 
-      result = LlmsTxt.generate(options)
-      output_path = options[:output] || LlmsTxt.configuration.output_path
+      unless File.exist?(file_path)
+        puts "File not found: #{file_path}"
+        exit 1
+      end
 
-      puts "Successfully generated #{output_path}"
-      puts "\nValidation:" if LlmsTxt.configuration.verbose
+      puts "Transforming #{file_path}..." if options[:verbose]
 
-      validator = LlmsTxt::Validator.new(result)
-      if validator.valid?
-        puts '  ✓ Valid llms.txt format' if LlmsTxt.configuration.verbose
+      content = LlmsTxt.transform_markdown(file_path, options)
+
+      if options[:output]
+        File.write(options[:output], content)
+        puts "Transformed content saved to #{options[:output]}"
       else
-        puts '  ⚠ Validation warnings:'
-        validator.errors.each { |error| puts "    - #{error}" }
+        puts content
       end
     end
 
@@ -178,14 +165,13 @@ module LlmsTxt
       parsed = LlmsTxt.parse(file_path)
 
       if options[:verbose]
-        puts 'Parsed llms.txt file:'
-        puts "  Title: #{parsed.title}"
-        puts "  Description: #{parsed.description}"
-        puts "  Documentation Links: #{parsed.documentation_links.size}"
-        puts "  Example Links: #{parsed.example_links.size}"
-        puts "  Optional Links: #{parsed.optional_links.size}"
+        puts "Title: #{parsed.title}"
+        puts "Description: #{parsed.description}"
+        puts "Documentation Links: #{parsed.documentation_links.size}"
+        puts "Example Links: #{parsed.example_links.size}" if parsed.respond_to?(:example_links)
+        puts "Optional Links: #{parsed.optional_links.size}" if parsed.respond_to?(:optional_links)
       else
-        puts parsed.to_xml
+        puts parsed.to_xml if parsed.respond_to?(:to_xml)
       end
     end
 
@@ -198,85 +184,18 @@ module LlmsTxt
       end
 
       content = File.read(file_path)
-      validator = LlmsTxt.validate(content)
+      valid = LlmsTxt.validate(content)
 
-      if validator
-        puts '✓ Valid llms.txt file'
+      if valid
+        puts 'Valid llms.txt file'
       else
-        puts '✗ Invalid llms.txt file'
+        puts 'Invalid llms.txt file'
         puts "\nErrors:"
         LlmsTxt::Validator.new(content).errors.each do |error|
           puts "  - #{error}"
         end
         exit 1
       end
-    end
-
-    def process_markdown(options)
-      input_path = options[:file_path] || options[:directory] || Dir.pwd
-
-      unless File.exist?(input_path)
-        puts "Path not found: #{input_path}"
-        exit 1
-      end
-
-      if File.directory?(input_path)
-        process_directory(input_path, options)
-      else
-        process_single_file(input_path, options)
-      end
-    end
-
-    def process_directory(dir_path, options)
-      puts "Processing markdown files in #{dir_path}..." if options[:verbose]
-
-      md_files = Dir.glob(File.join(dir_path, '**/*.md'))
-      processed = 0
-
-      md_files.each do |file|
-        next if File.basename(file).start_with?('.')
-
-        process_single_file(file, options.merge(quiet: !options[:verbose]))
-        processed += 1
-      end
-
-      puts "Processed #{processed} markdown files" if options[:verbose]
-    end
-
-    def process_single_file(file_path, options)
-      puts "Processing #{file_path}..." unless options[:quiet]
-
-      content = File.read(file_path)
-
-      if options[:expand_links] && !options[:expand_links].empty?
-        require 'tempfile'
-        temp_file = Tempfile.new(['process', '.md'])
-        temp_file.write(content)
-        temp_file.close
-
-        expander = LlmsTxt::Utils::MarkdownLinkExpander.new(temp_file.path, options[:expand_links])
-        content = expander.expand_links
-
-        temp_file.unlink
-      end
-
-      if options[:convert_urls]
-        require 'tempfile'
-        temp_file = Tempfile.new(['process', '.md'])
-        temp_file.write(content)
-        temp_file.close
-
-        converter = LlmsTxt::Utils::MarkdownUrlConverter.new(temp_file.path)
-        content = converter.convert_links
-
-        temp_file.unlink
-      end
-
-      # Write processed content back
-      output_file = options[:output] || file_path
-      File.write(output_file, content)
-
-      puts "  → #{output_file}" unless options[:quiet]
     end
 
     def show_version

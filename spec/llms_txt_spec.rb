@@ -2,33 +2,121 @@
 
 require 'spec_helper'
 require 'tempfile'
+require 'tmpdir'
 
 RSpec.describe LlmsTxt do
   it 'has a version number' do
     expect(LlmsTxt::VERSION).not_to be nil
   end
 
-  describe '.configuration' do
-    it 'returns a configuration object' do
-      expect(LlmsTxt.configuration).to be_a(LlmsTxt::Configuration)
+  describe '.generate_from_docs' do
+    let(:temp_dir) { Dir.mktmpdir }
+
+    before do
+      # Create sample markdown files
+      File.write(File.join(temp_dir, 'README.md'), <<~MD)
+        # Test Project
+
+        This is a sample project for testing the llms-txt generator.
+
+        ## Features
+        - Simple and clean
+        - Easy to use
+      MD
+
+      File.write(File.join(temp_dir, 'getting-started.md'), <<~MD)
+        # Getting Started
+
+        This guide will help you get started with the project.
+      MD
+
+      File.write(File.join(temp_dir, 'api.md'), <<~MD)
+        # API Reference
+
+        Complete API documentation for developers.
+      MD
     end
 
-    it 'allows configuration via block' do
-      LlmsTxt.configure do |config|
-        config.llm_provider = :openai
-        config.verbose = true
-      end
+    after do
+      FileUtils.rm_rf(temp_dir)
+    end
 
-      expect(LlmsTxt.configuration.llm_provider).to eq(:openai)
-      expect(LlmsTxt.configuration.verbose).to be true
+    it 'generates llms.txt from documentation directory' do
+      result = LlmsTxt.generate_from_docs(temp_dir)
+
+      expect(result).to be_a(String)
+      expect(result).to include('# Test Project')
+      expect(result).to include('## Documentation')
+      expect(result).to include('README')
+      expect(result).to include('Getting Started')
+      expect(result).to include('API Reference')
+    end
+
+    it 'generates with base URL' do
+      result = LlmsTxt.generate_from_docs(temp_dir, base_url: 'https://example.com')
+
+      expect(result).to include('https://example.com/README.md')
+      expect(result).to include('https://example.com/getting-started.md')
+    end
+
+    it 'uses custom title and description' do
+      result = LlmsTxt.generate_from_docs(temp_dir,
+        title: 'Custom Title',
+        description: 'Custom description'
+      )
+
+      expect(result).to include('# Custom Title')
+      expect(result).to include('> Custom description')
+    end
+
+    it 'works with single file' do
+      readme_file = File.join(temp_dir, 'README.md')
+      result = LlmsTxt.generate_from_docs(readme_file)
+
+      expect(result).to include('# Test Project')
+      expect(result).to include('README')
     end
   end
 
-  describe '.generate' do
-    it 'returns generated content' do
-      result = LlmsTxt.generate(no_llm: true, project_root: File.expand_path('..', __dir__))
-      expect(result).to be_a(String)
-      expect(result).to include('# ')
+  describe '.transform_markdown' do
+    let(:temp_file) do
+      file = Tempfile.new(['test', '.md'])
+      file.write(<<~MD)
+        # Test Document
+
+        Check out the [API docs](./api.md) and [guide](docs/guide.md).
+
+        Also see our website at https://example.com/docs.html
+      MD
+      file.close
+      file
+    end
+
+    after do
+      temp_file.unlink
+    end
+
+    it 'expands relative links' do
+      result = LlmsTxt.transform_markdown(temp_file.path, base_url: 'https://mysite.com')
+
+      expect(result).to include('[API docs](https://mysite.com/api.md)')
+      expect(result).to include('[guide](https://mysite.com/docs/guide.md)')
+    end
+
+    it 'converts HTML URLs to markdown' do
+      result = LlmsTxt.transform_markdown(temp_file.path, convert_urls: true)
+
+      expect(result).to include('https://example.com/docs.md')
+    end
+
+    it 'does both transformations' do
+      result = LlmsTxt.transform_markdown(temp_file.path,
+        base_url: 'https://mysite.com',
+        convert_urls: true
+      )
+
+      expect(result).to include('[API docs](https://mysite.com/api.md)')
+      expect(result).to include('https://example.com/docs.md')
     end
   end
 

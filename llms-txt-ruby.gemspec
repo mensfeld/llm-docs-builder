@@ -8,12 +8,12 @@ Gem::Specification.new do |spec|
   spec.authors = ['Maciej Mensfeld']
   spec.email = %w[maciej@mensfeld.pl]
 
-  spec.summary = 'Ruby implementation of the llms.txt specification for LLM-friendly content'
+  spec.summary = 'Simple tool for generating llms.txt files from existing markdown documentation'
   spec.description = <<~DESC
-    A Ruby gem that implements the llms.txt specification, providing tools to create and manage
-    llms.txt markdown files for websites. These files help Large Language Models understand
-    and navigate website content more effectively by providing curated, LLM-friendly information
-    in a standardized format.
+    A simple Ruby gem for generating llms.txt files from existing markdown documentation.
+    Transform your docs to be AI-friendly with two core functions: generate llms.txt from
+    documentation directories and transform individual markdown files by expanding relative
+    links and converting URLs.
   DESC
 
   spec.homepage = 'https://github.com/mensfeld/llms-txt-ruby'
@@ -33,8 +33,6 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'thor', '~> 1.0'
-  spec.add_dependency 'yard', '~> 0.9'
   spec.add_dependency 'zeitwerk', '~> 2.6'
 
   spec.add_development_dependency 'bundler', '~> 2.0'
