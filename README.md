@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
 
-A simple Ruby tool for generating [llms.txt](https://llmstxt.org/) files from existing markdown documentation. Transform your docs to be AI-friendly.
+A Ruby tool for generating [llms.txt](https://llmstxt.org/) files from existing markdown documentation. Transform your docs to be AI-friendly.
 
 ## What is llms.txt?
 
@@ -12,12 +12,10 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 
 ## What This Tool Does
 
-**Two simple functions:**
+This library converts existing human-first documentation into LLM-friendly formats:
 
-1. **Generate llms.txt** - Scan your existing markdown docs and create a properly formatted llms.txt file
-2. **Transform markdown** - Make individual markdown files more AI-friendly by expanding relative links and converting URLs
-
-**That's it.** No LLM APIs, no complex configuration, no universal language detection. Just simple, focused functionality.
+1. **Generate llms.txt** - Transform your existing markdown documentation into a structured overview that helps LLMs understand your project's layout and find relevant information
+2. **Transform markdown** - Convert individual markdown files from human-readable format to AI-optimized format by expanding relative links to absolute URLs and normalizing link structures
 
 ## Installation
 
@@ -41,33 +39,38 @@ $ gem install llms-txt-ruby
 
 ## Quick Start
 
-### Generate llms.txt from your docs
+### Option 1: Using Config File (Recommended)
 
-```bash
-# Generate from current directory
-llms-txt generate
+Create a `llms-txt.yml` file in your project root:
 
-# Generate from docs directory
-llms-txt generate --docs ./docs
-
-# Generate with base URL for absolute links
-llms-txt generate --docs ./docs --base-url https://myproject.io
-
-# Specify output file
-llms-txt generate --docs ./docs --output my-llms.txt
+```yaml
+# llms-txt.yml
+docs: ./docs
+base_url: https://myproject.io
+title: My Awesome Project
+description: A Ruby library that helps developers build amazing applications
+output: llms.txt
+convert_urls: true
+verbose: false
 ```
 
-### Transform markdown files
+Then simply run:
 
 ```bash
+llms-txt generate
+```
+
+### Option 2: Using CLI Options
+
+```bash
+# Generate from docs directory
+llms-txt generate --docs ./docs --base-url https://myproject.io
+
 # Transform a single file
 llms-txt transform README.md --base-url https://myproject.io
 
-# Save to different file
-llms-txt transform README.md --base-url https://myproject.io --output README-ai.md
-
-# Convert HTML URLs to markdown
-llms-txt transform docs/api.md --convert-urls
+# Override config with CLI options
+llms-txt generate --title "Different Title" --verbose
 ```
 
 ## CLI Reference
@@ -85,15 +88,51 @@ llms-txt version              # Show version
 ### Options
 
 ```bash
--d, --docs PATH          Path to documentation directory or file
--o, --output PATH        Output file path (default: llms.txt)
--u, --base-url URL       Base URL for expanding relative links
-    --convert-urls       Convert HTML URLs to markdown format
--t, --title TITLE        Project title (auto-detected if not provided)
-    --description DESC   Project description (auto-detected if not provided)
--v, --verbose            Verbose output
+-c, --config PATH        Configuration file path (default: llms-txt.yml)
+-d, --docs PATH          Path to documentation directory or file (overrides config)
+-o, --output PATH        Output file path (overrides config)
+-u, --base-url URL       Base URL for expanding relative links (overrides config)
+    --convert-urls       Convert HTML URLs to markdown format (overrides config)
+-t, --title TITLE        Project title (overrides config)
+    --description DESC   Project description (overrides config)
+-v, --verbose            Verbose output (overrides config)
 -h, --help               Show help message
 ```
+
+## Configuration File
+
+The recommended way to use llms-txt is with a `llms-txt.yml` config file. This allows you to:
+
+- ✅ Store all your settings in one place
+- ✅ Version control your llms.txt configuration
+- ✅ Avoid typing long CLI commands repeatedly
+- ✅ Share configuration across team members
+
+### Config File Options
+
+```yaml
+# Path to documentation directory or file
+docs: ./docs
+
+# Base URL for expanding relative links (optional)
+base_url: https://myproject.io
+
+# Project information (optional - auto-detected if not provided)
+title: My Project Name
+description: Brief description of what your project does
+
+# Output file (optional, default: llms.txt)
+output: llms.txt
+
+# Transformation options (optional)
+convert_urls: true   # Convert .html links to .md
+verbose: false       # Enable verbose output
+```
+
+The config file will be automatically found if named:
+- `llms-txt.yml`
+- `llms-txt.yaml`
+- `.llms-txt.yml`
 
 ## Ruby API
 
@@ -102,28 +141,38 @@ llms-txt version              # Show version
 ```ruby
 require 'llms_txt'
 
-# Generate llms.txt from documentation directory
-content = LlmsTxt.generate_from_docs('./docs')
+# Option 1: Using config file (recommended)
+content = LlmsTxt.generate_from_docs(config_file: 'llms-txt.yml')
 
-# Generate with options
+# Option 2: Direct options (overrides config)
 content = LlmsTxt.generate_from_docs('./docs',
   base_url: 'https://myproject.io',
   title: 'My Project',
   description: 'A great project'
 )
 
-# Transform a markdown file
+# Option 3: Mix config file with overrides
+content = LlmsTxt.generate_from_docs('./docs',
+  config_file: 'my-config.yml',
+  title: 'Override Title'  # This overrides config file title
+)
+
+# Transform markdown with config
+transformed = LlmsTxt.transform_markdown('README.md',
+  config_file: 'llms-txt.yml'
+)
+
+# Transform with direct options
 transformed = LlmsTxt.transform_markdown('README.md',
   base_url: 'https://myproject.io',
   convert_urls: true
 )
 
-# Parse existing llms.txt
+# Parse and validate (unchanged)
 parsed = LlmsTxt.parse('llms.txt')
 puts parsed.title
 puts parsed.description
 
-# Validate llms.txt content
 valid = LlmsTxt.validate(content)
 ```
 

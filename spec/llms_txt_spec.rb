@@ -186,4 +186,76 @@ RSpec.describe LlmsTxt do
       expect(LlmsTxt.validate(invalid_content)).to be false
     end
   end
+
+  describe 'config file support' do
+    let(:temp_dir) { Dir.mktmpdir }
+    let(:config_file) { File.join(temp_dir, 'llms-txt.yml') }
+
+    before do
+      # Create sample markdown files
+      File.write(File.join(temp_dir, 'README.md'), <<~MD)
+        # Config Test Project
+
+        This is a test project for config functionality.
+      MD
+
+      # Create config file
+      File.write(config_file, <<~YAML)
+        docs: #{temp_dir}
+        base_url: https://config-test.com
+        title: Config Title
+        description: Config Description
+        output: config-output.txt
+        convert_urls: true
+        verbose: false
+      YAML
+    end
+
+    after do
+      FileUtils.rm_rf(temp_dir)
+    end
+
+    describe '.generate_from_docs with config file' do
+      it 'uses config file settings' do
+        result = LlmsTxt.generate_from_docs(config_file: config_file)
+
+        expect(result).to include('# Config Title')
+        expect(result).to include('> Config Description')
+        expect(result).to include('https://config-test.com/README.md')
+      end
+
+      it 'allows CLI options to override config' do
+        result = LlmsTxt.generate_from_docs(config_file: config_file, title: 'Override Title')
+
+        expect(result).to include('# Override Title')
+        expect(result).to include('> Config Description') # description not overridden
+      end
+
+      it 'supports config-first usage pattern' do
+        result = LlmsTxt.generate_from_docs(config_file: config_file)
+
+        expect(result).to include('# Config Title')
+        expect(result).to include('https://config-test.com/README.md')
+      end
+    end
+
+    describe '.transform_markdown with config file' do
+      let(:markdown_file) { File.join(temp_dir, 'test.md') }
+
+      before do
+        File.write(markdown_file, <<~MD)
+          # Test Doc
+
+          See [API](./api.md) and visit https://example.com/page.html
+        MD
+      end
+
+      it 'uses config file for transformation' do
+        result = LlmsTxt.transform_markdown(markdown_file, config_file: config_file)
+
+        expect(result).to include('[API](https://config-test.com/api.md)')
+        expect(result).to include('https://example.com/page.md') # convert_urls: true
+      end
+    end
+  end
 end

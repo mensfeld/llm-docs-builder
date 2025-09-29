@@ -1,0 +1,19 @@
+# Example llms-txt.yml configuration file
+# Copy to llms-txt.yml and customize for your project
+
+# Path to documentation directory or file
+docs: ./docs
+
+# Base URL for expanding relative links (optional)
+base_url: https://myproject.io
+
+# Project information (optional - will auto-detect from docs if not provided)
+title: My Awesome Project
+description: A Ruby library that helps developers build amazing applications
+
+# Output file path (optional)
+output: llms.txt
+
+# Transform options (optional)
+convert_urls: true  # Convert .html links to .md
+verbose: false      # Verbose output

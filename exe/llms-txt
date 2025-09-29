@@ -59,31 +59,35 @@ module LlmsTxt
         opts.separator ''
         opts.separator 'Options:'
 
-        opts.on('-d', '--docs PATH', 'Path to documentation directory or file (required for generate)') do |path|
+        opts.on('-c', '--config PATH', 'Configuration file path (default: llms-txt.yml)') do |path|
+          options[:config] = path
+        end
+
+        opts.on('-d', '--docs PATH', 'Path to documentation directory or file (overrides config)') do |path|
           options[:docs] = path
         end
 
-        opts.on('-o', '--output PATH', 'Output file path (default: llms.txt)') do |path|
+        opts.on('-o', '--output PATH', 'Output file path (overrides config)') do |path|
           options[:output] = path
         end
 
-        opts.on('-u', '--base-url URL', 'Base URL for expanding relative links') do |url|
+        opts.on('-u', '--base-url URL', 'Base URL for expanding relative links (overrides config)') do |url|
           options[:base_url] = url
         end
 
-        opts.on('--convert-urls', 'Convert HTML URLs to markdown format') do
+        opts.on('--convert-urls', 'Convert HTML URLs to markdown format (overrides config)') do
           options[:convert_urls] = true
         end
 
-        opts.on('-t', '--title TITLE', 'Project title (auto-detected if not provided)') do |title|
+        opts.on('-t', '--title TITLE', 'Project title (overrides config)') do |title|
           options[:title] = title
         end
 
-        opts.on('--description DESC', 'Project description (auto-detected if not provided)') do |desc|
+        opts.on('--description DESC', 'Project description (overrides config)') do |desc|
           options[:description] = desc
         end
 
-        opts.on('-v', '--verbose', 'Verbose output') do
+        opts.on('-v', '--verbose', 'Verbose output (overrides config)') do
           options[:verbose] = true
         end
 
@@ -103,22 +107,26 @@ module LlmsTxt
     end
 
     def generate(options)
-      docs_path = options[:docs] || '.'
+      # Load config and merge with CLI options
+      config = LlmsTxt::Config.new(options[:config])
+      merged_options = config.merge_with_options(options)
+
+      docs_path = merged_options[:docs]
 
       unless File.exist?(docs_path)
         puts "Documentation path not found: #{docs_path}"
         exit 1
       end
 
-      puts "Generating llms.txt from #{docs_path}..." if options[:verbose]
+      puts "Generating llms.txt from #{docs_path}..." if merged_options[:verbose]
 
-      content = LlmsTxt.generate_from_docs(docs_path, options)
-      output_path = options[:output] || 'llms.txt'
+      content = LlmsTxt.generate_from_docs(docs_path, merged_options)
+      output_path = merged_options[:output]
 
       File.write(output_path, content)
       puts "Successfully generated #{output_path}"
 
-      if options[:verbose]
+      if merged_options[:verbose]
         validator = LlmsTxt::Validator.new(content)
         if validator.valid?
           puts "Valid llms.txt format"
@@ -130,6 +138,10 @@ module LlmsTxt
     end
 
     def transform(options)
+      # Load config and merge with CLI options
+      config = LlmsTxt::Config.new(options[:config])
+      merged_options = config.merge_with_options(options)
+
       file_path = options[:file_path]
 
       unless file_path
@@ -142,13 +154,13 @@ module LlmsTxt
         exit 1
       end
 
-      puts "Transforming #{file_path}..." if options[:verbose]
+      puts "Transforming #{file_path}..." if merged_options[:verbose]
 
-      content = LlmsTxt.transform_markdown(file_path, options)
+      content = LlmsTxt.transform_markdown(file_path, merged_options)
 
-      if options[:output]
-        File.write(options[:output], content)
-        puts "Transformed content saved to #{options[:output]}"
+      if merged_options[:output] && merged_options[:output] != 'llms.txt'
+        File.write(merged_options[:output], content)
+        puts "Transformed content saved to #{merged_options[:output]}"
       else
         puts content
       end

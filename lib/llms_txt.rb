@@ -16,26 +16,67 @@ module LlmsTxt
   class << self
     # Generates llms.txt from existing markdown documentation
     #
-    # @param docs_path [String] path to documentation directory or file
+    # @param docs_path [String, nil] path to documentation directory or file (optional if config_file provided)
     # @param options [Hash] generation options
-    # @option options [String] :base_url base URL for converting relative links
-    # @option options [String] :title project title (auto-detected if not provided)
-    # @option options [String] :description project description (auto-detected if not provided)
-    # @option options [String] :output output file path (default: 'llms.txt')
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :base_url base URL for converting relative links (overrides config)
+    # @option options [String] :title project title (auto-detected if not provided, overrides config)
+    # @option options [String] :description project description (auto-detected if not provided, overrides config)
+    # @option options [String] :output output file path (default: 'llms.txt', overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
+    # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [String] generated llms.txt content
-    def generate_from_docs(docs_path, options = {})
-      Generator.new(docs_path, options).generate
+    #
+    # @example Generate from docs directory
+    #   LlmsTxt.generate_from_docs('./docs')
+    #
+    # @example Generate using config file
+    #   LlmsTxt.generate_from_docs(config_file: 'llms-txt.yml')
+    #
+    # @example Generate with config file and overrides
+    #   LlmsTxt.generate_from_docs('./docs',
+    #     config_file: 'my-config.yml',
+    #     title: 'Override Title'
+    #   )
+    def generate_from_docs(docs_path = nil, options = {})
+      # Support config-first usage: generate_from_docs(config_file: 'path.yml')
+      if docs_path.is_a?(Hash) && docs_path.key?(:config_file)
+        options = docs_path
+        docs_path = nil
+      end
+
+      config = Config.new(options[:config_file])
+      merged_options = config.merge_with_options(options)
+
+      # Use docs_path param or config file docs setting
+      final_docs_path = docs_path || merged_options[:docs]
+
+      Generator.new(final_docs_path, merged_options).generate
     end
 
     # Transforms a markdown file to be AI-friendly
     #
     # @param file_path [String] path to markdown file
     # @param options [Hash] transformation options
-    # @option options [String] :base_url base URL for expanding relative links
-    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :base_url base URL for expanding relative links (overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
+    # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [String] transformed markdown content
+    #
+    # @example Transform with direct options
+    #   LlmsTxt.transform_markdown('README.md',
+    #     base_url: 'https://myproject.io',
+    #     convert_urls: true
+    #   )
+    #
+    # @example Transform using config file
+    #   LlmsTxt.transform_markdown('README.md', config_file: 'llms-txt.yml')
     def transform_markdown(file_path, options = {})
-      MarkdownTransformer.new(file_path, options).transform
+      config = Config.new(options[:config_file])
+      merged_options = config.merge_with_options(options)
+
+      MarkdownTransformer.new(file_path, merged_options).transform
     end
 
     # Parses an existing llms.txt file
