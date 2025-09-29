@@ -304,22 +304,6 @@ Running `llms-txt generate --docs ./docs --base-url https://myproject.io` create
 - [API Reference](https://myproject.io/api-reference.md): Detailed API documentation and method signatures
 ```
 
-## What's Different
-
-This tool is **intentionally simple**:
-
-- ❌ No LLM API integrations (Claude, OpenAI, etc.)
-- ❌ No complex YAML configuration files
-- ❌ No universal language detection
-- ❌ No project analysis beyond markdown files
-- ❌ No template systems or DSLs
-
-- ✅ Just processes your existing markdown docs
-- ✅ Simple command-line interface
-- ✅ Clean Ruby API
-- ✅ Focused on the core problem
-- ✅ Zero external dependencies
-
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/mensfeld/llms-txt-ruby.
