@@ -18,6 +18,8 @@ module LlmsTxt
         generate(options)
       when 'transform'
         transform(options)
+      when 'bulk-transform'
+        bulk_transform(options)
       when 'parse'
         parse(options)
       when 'validate'
@@ -42,7 +44,7 @@ module LlmsTxt
 
     def parse_options(argv)
       options = {
-        command: argv.first&.match?(/^[a-z]+$/) ? argv.shift : nil
+        command: argv.first&.match?(/^[a-z-]+$/) ? argv.shift : nil
       }
 
       OptionParser.new do |opts|
@@ -50,11 +52,12 @@ module LlmsTxt
 
         opts.separator ''
         opts.separator 'Commands:'
-        opts.separator '  generate    Generate llms.txt from documentation (default)'
-        opts.separator '  transform   Transform a markdown file to be AI-friendly'
-        opts.separator '  parse       Parse existing llms.txt file'
-        opts.separator '  validate    Validate llms.txt file'
-        opts.separator '  version     Show version'
+        opts.separator '  generate       Generate llms.txt from documentation (default)'
+        opts.separator '  transform      Transform a markdown file to be AI-friendly'
+        opts.separator '  bulk-transform Transform all markdown files in directory'
+        opts.separator '  parse          Parse existing llms.txt file'
+        opts.separator '  validate       Validate llms.txt file'
+        opts.separator '  version        Show version'
 
         opts.separator ''
         opts.separator 'Options:'
@@ -147,6 +150,42 @@ module LlmsTxt
         puts "Transformed content saved to #{merged_options[:output]}"
       else
         puts content
+      end
+    end
+
+    def bulk_transform(options)
+      # Load config and merge with CLI options
+      config = LlmsTxt::Config.new(options[:config])
+      merged_options = config.merge_with_options(options)
+
+      docs_path = merged_options[:docs]
+
+      unless File.exist?(docs_path)
+        puts "Documentation path not found: #{docs_path}"
+        exit 1
+      end
+
+      unless File.directory?(docs_path)
+        puts "Path must be a directory for bulk transformation: #{docs_path}"
+        exit 1
+      end
+
+      puts "Bulk transforming markdown files in #{docs_path}..." if merged_options[:verbose]
+      puts "Using suffix: #{merged_options[:suffix]}" if merged_options[:verbose]
+      puts "Excludes: #{merged_options[:excludes].join(', ')}" if merged_options[:verbose] && !merged_options[:excludes].empty?
+
+      begin
+        transformed_files = LlmsTxt.bulk_transform(docs_path, merged_options)
+
+        if transformed_files.empty?
+          puts "No markdown files found to transform"
+        else
+          puts "Successfully transformed #{transformed_files.size} files:"
+          transformed_files.each { |file| puts "  #{file}" } unless merged_options[:verbose] # verbose mode already shows progress
+        end
+      rescue LlmsTxt::Error => e
+        puts "Error during bulk transformation: #{e.message}"
+        exit 1
       end
     end
 

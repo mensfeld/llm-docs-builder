@@ -16,6 +16,7 @@ This library converts existing human-first documentation into LLM-friendly forma
 
 1. **Generates llms.txt** - Transforms your existing markdown documentation into a structured overview that helps LLMs understand your project's layout and find relevant information
 2. **Transforms markdown** - Converts individual markdown files from human-readable format to AI-optimized format by expanding relative links to absolute URLs and normalizing link structures
+3. **Bulk transforms** - Processes all markdown files in a directory recursively, creating LLM-friendly versions alongside originals with customizable exclusion patterns
 
 ## Installation
 
@@ -69,6 +70,9 @@ llms-txt generate --docs ./docs
 # Transform a single file
 llms-txt transform README.md
 
+# Transform all markdown files in directory
+llms-txt bulk-transform --docs ./docs
+
 # Use custom config file
 llms-txt generate --config my-config.yml
 ```
@@ -78,11 +82,12 @@ llms-txt generate --config my-config.yml
 ### Commands
 
 ```bash
-llms-txt generate [options]   # Generate llms.txt from documentation (default)
-llms-txt transform [file]     # Transform a markdown file to be AI-friendly
-llms-txt parse [file]         # Parse existing llms.txt file
-llms-txt validate [file]      # Validate llms.txt file
-llms-txt version              # Show version
+llms-txt generate [options]       # Generate llms.txt from documentation (default)
+llms-txt transform [file]         # Transform a markdown file to be AI-friendly
+llms-txt bulk-transform [options] # Transform all markdown files in directory
+llms-txt parse [file]             # Parse existing llms.txt file
+llms-txt validate [file]          # Validate llms.txt file
+llms-txt version                  # Show version
 ```
 
 ### Options
@@ -132,6 +137,72 @@ The config file will be automatically found if named:
 - `llms-txt.yaml`
 - `.llms-txt.yml`
 
+## Bulk Transformation
+
+The `bulk-transform` command processes all markdown files in a directory recursively, creating AI-friendly versions alongside the originals. This is perfect for transforming entire documentation trees.
+
+### Key Features
+
+- **Recursive processing** - Finds and transforms all `.md` files in nested directories
+- **Preserves structure** - Maintains your existing directory layout
+- **Exclusion patterns** - Skip files/directories using glob patterns
+- **Custom suffixes** - Choose how transformed files are named
+- **LLM optimizations** - Expands relative links, converts HTML URLs, etc.
+
+### Usage
+
+```bash
+# Transform all files with default settings
+llms-txt bulk-transform --docs ./wiki
+
+# Using config file (recommended for complex setups)
+llms-txt bulk-transform --config karafka-config.yml
+```
+
+### Example Config for Bulk Transformation
+
+```yaml
+# karafka-config.yml
+docs: ./wiki
+base_url: https://karafka.io
+suffix: .llm
+convert_urls: true
+excludes:
+  - "**/private/**"      # Skip private directories
+  - "**/draft-*.md"      # Skip draft files
+  - "**/old-docs/**"     # Skip legacy documentation
+```
+
+### Example Output
+
+With the config above, these files:
+```
+wiki/
+├── Home.md
+├── getting-started.md
+├── api/
+│   ├── consumers.md
+│   └── producers.md
+└── private/
+    └── internal.md
+```
+
+Become:
+```
+wiki/
+├── Home.md
+├── Home.llm.md          ← AI-friendly version
+├── getting-started.md
+├── getting-started.llm.md
+├── api/
+│   ├── consumers.md
+│   ├── consumers.llm.md
+│   ├── producers.md
+│   └── producers.llm.md
+└── private/
+    └── internal.md      ← Excluded, no .llm.md version
+```
+
 ## Ruby API
 
 ### Basic Usage
@@ -164,6 +235,19 @@ transformed = LlmsTxt.transform_markdown('README.md',
 transformed = LlmsTxt.transform_markdown('README.md',
   base_url: 'https://myproject.io',
   convert_urls: true
+)
+
+# Bulk transform all files in directory
+transformed_files = LlmsTxt.bulk_transform('./wiki',
+  base_url: 'https://karafka.io',
+  suffix: '.llm',
+  excludes: ['**/private/**', '**/draft-*.md']
+)
+puts "Transformed #{transformed_files.size} files"
+
+# Bulk transform with config file
+transformed_files = LlmsTxt.bulk_transform('./wiki',
+  config_file: 'karafka-config.yml'
 )
 
 # Parse and validate (unchanged)

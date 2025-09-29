@@ -64,7 +64,11 @@ module LlmsTxt
         description: options[:description] || self['description'],
         output: options[:output] || self['output'] || 'llms.txt',
         convert_urls: options.key?(:convert_urls) ? options[:convert_urls] : (self['convert_urls'] || false),
-        verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false)
+        verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false),
+        # Bulk transformation options
+        suffix: options[:suffix] || self['suffix'] || '.llm',
+        excludes: options[:excludes] || self['excludes'] || [],
+        bulk: options.key?(:bulk) ? options[:bulk] : (self['bulk'] || false)
       }
     end
 

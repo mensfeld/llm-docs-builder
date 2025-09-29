@@ -17,3 +17,10 @@ output: llms.txt
 # Transform options (optional)
 convert_urls: true  # Convert .html links to .md
 verbose: false      # Verbose output
+
+# Bulk transformation options (optional)
+suffix: .llm        # Suffix for transformed files (creates file.llm.md)
+excludes:           # Patterns for files to exclude from bulk transformation
+  - "**/private/**"    # Exclude private directories
+  - "**/draft-*.md"    # Exclude draft files
+  - "**/.*"            # Exclude hidden files

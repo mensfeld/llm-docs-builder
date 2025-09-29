@@ -79,6 +79,34 @@ module LlmsTxt
       MarkdownTransformer.new(file_path, merged_options).transform
     end
 
+    # Bulk transforms multiple markdown files to be AI-friendly
+    #
+    # @param docs_path [String] path to documentation directory
+    # @param options [Hash] transformation options
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :base_url base URL for expanding relative links (overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
+    # @option options [String] :suffix suffix for transformed files (default: '.llm', overrides config)
+    # @option options [Array<String>] :excludes glob patterns for files to exclude (overrides config)
+    # @option options [Boolean] :verbose enable verbose output (overrides config)
+    # @return [Array<String>] paths of transformed files
+    #
+    # @example Bulk transform with direct options
+    #   LlmsTxt.bulk_transform('./docs',
+    #     base_url: 'https://myproject.io',
+    #     suffix: '.ai',
+    #     excludes: ['**/private/**', 'draft-*.md']
+    #   )
+    #
+    # @example Bulk transform using config file
+    #   LlmsTxt.bulk_transform('./docs', config_file: 'llms-txt.yml')
+    def bulk_transform(docs_path, options = {})
+      config = Config.new(options[:config_file])
+      merged_options = config.merge_with_options(options)
+
+      BulkTransformer.new(docs_path, merged_options).transform_all
+    end
+
     # Parses an existing llms.txt file
     #
     # @param file_path [String] path to the llms.txt file to parse
