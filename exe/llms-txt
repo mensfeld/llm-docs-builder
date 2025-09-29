@@ -46,7 +46,7 @@ module LlmsTxt
       }
 
       OptionParser.new do |opts|
-        opts.banner = "llms-txt - Simple tool for generating llms.txt from markdown documentation\n\nUsage: llms-txt [command] [options]"
+        opts.banner = "llms-txt - Simple tool for generating llms.txt from markdown documentation\n\nUsage: llms-txt [command] [options]\n\nFor advanced configuration (base_url, title, description, convert_urls), use a config file."
 
         opts.separator ''
         opts.separator 'Commands:'
@@ -63,31 +63,15 @@ module LlmsTxt
           options[:config] = path
         end
 
-        opts.on('-d', '--docs PATH', 'Path to documentation directory or file (overrides config)') do |path|
+        opts.on('-d', '--docs PATH', 'Path to documentation directory or file') do |path|
           options[:docs] = path
         end
 
-        opts.on('-o', '--output PATH', 'Output file path (overrides config)') do |path|
+        opts.on('-o', '--output PATH', 'Output file path') do |path|
           options[:output] = path
         end
 
-        opts.on('-u', '--base-url URL', 'Base URL for expanding relative links (overrides config)') do |url|
-          options[:base_url] = url
-        end
-
-        opts.on('--convert-urls', 'Convert HTML URLs to markdown format (overrides config)') do
-          options[:convert_urls] = true
-        end
-
-        opts.on('-t', '--title TITLE', 'Project title (overrides config)') do |title|
-          options[:title] = title
-        end
-
-        opts.on('--description DESC', 'Project description (overrides config)') do |desc|
-          options[:description] = desc
-        end
-
-        opts.on('-v', '--verbose', 'Verbose output (overrides config)') do
+        opts.on('-v', '--verbose', 'Verbose output') do
           options[:verbose] = true
         end
 

@@ -60,17 +60,17 @@ Then simply run:
 llms-txt generate
 ```
 
-### Option 2: Using CLI Options
+### Option 2: Using CLI Only
 
 ```bash
 # Generate from docs directory
-llms-txt generate --docs ./docs --base-url https://myproject.io
+llms-txt generate --docs ./docs
 
 # Transform a single file
-llms-txt transform README.md --base-url https://myproject.io
+llms-txt transform README.md
 
-# Override config with CLI options
-llms-txt generate --title "Different Title" --verbose
+# Use custom config file
+llms-txt generate --config my-config.yml
 ```
 
 ## CLI Reference
@@ -89,15 +89,13 @@ llms-txt version              # Show version
 
 ```bash
 -c, --config PATH        Configuration file path (default: llms-txt.yml)
--d, --docs PATH          Path to documentation directory or file (overrides config)
--o, --output PATH        Output file path (overrides config)
--u, --base-url URL       Base URL for expanding relative links (overrides config)
-    --convert-urls       Convert HTML URLs to markdown format (overrides config)
--t, --title TITLE        Project title (overrides config)
-    --description DESC   Project description (overrides config)
--v, --verbose            Verbose output (overrides config)
+-d, --docs PATH          Path to documentation directory or file
+-o, --output PATH        Output file path
+-v, --verbose            Verbose output
 -h, --help               Show help message
 ```
+
+*For advanced options like base_url, title, description, and convert_urls, use a config file.*
 
 ## Configuration File
 
