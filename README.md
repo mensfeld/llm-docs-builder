@@ -14,8 +14,8 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 
 This library converts existing human-first documentation into LLM-friendly formats:
 
-1. **Generate llms.txt** - Transform your existing markdown documentation into a structured overview that helps LLMs understand your project's layout and find relevant information
-2. **Transform markdown** - Convert individual markdown files from human-readable format to AI-optimized format by expanding relative links to absolute URLs and normalizing link structures
+1. **Generates llms.txt** - Transforms your existing markdown documentation into a structured overview that helps LLMs understand your project's layout and find relevant information
+2. **Transforms markdown** - Converts individual markdown files from human-readable format to AI-optimized format by expanding relative links to absolute URLs and normalizing link structures
 
 ## Installation
 
