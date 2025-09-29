@@ -2,43 +2,6 @@
 
 [![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
 
-## llms.txt vs MCP: Why Static Documentation Matters
-
-### The Key Difference
-
-**MCP (Model Context Protocol)** provides real-time, dynamic access to systems through APIs. It's perfect for live data, runtime queries, and interactive operations.
-
-**llms.txt** provides static, versioned documentation that travels with your code. It's perfect for understanding codebases, navigating documentation, and providing persistent context.
-
-### Why You Need Both (But llms.txt First)
-
-| Aspect | llms.txt | MCP |
-|--------|----------|-----|
-| **Setup** | Zero configuration - just a file | Requires server setup and maintenance |
-| **Availability** | Always available, works offline | Requires running server |
-| **Versioning** | Versioned with your code | Real-time only |
-| **Performance** | Instant, no latency | Network/API latency |
-| **Context Window** | Optimized for LLM limits | Can overwhelm context |
-| **Use Case** | Documentation, code understanding | Live data, tool execution |
-
-### The Problem llms.txt Solves
-
-**Large Language Models are transforming how developers discover and understand projects** - but they struggle with fragmented documentation, broken links, and inconsistent project structures. When an LLM encounters your project (Ruby, Python, JavaScript, Go, or any other technology), it needs clear entry points to understand what your code does, how to use it, and where to find examples.
-
-**MCP can't help with:**
-- Understanding your codebase structure when offline
-- Providing versioned documentation that matches specific commits
-- Working in environments where MCP servers can't run
-- Giving LLMs immediate context without API calls
-- Documentation that travels with forked/vendored code
-
-**llms.txt excels at:**
-- 📚 **Persistent Context** - Documentation that's always there
-- 🔄 **Version Aligned** - Docs that match your code version
-- 🚀 **Zero Latency** - No API calls, instant access
-- 🌍 **Universal** - Works with any LLM, any environment
-- 📦 **Portable** - Travels with your code everywhere
-
 ## Why This Tool?
 
 This **universal documentation processor** works with **any programming language** through:
@@ -627,6 +590,43 @@ Here's what a generated llms.txt file might look like:
 - [License](https://myproject.io/LICENSE): MIT
 - [Project Homepage](https://github.com/user/myproject): Main project website
 ```
+
+## llms.txt vs MCP: Why Static Documentation Matters
+
+### The Key Difference
+
+**MCP (Model Context Protocol)** provides real-time, dynamic access to systems through APIs. It's perfect for live data, runtime queries, and interactive operations.
+
+**llms.txt** provides static, versioned documentation that travels with your code. It's perfect for understanding codebases, navigating documentation, and providing persistent context.
+
+### Why You Need Both (But llms.txt First)
+
+| Aspect | llms.txt | MCP |
+|--------|----------|-----|
+| **Setup** | Zero configuration - just a file | Requires server setup and maintenance |
+| **Availability** | Always available, works offline | Requires running server |
+| **Versioning** | Versioned with your code | Real-time only |
+| **Performance** | Instant, no latency | Network/API latency |
+| **Context Window** | Optimized for LLM limits | Can overwhelm context |
+| **Use Case** | Documentation, code understanding | Live data, tool execution |
+
+### The Problem llms.txt Solves
+
+**Large Language Models are transforming how developers discover and understand projects** - but they struggle with fragmented documentation, broken links, and inconsistent project structures. When an LLM encounters your project (Ruby, Python, JavaScript, Go, or any other technology), it needs clear entry points to understand what your code does, how to use it, and where to find examples.
+
+**MCP can't help with:**
+- Understanding your codebase structure when offline
+- Providing versioned documentation that matches specific commits
+- Working in environments where MCP servers can't run
+- Giving LLMs immediate context without API calls
+- Documentation that travels with forked/vendored code
+
+**llms.txt excels at:**
+- 📚 **Persistent Context** - Documentation that's always there
+- 🔄 **Version Aligned** - Docs that match your code version
+- 🚀 **Zero Latency** - No API calls, instant access
+- 🌍 **Universal** - Works with any LLM, any environment
+- 📦 **Portable** - Travels with your code everywhere
 
 ## Development
 
