@@ -2,31 +2,62 @@
 
 [![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
 
-## Why llms.txt and LLM-Friendly Documentation Matter
+## llms.txt vs MCP: Why Static Documentation Matters
+
+### The Key Difference
+
+**MCP (Model Context Protocol)** provides real-time, dynamic access to systems through APIs. It's perfect for live data, runtime queries, and interactive operations.
+
+**llms.txt** provides static, versioned documentation that travels with your code. It's perfect for understanding codebases, navigating documentation, and providing persistent context.
+
+### Why You Need Both (But llms.txt First)
+
+| Aspect | llms.txt | MCP |
+|--------|----------|-----|
+| **Setup** | Zero configuration - just a file | Requires server setup and maintenance |
+| **Availability** | Always available, works offline | Requires running server |
+| **Versioning** | Versioned with your code | Real-time only |
+| **Performance** | Instant, no latency | Network/API latency |
+| **Context Window** | Optimized for LLM limits | Can overwhelm context |
+| **Use Case** | Documentation, code understanding | Live data, tool execution |
+
+### The Problem llms.txt Solves
 
 **Large Language Models are transforming how developers discover and understand projects** - but they struggle with fragmented documentation, broken links, and inconsistent project structures. When an LLM encounters your project (Ruby, Python, JavaScript, Go, or any other technology), it needs clear entry points to understand what your code does, how to use it, and where to find examples.
 
-**The problem:** LLMs waste time parsing scattered READMEs, guessing at project structure, and following broken documentation links. Your amazing project might be invisible to AI-powered development tools.
+**MCP can't help with:**
+- Understanding your codebase structure when offline
+- Providing versioned documentation that matches specific commits
+- Working in environments where MCP servers can't run
+- Giving LLMs immediate context without API calls
+- Documentation that travels with forked/vendored code
 
-**The solution:** [llms.txt](https://llmstxt.org/) - a proposed standard that creates a single, LLM-optimized file describing your project. Think of it as a "sitemap for AI" that helps language models quickly understand and navigate any codebase.
+**llms.txt excels at:**
+- 📚 **Persistent Context** - Documentation that's always there
+- 🔄 **Version Aligned** - Docs that match your code version
+- 🚀 **Zero Latency** - No API calls, instant access
+- 🌍 **Universal** - Works with any LLM, any environment
+- 📦 **Portable** - Travels with your code everywhere
 
 ## Why This Tool?
 
-This Ruby gem provides **two powerful capabilities for any project**:
+This **universal documentation processor** works with **any programming language** through:
 
-1. **Universal Markdown Processing** - Transform existing documentation, wikis, and markdown files to be LLM-friendly across any technology stack
-2. **Ruby Project Analysis** - Generate llms.txt files by intelligently analyzing Ruby codebases
+### 🌍 Universal Project Analysis
+- **YAML Configuration** - Language-agnostic configuration system
+- **LLM-Powered Discovery** - AI understands your project regardless of language
+- **Pattern Recognition** - Built-in patterns for Python, JavaScript, Go, Rust, Java, C#, PHP, Ruby, and more
+- **Docker Support** - Run without Ruby installation via Docker
 
-**Key benefits:**
-- 🌍 **Works with any technology** - Process documentation from Python, JavaScript, Go, Rust, Java projects  
-- 🔗 **Link processing** - Converts relative links to absolute URLs so LLMs can navigate properly
-- 📚 **Wiki transformation** - Make existing wikis and documentation LLM-navigable
-- 🤖 **AI-ready documentation** - Help Claude, GPT, and other LLMs understand your projects instantly
-- 🚀 **Future-proof your documentation** - As AI coding assistants become standard, ensure your docs are discoverable
+### 📚 Markdown Processing (Any Technology)
+- **Link Expansion** - Convert relative links to absolute URLs
+- **Wiki Transformation** - Make existing documentation LLM-navigable  
+- **Batch Processing** - Handle entire documentation directories
+- **URL Conversion** - Transform HTML URLs to markdown format
 
 ---
 
-A Ruby-based tool that generates [llms.txt](https://llmstxt.org/) files for Ruby projects and transforms markdown documentation for LLM consumption across any technology stack. Process wikis, documentation directories, and markdown files to make them AI-navigable.
+A universal tool for generating [llms.txt](https://llmstxt.org/) files and transforming documentation for LLM consumption. Works with any programming language through YAML configuration and LLM-powered analysis.
 
 ## Features
 
@@ -37,8 +68,8 @@ A Ruby-based tool that generates [llms.txt](https://llmstxt.org/) files for Ruby
 - **Wiki transformation**: Make existing wikis LLM-navigable (Python docs, Node.js guides, Go tutorials, etc.)
 - **Cross-platform**: Works with documentation from any programming language or framework
 
-### Ruby Project Analysis (Ruby-Specific)
-- **Multiple analyzers**: README, gemspec, YARD docs, wikis, examples, changelogs, documentation directories
+### Universal Project Analysis (Any Language)
+- **Multiple analyzers**: README, wikis, examples, changelogs, documentation directories
 - **AI integration**: Works with Claude (Anthropic) or OpenAI, with local template fallback
 - **Validation**: Built-in llms.txt specification validation
 - **Parser**: Parse existing llms.txt files and convert to XML
@@ -62,10 +93,6 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 - **API Documentation**: Convert REST API docs, GraphQL schemas, or any markdown-based docs
 - **Knowledge Bases**: Transform Notion exports, GitBook content, or wiki exports
 
-### For Ruby Projects Specifically  
-- **Gem Documentation**: Auto-generate llms.txt for RubyGems with intelligent analysis
-- **Rails Applications**: Create AI-friendly documentation for Rails apps
-- **Library Maintenance**: Keep documentation current with automated analysis
 
 ### Production Examples
 - **DevOps Teams**: Process deployment documentation and runbooks
@@ -75,11 +102,9 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 
 ## Detailed Features
 
-### Ruby Project Analysis (Ruby-Specific)
+### Universal Project Analysis (Any Language)
 - **README analysis**: Extracts title, description, documentation links
-- **Gemspec analysis**: Pulls metadata, dependencies, URIs
-- **YARD documentation**: Processes API docs, examples, coverage stats
-- **Examples analysis**: Finds and categorizes Ruby example files
+- **Examples analysis**: Finds and categorizes example files
 - **Documentation**: Scans docs directories for guides and references  
 - **Changelog analysis**: Tracks version history and release notes
 
@@ -103,6 +128,25 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 
 ## Installation
 
+### Option 1: Docker (No Ruby Required) 🐳
+
+```bash
+# Clone the repository
+git clone https://github.com/mensfeld/llms-txt-ruby
+cd llms-txt-ruby
+
+# Build the Docker image
+docker build -t llms-txt .
+
+# Run for any project (current directory)
+./docker-run.sh --no-llm
+
+# Or use docker directly
+docker run --rm -v $(pwd):/workspace llms-txt --no-llm
+```
+
+### Option 2: Ruby Gem
+
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -122,6 +166,40 @@ $ gem install llms-txt-ruby
 ```
 
 ## Quick Start
+
+### 🚀 Universal Project Analysis with YAML (NEW!)
+
+Create a `llms-txt.yml` file in your project:
+
+```yaml
+# llms-txt.yml - Works with ANY programming language
+project:
+  name: auto  # Auto-detect from package.json, Cargo.toml, etc.
+  description: auto  # Extract from README
+  base_url: https://myproject.io
+
+discovery:
+  mode: llm  # Use AI to understand your project (or 'pattern' for offline)
+  
+llm:
+  provider: claude  # or openai, or local
+  api_key: $ANTHROPIC_API_KEY  # From environment variable
+
+output:
+  formats: [llms.txt, llms-full.txt]
+```
+
+Then run:
+```bash
+# With Docker (no Ruby needed)
+docker run --rm -v $(pwd):/workspace llms-txt
+
+# Or with Ruby gem
+llms-txt
+
+# Or without any config file (auto-detection)
+llms-txt --no-llm
+```
 
 ### Universal Markdown Processing (Works with Any Project)
 
@@ -144,9 +222,9 @@ llms-txt --expand-links https://go-project.dev --convert-urls --directory ./docu
 llms-txt --expand-links https://myproject.io --convert-urls --no-llm
 ```
 
-### Ruby-Specific llms.txt Generation
+### Universal llms.txt Generation
 
-**Generate llms.txt files for Ruby projects:**
+**Generate llms.txt files for any project:**
 
 ```bash
 # Template mode (no API key needed)
@@ -164,7 +242,7 @@ llms-txt parse llms.txt --verbose
 llms-txt validate llms.txt
 ```
 
-### Ruby API
+### Ruby API (for Ruby-based usage)
 
 ```ruby
 require 'llms_txt'
@@ -225,7 +303,60 @@ Options:
   -h, --help              Show help message
 ```
 
-### Configuration
+### YAML Configuration (Recommended)
+
+Create `llms-txt.yml` in your project root:
+
+```yaml
+# Universal configuration for any programming language
+project:
+  name: auto  # Auto-detect from package.json, Cargo.toml, go.mod, etc.
+  description: auto  # Extract from README
+  base_url: https://yourproject.io
+
+discovery:
+  mode: hybrid  # llm, pattern, or hybrid
+  analyze_code: true
+  analyze_docs: true
+  
+  # Custom file patterns (optional)
+  project_files:
+    - package.json      # JavaScript
+    - Cargo.toml        # Rust  
+    - go.mod            # Go
+    - pyproject.toml    # Python
+    - pom.xml           # Java
+  
+  example_patterns:
+    - examples/**/*
+    - samples/**/*
+    - demo/**/*
+
+templates:
+  use: auto  # auto, simple, comprehensive, or custom
+  sections: [Documentation, Examples, Optional]
+
+output:
+  formats: [llms.txt]
+  include_optional: true
+  expand_links: false  # Set to base URL if needed
+  convert_urls: false
+
+llm:
+  provider: claude  # claude, openai, or local
+  api_key: $ANTHROPIC_API_KEY  # Environment variable
+  temperature: 0.3
+  fallback_to_pattern: true  # Fallback if LLM fails
+```
+
+**Language-specific examples:**
+- [Python projects](examples/configs/python.yml)
+- [JavaScript/Node.js projects](examples/configs/javascript.yml)  
+- [Go projects](examples/configs/go.yml)
+- [Rust projects](examples/configs/rust.yml)
+- [Minimal config](examples/configs/minimal.yml)
+
+### Ruby Configuration (For Ruby-based projects)
 
 Create a configuration file (e.g., `llms_txt_config.rb`):
 
@@ -244,7 +375,7 @@ LlmsTxt.configure do |config|
   config.verbose = false
 
   # Analysis Settings
-  config.file_analyzers = %i[readme gemspec yard changelog examples docs wiki]
+  config.file_analyzers = %i[readme changelog examples docs wiki]
   
   # File Patterns
   config.exclude_patterns = %w[
@@ -423,9 +554,6 @@ LlmsTxt.configure do |config|
   
   # Custom exclusions
   config.exclude_patterns += ['my_secret_dir/**/*']
-  
-  # YARD settings
-  config.yard_options = { markup: :markdown }
 end
 
 # Generate with custom options and link processing
@@ -457,18 +585,16 @@ converter = LlmsTxt::Utils::MarkdownUrlConverter.new('path/to/file.md')
 converted_content = converter.to_s
 
 # Analyze wiki structure
-wiki_data = LlmsTxt::Analyzers::WikiAnalyzer.new('.').analyze
+wiki_data = LlmsTxt::Analyzers::Wiki.new('.').analyze
 puts "Found #{wiki_data[:total_files]} wiki files"
 puts "Broken links: #{wiki_data[:link_analysis][:broken_links].size}"
 ```
 
 ## Project Analysis
 
-The gem automatically analyzes various aspects of your Ruby project:
+The tool automatically analyzes various aspects of any project:
 
 - **README files**: Extracts title, description, and documentation links
-- **Gemspec**: Pulls metadata like name, version, description, and URIs
-- **YARD documentation**: Processes API documentation and code examples
 - **Examples**: Finds example files and categorizes them
 - **Changelog**: Tracks version history and release notes
 - **Documentation**: Scans docs directories for guides and references
@@ -479,27 +605,27 @@ The gem automatically analyzes various aspects of your Ruby project:
 Here's what a generated llms.txt file might look like:
 
 ```markdown
-# MyAwesomeGem
+# MyAwesomeProject
 
-> MyAwesomeGem is a Ruby library for processing data with advanced algorithms and providing a clean API for developers.
+> MyAwesomeProject is a software library for processing data with advanced algorithms and providing a clean API for developers.
 
 ## Documentation
 
-- [API Documentation](https://rubydoc.info/gems/my_awesome_gem): Complete API reference
-- [Getting Started Guide](https://llms-txt-ruby.io/docs/getting_started.md): Quick introduction and basic usage examples
-- [Configuration Guide](https://llms-txt-ruby.io/docs/configuration.md): Detailed configuration options
+- [API Documentation](https://docs.myproject.io): Complete API reference
+- [Getting Started Guide](https://myproject.io/docs/getting_started.md): Quick introduction and basic usage examples
+- [Configuration Guide](https://myproject.io/docs/configuration.md): Detailed configuration options
 
 ## Examples
 
-- [Basic Usage Examples](https://llms-txt-ruby.io/examples/basic_usage.rb): Simple examples to get started
-- [Advanced Patterns](https://llms-txt-ruby.io/examples/advanced_patterns.rb): Complex usage patterns and best practices
+- [Basic Usage Examples](https://myproject.io/examples/basic_usage): Simple examples to get started
+- [Advanced Patterns](https://myproject.io/examples/advanced_patterns): Complex usage patterns and best practices
 
 ## Optional
 
-- [Changelog](https://llms-txt-ruby.io/CHANGELOG.md): Version history and release notes
-- [Contributing Guidelines](https://llms-txt-ruby.io/CONTRIBUTING.md): How to contribute to this project
-- [License](https://llms-txt-ruby.io/LICENSE): MIT
-- [Project Homepage](https://github.com/user/my_awesome_gem): Main project website
+- [Changelog](https://myproject.io/CHANGELOG.md): Version history and release notes
+- [Contributing Guidelines](https://myproject.io/CONTRIBUTING.md): How to contribute to this project
+- [License](https://myproject.io/LICENSE): MIT
+- [Project Homepage](https://github.com/user/myproject): Main project website
 ```
 
 ## Development
