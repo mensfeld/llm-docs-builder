@@ -69,6 +69,13 @@ module LlmsTxt
 
     private
 
+    # Parses and stores section content in the sections hash
+    #
+    # Skips empty sections and delegates to parse_section_content for processing
+    #
+    # @param sections [Hash] accumulator hash for sections
+    # @param section_name [Symbol] name of the section
+    # @param content [Array<String>] raw content lines
     def save_section(sections, section_name, content)
       return if content.empty?
 
@@ -76,6 +83,13 @@ module LlmsTxt
       sections[section_name] = parse_section_content(content.join)
     end
 
+    # Extracts markdown links from section content into structured format
+    #
+    # Scans for markdown list items with links and descriptions. Returns raw content
+    # if no links are found in the expected format.
+    #
+    # @param content [String] raw section content
+    # @return [Array<Hash>, String] array of link hashes or raw content if no links found
     def parse_section_content(content)
       links = []
 
@@ -179,6 +193,13 @@ module LlmsTxt
 
     private
 
+    # Appends section XML elements to builder array
+    #
+    # Handles both array of link hashes and raw string content
+    #
+    # @param builder [Array<String>] XML lines accumulator
+    # @param name [String] section name
+    # @param links [Array<Hash>, String] section links or content
     def add_xml_section(builder, name, links)
       return if links.empty?
 

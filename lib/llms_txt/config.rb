@@ -97,16 +97,16 @@ module LlmsTxt
     # Load and parse YAML config file
     #
     # @return [Hash] parsed config data, empty hash if no file
-    # @raise [GenerationError] if YAML is invalid or file cannot be read
+    # @raise [Errors::GenerationError] if YAML is invalid or file cannot be read
     def load_config
       return {} unless @config_file && File.exist?(@config_file)
 
       begin
         YAML.load_file(@config_file) || {}
       rescue Psych::SyntaxError => e
-        raise GenerationError, "Invalid YAML in config file #{@config_file}: #{e.message}"
+        raise Errors::GenerationError, "Invalid YAML in config file #{@config_file}: #{e.message}"
       rescue StandardError => e
-        raise GenerationError, "Failed to load config file #{@config_file}: #{e.message}"
+        raise Errors::GenerationError, "Failed to load config file #{@config_file}: #{e.message}"
       end
     end
   end

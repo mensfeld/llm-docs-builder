@@ -74,6 +74,9 @@ module LlmsTxt
 
     private
 
+    # Checks for required H1 title header and validates title length
+    #
+    # Adds errors if title is missing or exceeds 80 characters
     def validate_required_sections
       lines = content.lines
 
@@ -86,6 +89,9 @@ module LlmsTxt
       errors << 'Title is too long (max 80 characters)'
     end
 
+    # Validates H1 uniqueness, description length, and section ordering
+    #
+    # Ensures only one H1, description under 200 chars, and proper section order
     def validate_structure
       lines = content.lines
       h1_count = lines.count { |line| line.start_with?('# ') }
@@ -99,6 +105,9 @@ module LlmsTxt
       validate_section_order
     end
 
+    # Verifies sections appear in correct order: Documentation, Examples, Optional
+    #
+    # Detects out-of-order sections and adds validation errors
     def validate_section_order
       sections = content.scan(/^## (.+)$/).flatten
       expected_order = %w[Documentation Examples Optional]
@@ -113,12 +122,18 @@ module LlmsTxt
       end
     end
 
+    # Validates markdown syntax including links, lists, and headers
+    #
+    # Delegates to specialized validators for different markdown elements
     def validate_markdown_syntax
       validate_link_format
       validate_list_format
       validate_headers
     end
 
+    # Checks markdown links for empty text/URLs and valid URL formats
+    #
+    # Validates URLs follow expected patterns for relative/absolute paths
     def validate_link_format
       content.scan(/\[([^\]]*)\]\(([^)]*)\)/) do |text, url|
         errors << 'Empty link text found' if text.empty?
@@ -144,6 +159,9 @@ module LlmsTxt
       end
     end
 
+    # Validates list items match expected markdown link format
+    #
+    # Ensures list items with links have proper syntax with optional descriptions
     def validate_list_format
       content.lines.each_with_index do |line, index|
         next unless line =~ /^[-*]\s+\[/
@@ -155,6 +173,9 @@ module LlmsTxt
       end
     end
 
+    # Validates header levels and content
+    #
+    # Checks for empty H1 headers and warns about headers deeper than H2
     def validate_headers
       content.scan(/^(#+)\s+(.+)$/) do |hashes, text|
         level = hashes.length
@@ -167,6 +188,9 @@ module LlmsTxt
       end
     end
 
+    # Validates link security and format requirements
+    #
+    # Warns about non-HTTPS URLs and URLs containing spaces
     def validate_links
       links = content.scan(/\[([^\]]+)\]\(([^)]+)\)/)
 
@@ -179,6 +203,9 @@ module LlmsTxt
       end
     end
 
+    # Checks file size and individual line lengths against limits
+    #
+    # Enforces 50KB file size limit and 120 character line length limit
     def validate_file_size
       if content.bytesize > MAX_FILE_SIZE
         errors << "File size exceeds maximum (#{MAX_FILE_SIZE} bytes)"

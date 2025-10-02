@@ -48,7 +48,7 @@ module LlmsTxt
     # @return [Array<String>] paths of transformed files
     def transform_all
       unless File.directory?(docs_path)
-        raise GenerationError, "Directory not found: #{docs_path}"
+        raise Errors::GenerationError, "Directory not found: #{docs_path}"
       end
 
       markdown_files = find_markdown_files
@@ -76,7 +76,9 @@ module LlmsTxt
 
     private
 
-    # Find all markdown files in the directory recursively
+    # Recursively scans the docs directory for markdown files
+    #
+    # Skips hidden files (starting with dot) and returns sorted array of paths
     #
     # @return [Array<String>] paths to markdown files
     def find_markdown_files
@@ -93,7 +95,9 @@ module LlmsTxt
       files.sort
     end
 
-    # Check if file should be excluded based on patterns
+    # Tests if file matches any exclusion pattern from options
+    #
+    # Uses File.fnmatch with pathname and dotmatch flags
     #
     # @param file_path [String] path to check
     # @return [Boolean] true if file should be excluded
@@ -105,7 +109,9 @@ module LlmsTxt
       end
     end
 
-    # Transform a single file
+    # Applies markdown transformations to a single file
+    #
+    # Creates MarkdownTransformer instance and delegates transformation
     #
     # @param file_path [String] path to markdown file
     # @return [String] transformed content
@@ -114,7 +120,9 @@ module LlmsTxt
       transformer.transform
     end
 
-    # Generate output path for transformed file
+    # Constructs output path by adding suffix before .md extension
+    #
+    # For example: README.md with suffix .llm becomes README.llm.md
     #
     # @param input_path [String] original file path
     # @return [String] path for transformed file

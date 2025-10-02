@@ -130,7 +130,7 @@ RSpec.describe LlmsTxt::BulkTransformer do
 
       expect {
         transformer.transform_all
-      }.to raise_error(LlmsTxt::GenerationError, /Directory not found/)
+      }.to raise_error(LlmsTxt::Errors::GenerationError, /Directory not found/)
     end
 
     it 'handles empty directory' do
