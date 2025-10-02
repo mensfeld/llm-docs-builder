@@ -1,24 +1,65 @@
 # frozen_string_literal: true
 
 module LlmsTxt
+  # Validates llms.txt content against the llms.txt specification
+  #
+  # Ensures that llms.txt content follows proper formatting rules including:
+  # - Required H1 title header
+  # - Optional description blockquote
+  # - Proper section ordering (Documentation, Examples, Optional)
+  # - Valid markdown syntax and link formats
+  # - File size and line length limits
+  #
+  # @example Validate llms.txt content
+  #   validator = LlmsTxt::Validator.new(content)
+  #   validator.valid? # => true or false
+  #   validator.errors # => Array of error messages
+  #
+  # @api public
   class Validator
-    attr_reader :content, :errors
+    # @return [String] the llms.txt content being validated
+    attr_reader :content
 
+    # @return [Array<String>] array of validation error messages
+    attr_reader :errors
+
+    # Required sections that must appear in llms.txt
     REQUIRED_SECTIONS = ['# '].freeze
+
+    # Optional sections that may appear in llms.txt
     OPTIONAL_SECTIONS = ['> ', '## Documentation', '## Examples', '## Optional'].freeze
+
+    # Maximum length for a single line in characters
     MAX_LINE_LENGTH = 120
+
+    # Maximum file size in bytes
     MAX_FILE_SIZE = 50_000
 
+    # Initialize a new validator
+    #
+    # @param content [String] the llms.txt content to validate
     def initialize(content)
       @content = content
       @errors = []
     end
 
+    # Check if content is valid
+    #
+    # Runs all validation checks and returns whether the content is valid.
+    # Use {#errors} to access validation error messages.
+    #
+    # @return [Boolean] true if content is valid, false otherwise
     def valid?
       validate!
       errors.empty?
     end
 
+    # Validate content and return result
+    #
+    # Runs all validation checks, populates {#errors} array, and returns whether
+    # the content is valid.
+    #
+    # @return [Boolean] true if content is valid, false otherwise
     def validate!
       @errors = []
 
