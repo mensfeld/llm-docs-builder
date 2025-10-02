@@ -239,4 +239,4 @@ module LlmsTxt
   end
 end
 
-LlmsTxt::CLI.run if $PROGRAM_NAME == __FILE__
+LlmsTxt::CLI.run # if $PROGRAM_NAME == __FILE__

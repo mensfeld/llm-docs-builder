@@ -3,9 +3,8 @@
 module LlmsTxt
   # Simple generator that creates llms.txt from existing markdown documentation
   #
-  # Takes a documentation directory or file and generates a properly formatted
-  # llms.txt file by analyzing markdown files, extracting titles and descriptions,
-  # and organizing them by priority.
+  # Takes a documentation directory or file and generates a properly formatted llms.txt file by
+  # analyzing markdown files, extracting titles and descriptions, and organizing them by priority.
   #
   # @example Generate from docs directory
   #   generator = LlmsTxt::Generator.new('./docs', base_url: 'https://myproject.io')
@@ -35,8 +34,8 @@ module LlmsTxt
 
     # Generate llms.txt content from documentation
     #
-    # Scans documentation files, extracts metadata, prioritizes them,
-    # and builds a formatted llms.txt file.
+    # Scans documentation files, extracts metadata, prioritizes them, and builds a formatted
+    # llms.txt file.
     #
     # @return [String] generated llms.txt content
     def generate

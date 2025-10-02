@@ -5,9 +5,8 @@ require 'fileutils'
 module LlmsTxt
   # Bulk transforms multiple markdown files to be AI-friendly
   #
-  # Processes all markdown files in a directory recursively, creating LLM-friendly
-  # versions alongside the originals. Supports exclusion patterns and maintains
-  # directory structure.
+  # Processes all markdown files in a directory recursively, creating LLM-friendly versions
+  # alongside the originals. Supports exclusion patterns and maintains directory structure.
   #
   # @example Transform all files in a directory
   #   transformer = LlmsTxt::BulkTransformer.new('./docs',

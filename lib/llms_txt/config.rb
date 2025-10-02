@@ -5,9 +5,8 @@ require 'yaml'
 module LlmsTxt
   # Simple configuration loader for llms-txt.yml files
   #
-  # Loads YAML configuration files and provides a simple interface for accessing
-  # configuration values. Automatically looks for config files in the current
-  # directory if none specified.
+  # Loads YAML configuration files and provides a simple interface for accessing configuration
+  # values. Automatically looks for config files in the current directory if none specified.
   #
   # @example Load default config file
   #   config = LlmsTxt::Config.new
@@ -63,7 +62,8 @@ module LlmsTxt
         title: options[:title] || self['title'],
         description: options[:description] || self['description'],
         output: options[:output] || self['output'] || 'llms.txt',
-        convert_urls: options.key?(:convert_urls) ? options[:convert_urls] : (self['convert_urls'] || false),
+        convert_urls: options.key?(:convert_urls) ?
+          options[:convert_urls] : (self['convert_urls'] || false),
         verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false),
         # Bulk transformation options
         suffix: options[:suffix] || self['suffix'] || '.llm',

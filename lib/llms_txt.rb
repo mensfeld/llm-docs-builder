@@ -8,22 +8,46 @@ loader = Zeitwerk::Loader.for_gem
 loader.setup
 
 module LlmsTxt
-  # Standard exceptions hierarchy
+  # Base error class for all LlmsTxt errors
   class Error < StandardError; end
+
+  # Raised when llms.txt generation fails due to configuration issues,
+  # missing directories, invalid YAML, or file access problems
+  #
+  # @example When directory doesn't exist
+  #   LlmsTxt.bulk_transform('/nonexistent/path')
+  #   # => raises GenerationError: "Directory not found: /nonexistent/path"
+  #
+  # @example When config YAML is invalid
+  #   LlmsTxt.generate_from_docs(config_file: 'invalid.yml')
+  #   # => raises GenerationError: "Invalid YAML in config file..."
   class GenerationError < Error; end
+
+  # Raised when llms.txt content validation fails
+  #
+  # This error is intended for validation failures but currently not used.
+  # The Validator class returns boolean results instead of raising errors.
+  #
+  # @example Future usage (when validation raises)
+  #   LlmsTxt.validate!(invalid_content)
+  #   # => raises ValidationError: "Missing required H1 title"
   class ValidationError < Error; end
 
   class << self
     # Generates llms.txt from existing markdown documentation
     #
-    # @param docs_path [String, nil] path to documentation directory or file (optional if config_file provided)
+    # @param docs_path [String, nil] path to documentation directory or file (optional if
+    #   config_file provided)
     # @param options [Hash] generation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
     # @option options [String] :base_url base URL for converting relative links (overrides config)
-    # @option options [String] :title project title (auto-detected if not provided, overrides config)
-    # @option options [String] :description project description (auto-detected if not provided, overrides config)
+    # @option options [String] :title project title (auto-detected if not provided, overrides
+    #   config)
+    # @option options [String] :description project description (auto-detected if not provided,
+    #   overrides config)
     # @option options [String] :output output file path (default: 'llms.txt', overrides config)
-    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
+    #   config)
     # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [String] generated llms.txt content
     #
@@ -58,9 +82,10 @@ module LlmsTxt
     #
     # @param file_path [String] path to markdown file
     # @param options [Hash] transformation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
     # @option options [String] :base_url base URL for expanding relative links (overrides config)
-    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
+    #   config)
     # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [String] transformed markdown content
     #
@@ -83,11 +108,14 @@ module LlmsTxt
     #
     # @param docs_path [String] path to documentation directory
     # @param options [Hash] transformation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml if not specified)
+    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
     # @option options [String] :base_url base URL for expanding relative links (overrides config)
-    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides config)
-    # @option options [String] :suffix suffix for transformed files (default: '.llm', overrides config)
-    # @option options [Array<String>] :excludes glob patterns for files to exclude (overrides config)
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
+    #   config)
+    # @option options [String] :suffix suffix for transformed files (default: '.llm', overrides
+    #   config)
+    # @option options [Array<String>] :excludes glob patterns for files to exclude (overrides
+    #   config)
     # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [Array<String>] paths of transformed files
     #

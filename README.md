@@ -1,12 +1,16 @@
 # llms-txt-ruby
 
-[![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
+[![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](
+  https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
 
-A Ruby tool for generating [llms.txt](https://llmstxt.org/) files from existing markdown documentation. Transform your docs to be AI-friendly.
+A Ruby tool for generating [llms.txt](https://llmstxt.org/) files from existing markdown
+documentation. Transform your docs to be AI-friendly.
 
 ## What is llms.txt?
 
-The llms.txt file is a proposed standard for providing LLM-friendly content on websites. It offers brief background information, guidance, and links to detailed markdown files, helping Large Language Models understand and navigate your project more effectively.
+The llms.txt file is a proposed standard for providing LLM-friendly content on websites. It
+offers brief background information, guidance, and links to detailed markdown files, helping
+Large Language Models understand and navigate your project more effectively.
 
 Learn more at [llmstxt.org](https://llmstxt.org/).
 
@@ -14,9 +18,13 @@ Learn more at [llmstxt.org](https://llmstxt.org/).
 
 This library converts existing human-first documentation into LLM-friendly formats:
 
-1. **Generates llms.txt** - Transforms your existing markdown documentation into a structured overview that helps LLMs understand your project's layout and find relevant information
-2. **Transforms markdown** - Converts individual markdown files from human-readable format to AI-optimized format by expanding relative links to absolute URLs and normalizing link structures
-3. **Bulk transforms** - Processes all markdown files in a directory recursively, creating LLM-friendly versions alongside originals with customizable exclusion patterns
+1. **Generates llms.txt** - Transforms your existing markdown documentation into a structured
+   overview that helps LLMs understand your project's layout and find relevant information
+2. **Transforms markdown** - Converts individual markdown files from human-readable format to
+   AI-optimized format by expanding relative links to absolute URLs and normalizing link
+   structures
+3. **Bulk transforms** - Processes all markdown files in a directory recursively, creating
+   LLM-friendly versions alongside originals with customizable exclusion patterns
 
 ## Installation
 
@@ -139,7 +147,9 @@ The config file will be automatically found if named:
 
 ## Bulk Transformation
 
-The `bulk-transform` command processes all markdown files in a directory recursively, creating AI-friendly versions alongside the originals. This is perfect for transforming entire documentation trees.
+The `bulk-transform` command processes all markdown files in a directory recursively, creating
+AI-friendly versions alongside the originals. This is perfect for transforming entire
+documentation trees.
 
 ### Key Features
 
@@ -301,7 +311,8 @@ Running `llms-txt generate --docs ./docs --base-url https://myproject.io` create
 
 - [README](https://myproject.io/README.md): Complete overview and installation instructions
 - [Getting Started](https://myproject.io/getting-started.md): Quick start guide with examples
-- [API Reference](https://myproject.io/api-reference.md): Detailed API documentation and method signatures
+- [API Reference](https://myproject.io/api-reference.md): Detailed API documentation and method
+  signatures
 ```
 
 ## Contributing
@@ -310,4 +321,5 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/mensfe
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+The gem is available as open source under the terms of the
+[MIT License](https://opensource.org/licenses/MIT).

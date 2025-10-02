@@ -42,7 +42,7 @@ RSpec.describe LlmsTxt do
     end
 
     it 'generates llms.txt from documentation directory' do
-      result = LlmsTxt.generate_from_docs(temp_dir)
+      result = LlmsTxt.generate_from_docs(temp_dir, config_file: '/nonexistent')
 
       expect(result).to be_a(String)
       expect(result).to include('# Test Project')
@@ -71,7 +71,7 @@ RSpec.describe LlmsTxt do
 
     it 'works with single file' do
       readme_file = File.join(temp_dir, 'README.md')
-      result = LlmsTxt.generate_from_docs(readme_file)
+      result = LlmsTxt.generate_from_docs(readme_file, config_file: '/nonexistent')
 
       expect(result).to include('# Test Project')
       expect(result).to include('README')

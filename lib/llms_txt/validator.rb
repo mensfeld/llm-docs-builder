@@ -36,7 +36,9 @@ module LlmsTxt
     def validate_required_sections
       lines = content.lines
 
-      errors << 'Missing required H1 title (must start with "# ")' unless lines.first&.start_with?('# ')
+      unless lines.first&.start_with?('# ')
+        errors << 'Missing required H1 title (must start with "# ")'
+      end
 
       return unless lines.first&.strip&.length.to_i > 80
 
@@ -83,7 +85,19 @@ module LlmsTxt
         errors << 'Empty link URL found' if url.empty?
 
         # Allow relative paths, absolute paths, HTTP(S) URLs, and common file extensions
-        unless url =~ %r{^(?:https?://|/|\.\.?/|[a-zA-Z0-9_.-]+(?:/|\.md|\.txt|\.rb|\.html)?|[A-Z]+[a-zA-Z]*|docs/|examples/|lib/).*$}
+        url_pattern = %r{
+          ^(?:
+            https?://|
+            /|
+            \.\.?/|
+            [a-zA-Z0-9_.-]+(?:/|\.md|\.txt|\.rb|\.html)?|
+            [A-Z]+[a-zA-Z]*|
+            docs/|
+            examples/|
+            lib/
+          ).*$
+        }x
+        unless url =~ url_pattern
           errors << "Invalid URL format: #{url}"
         end
       end
@@ -125,7 +139,9 @@ module LlmsTxt
     end
 
     def validate_file_size
-      errors << "File size exceeds maximum (#{MAX_FILE_SIZE} bytes)" if content.bytesize > MAX_FILE_SIZE
+      if content.bytesize > MAX_FILE_SIZE
+        errors << "File size exceeds maximum (#{MAX_FILE_SIZE} bytes)"
+      end
 
       lines = content.lines
       lines.each_with_index do |line, index|

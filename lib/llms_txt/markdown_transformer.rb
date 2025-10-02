@@ -3,9 +3,9 @@
 module LlmsTxt
   # Transforms markdown files to be AI-friendly
   #
-  # Processes individual markdown files to make them more suitable for LLM
-  # consumption by expanding relative links to absolute URLs and converting
-  # HTML URLs to markdown-friendly formats.
+  # Processes individual markdown files to make them more suitable for LLM consumption by
+  # expanding relative links to absolute URLs and converting HTML URLs to markdown-friendly
+  # formats.
   #
   # @example Transform with base URL
   #   transformer = LlmsTxt::MarkdownTransformer.new('README.md',
@@ -52,7 +52,7 @@ module LlmsTxt
 
     # Expand relative links to absolute URLs
     #
-    # Converts markdown links like `[text](./path.md)` to `[text](https://base.url/path.md)`
+    # Converts markdown links like `[text](./path.md)` to `[text](https://base.url/path.md)`.
     # Leaves absolute URLs and anchors unchanged.
     #
     # @param content [String] markdown content to process
