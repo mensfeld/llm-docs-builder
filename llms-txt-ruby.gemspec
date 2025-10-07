@@ -8,22 +8,24 @@ Gem::Specification.new do |spec|
   spec.authors = ['Maciej Mensfeld']
   spec.email = %w[maciej@mensfeld.pl]
 
-  spec.summary = 'Simple tool for generating llms.txt files from existing markdown documentation'
+  spec.summary = 'Generate llms.txt files and transform markdown documentation to be AI-friendly'
   spec.description = <<~DESC
-    A simple Ruby gem for generating llms.txt files from existing markdown documentation.
-    Transform your docs to be AI-friendly with two core functions: generate llms.txt from
-    documentation directories and transform individual markdown files by expanding relative
-    links and converting URLs.
+    A Ruby tool for transforming existing markdown documentation into AI-friendly formats
+    following the llms.txt standard. Features include: generating llms.txt files from
+    documentation directories with automatic file prioritization, transforming individual
+    markdown files by expanding relative links to absolute URLs, and bulk transforming entire
+    documentation trees with customizable exclusion patterns. Provides both CLI and Ruby API
+    with configuration file support.
   DESC
 
   spec.homepage = 'https://github.com/mensfeld/llms-txt-ruby'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 3.1.0'
+  spec.required_ruby_version = '>= 3.2'
 
   spec.metadata['allowed_push_host'] = 'https://rubygems.org'
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/mensfeld/llms-txt-ruby'
-  spec.metadata['changelog_uri'] = 'https://github.com/mensfeld/llms-txt-ruby/blob/main/CHANGELOG.md'
+  spec.metadata['changelog_uri'] = 'https://github.com/mensfeld/llms-txt-ruby/blob/master/CHANGELOG.md'
   spec.metadata['documentation_uri'] = 'https://github.com/mensfeld/llms-txt-ruby'
   spec.metadata['rubygems_mfa_required'] = 'true'
 

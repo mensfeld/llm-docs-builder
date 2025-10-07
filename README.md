@@ -213,6 +213,169 @@ wiki/
     └── internal.md      ← Excluded, no .llm.md version
 ```
 
+## Serving LLM-Friendly Documentation
+
+After using `bulk-transform` to create `.llm.md` versions of your documentation, you can configure your web server to automatically serve these LLM-optimized versions to AI bots while showing the original versions to human visitors.
+
+### How It Works
+
+The strategy is simple:
+
+1. **Detect AI bots** by their User-Agent strings
+2. **Serve `.llm.md` files** to detected AI bots
+3. **Serve original `.md` files** to human visitors
+4. **Automatic selection** - no manual switching needed
+
+### Apache Configuration
+
+Add this to your `.htaccess` file:
+
+```apache
+# Detect LLM bots by User-Agent
+SetEnvIf User-Agent "(?i)(openai|anthropic|claude|gpt|chatgpt|bard|gemini|copilot)" IS_LLM_BOT
+SetEnvIf User-Agent "(?i)(perplexity|character\.ai|you\.com|poe\.com|huggingface|replicate)" IS_LLM_BOT
+SetEnvIf User-Agent "(?i)(langchain|llamaindex|semantic|embedding|vector|rag)" IS_LLM_BOT
+SetEnvIf User-Agent "(?i)(ollama|mistral|cohere|together|fireworks|groq)" IS_LLM_BOT
+
+# Serve .md files as text/plain
+<FilesMatch "\.md$">
+  Header set Content-Type "text/plain; charset=utf-8"
+  ForceType text/plain
+</FilesMatch>
+
+# Enable rewrite engine
+RewriteEngine On
+
+# For LLM bots: rewrite requests to serve .llm.md versions
+RewriteCond %{ENV:IS_LLM_BOT} !^$
+RewriteCond %{REQUEST_URI} ^/docs/.*\.md$ [NC]
+RewriteCond %{REQUEST_URI} !\.llm\.md$ [NC]
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} -f
+RewriteRule ^(.*)\.md$ $1.llm.md [L]
+
+# For LLM bots: handle clean URLs by appending .llm.md
+RewriteCond %{ENV:IS_LLM_BOT} !^$
+RewriteCond %{REQUEST_URI} ^/docs/ [NC]
+RewriteCond %{REQUEST_URI} !\.md$ [NC]
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.llm.md -f
+RewriteRule ^(.*)$ $1.llm.md [L]
+
+# For regular users: serve original .md files or clean URLs as usual
+# (add your normal URL handling rules here)
+```
+
+### Nginx Configuration
+
+Add this to your nginx server block:
+
+```nginx
+# Map to detect LLM bots
+map $http_user_agent $is_llm_bot {
+    default 0;
+    "~*(?i)(openai|anthropic|claude|gpt|chatgpt|bard|gemini|copilot)" 1;
+    "~*(?i)(perplexity|character\.ai|you\.com|poe\.com|huggingface|replicate)" 1;
+    "~*(?i)(langchain|llamaindex|semantic|embedding|vector|rag)" 1;
+    "~*(?i)(ollama|mistral|cohere|together|fireworks|groq)" 1;
+}
+
+server {
+    # ... your server configuration ...
+
+    # Serve .md files as text/plain
+    location ~ \.md$ {
+        default_type text/plain;
+        charset utf-8;
+    }
+
+    # For LLM bots requesting .md files, serve .llm.md version
+    location ~ ^/docs/(.*)\.md$ {
+        if ($is_llm_bot) {
+            rewrite ^(.*)\.md$ $1.llm.md last;
+        }
+        try_files $uri $uri/ =404;
+    }
+
+    # For LLM bots requesting clean URLs, serve .llm.md version
+    location ~ ^/docs/ {
+        if ($is_llm_bot) {
+            try_files $uri.llm.md $uri $uri/ =404;
+        }
+        try_files $uri $uri.md $uri/ =404;
+    }
+}
+```
+
+### Cloudflare Workers
+
+For serverless deployments, use Cloudflare Workers:
+
+```javascript
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const userAgent = request.headers.get('user-agent') || '';
+
+    // Detect LLM bots
+    const llmBotPatterns = [
+      /openai|anthropic|claude|gpt|chatgpt|bard|gemini|copilot/i,
+      /perplexity|character\.ai|you\.com|poe\.com|huggingface|replicate/i,
+      /langchain|llamaindex|semantic|embedding|vector|rag/i,
+      /ollama|mistral|cohere|together|fireworks|groq/i
+    ];
+
+    const isLLMBot = llmBotPatterns.some(pattern => pattern.test(userAgent));
+
+    // If LLM bot and requesting docs
+    if (isLLMBot && url.pathname.startsWith('/docs/')) {
+      // Try to serve .llm.md version
+      const llmPath = url.pathname.replace(/\.md$/, '.llm.md');
+      if (!url.pathname.endsWith('.llm.md')) {
+        url.pathname = llmPath;
+      }
+    }
+
+    return fetch(url);
+  }
+}
+```
+
+### Custom Suffix
+
+If you used a different suffix with the `bulk-transform` command (e.g., `--suffix .ai`), update your web server rules accordingly.
+
+**Apache:**
+```apache
+RewriteRule ^(.*)\.md$ $1.ai.md [L]
+```
+
+**Nginx:**
+```nginx
+rewrite ^(.*)\.md$ $1.ai.md last;
+```
+
+**Cloudflare Workers:**
+```javascript
+const llmPath = url.pathname.replace(/\.md$/, '.ai.md');
+```
+
+### Example Setup
+
+```yaml
+# llms-txt.yml
+docs: ./docs
+base_url: https://myproject.io
+suffix: .llm
+convert_urls: true
+```
+
+```bash
+# Generate LLM-friendly versions
+llms-txt bulk-transform --config llms-txt.yml
+
+# Deploy both original and .llm.md files to your web server
+# The server will automatically serve the right version to each visitor
+```
+
 ## Ruby API
 
 ### Basic Usage
