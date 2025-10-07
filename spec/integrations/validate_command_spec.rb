@@ -5,7 +5,7 @@ require 'open3'
 require 'tempfile'
 require 'tmpdir'
 
-RSpec.describe 'validate command', :integration do
+RSpec.describe 'validate command' do
   let(:cli_path) { File.expand_path('../../bin/llms-txt', __dir__) }
   let(:temp_dir) { Dir.mktmpdir }
 

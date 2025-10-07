@@ -49,13 +49,10 @@ jobs:
       - name: Bundle install
         run: bundle install --jobs 4 --retry 3
 
-      - name: Run unit tests
+      - name: Run all tests
         env:
           GITHUB_COVERAGE: ${{ matrix.coverage }}
         run: bin/rspec
-
-      - name: Run integration tests
-        run: bin/integration
 
 
   ci-success:

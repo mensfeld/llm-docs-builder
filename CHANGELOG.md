@@ -6,15 +6,11 @@
   - `parse`: use `-d/--docs` flag instead of positional argument (defaults to `llms.txt` if not specified)
   - `validate`: use `-d/--docs` flag instead of positional argument (defaults to `llms.txt` if not specified)
 - [Enhancement] Improved CLI consistency by requiring explicit flags for all file paths.
-- [Enhancement] Added comprehensive CLI integration tests in `spec/integration/` directory.
-  - Tests are excluded from default RSpec runs
-  - Run with `bundle exec rspec --tag integration` to execute
+- [Enhancement] Added comprehensive CLI integration tests in `spec/integrations/` directory.
   - Each command has its own dedicated integration test file
   - Tests verify actual CLI binary execution, not just Ruby API
-- [Enhancement] Added convenient test runner scripts:
-  - `bin/rspec` - Runs unit tests only
-  - `bin/integration` - Runs integration tests only
-- [Enhancement] Updated CI workflow to run both unit and integration tests separately.
+  - All tests (unit and integration) run together with `bin/rspec`
+- [Enhancement] Added convenient test runner script `bin/rspec` for running all tests.
 - [Enhancement] Added comprehensive YARD documentation to all CLI methods.
 - [Enhancement] Resolved all RuboCop offenses (0 offenses detected).
 - [Fix] Fixed validator bug where `each_value` was incorrectly called on Array.

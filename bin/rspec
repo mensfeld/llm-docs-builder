@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Run unit tests (excludes integration tests by default)
+# Run all specs
 
 set -e
 
-echo "Running unit tests..."
+echo "Running specs..."
 bundle exec rspec --format documentation

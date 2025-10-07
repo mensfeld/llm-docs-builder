@@ -2,22 +2,22 @@
 
 This directory contains integration tests for the llms-txt CLI. These tests verify the actual CLI binary execution, not just the Ruby API.
 
-## Running Integration Tests
+## Running Tests
 
-Integration tests are excluded from default RSpec runs to keep unit tests fast.
+All tests (unit and integration) run together with a single command:
 
 ```bash
-# Run only integration tests
-bundle exec rspec --tag integration
+# Run all tests
+bin/rspec
 
-# Run with documentation format for detailed output
-bundle exec rspec --tag integration --format documentation
+# Or with bundle exec
+bundle exec rspec
 
 # Run a specific integration test file
-bundle exec rspec spec/integration/generate_command_spec.rb
+bundle exec rspec spec/integrations/generate_command_spec.rb
 
-# Run all tests (unit + integration)
-bundle exec rspec --tag integration && bundle exec rspec
+# Run with documentation format for detailed output
+bundle exec rspec --format documentation
 ```
 
 ## Test Files

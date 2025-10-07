@@ -3,7 +3,7 @@
 require 'spec_helper'
 require 'open3'
 
-RSpec.describe 'version command', :integration do
+RSpec.describe 'version command' do
   let(:cli_path) { File.expand_path('../../bin/llms-txt', __dir__) }
 
   def run_cli(*args)
