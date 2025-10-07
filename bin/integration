@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Run integration tests
+
+set -e
+
+echo "Running integration tests..."
+bundle exec rspec --tag integration --format documentation

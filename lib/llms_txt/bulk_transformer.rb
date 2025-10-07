@@ -47,9 +47,7 @@ module LlmsTxt
     #
     # @return [Array<String>] paths of transformed files
     def transform_all
-      unless File.directory?(docs_path)
-        raise Errors::GenerationError, "Directory not found: #{docs_path}"
-      end
+      raise Errors::GenerationError, "Directory not found: #{docs_path}" unless File.directory?(docs_path)
 
       markdown_files = find_markdown_files
       transformed_files = []

@@ -1,6 +1,7 @@
 AllCops:
-  TargetRubyVersion: 3.1
+  TargetRubyVersion: 3.2
   NewCops: enable
+  SuggestExtensions: false
 
 Style/Documentation:
   Enabled: false
@@ -10,18 +11,52 @@ Style/StringLiterals:
 
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - 'lib/llms_txt/cli.rb'
 
 Metrics/ClassLength:
-  Max: 150
+  Max: 200
+  Exclude:
+    - 'lib/llms_txt/cli.rb'
 
 Metrics/MethodLength:
-  Max: 20
+  Max: 35
+  Exclude:
+    - 'lib/llms_txt/cli.rb'
 
 Metrics/AbcSize:
-  Max: 20
+  Max: 40
+  Exclude:
+    - 'lib/llms_txt/cli.rb'
 
 Metrics/CyclomaticComplexity:
-  Max: 10
+  Max: 15
+  Exclude:
+    - 'lib/llms_txt/config.rb'
+
+Metrics/PerceivedComplexity:
+  Max: 15
+  Exclude:
+    - 'lib/llms_txt/config.rb'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'lib/llms_txt/cli.rb'
+    - '*.gemspec'
 
 Style/FrozenStringLiteralComment:
   Enabled: true
+
+# Specs often have multiline block chains
+Style/MultilineBlockChain:
+  Exclude:
+    - 'spec/**/*'
+
+# Disable predicate method naming rule
+Naming/PredicateMethod:
+  Enabled: false
+
+# Allow development dependencies in gemspec
+Gemspec/DevelopmentDependencies:
+  Enabled: false

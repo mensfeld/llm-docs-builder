@@ -61,9 +61,8 @@ RSpec.describe LlmsTxt do
 
     it 'uses custom title and description' do
       result = LlmsTxt.generate_from_docs(temp_dir,
-        title: 'Custom Title',
-        description: 'Custom description'
-      )
+                                          title: 'Custom Title',
+                                          description: 'Custom description')
 
       expect(result).to include('# Custom Title')
       expect(result).to include('> Custom description')
@@ -111,9 +110,8 @@ RSpec.describe LlmsTxt do
 
     it 'does both transformations' do
       result = LlmsTxt.transform_markdown(temp_file.path,
-        base_url: 'https://mysite.com',
-        convert_urls: true
-      )
+                                          base_url: 'https://mysite.com',
+                                          convert_urls: true)
 
       expect(result).to include('[API docs](https://mysite.com/api.md)')
       expect(result).to include('https://example.com/docs.md')

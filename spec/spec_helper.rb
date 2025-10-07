@@ -28,4 +28,7 @@ RSpec.configure do |config|
   config.profile_examples = 10
   config.order = :random
   Kernel.srand config.seed
+
+  # Exclude integration tests by default (run with --tag integration to include them)
+  config.filter_run_excluding :integration
 end
