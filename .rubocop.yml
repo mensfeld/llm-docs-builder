@@ -60,3 +60,15 @@ Naming/PredicateMethod:
 # Allow development dependencies in gemspec
 Gemspec/DevelopmentDependencies:
   Enabled: false
+
+# Enforce first argument on new line for multiline method calls
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true
+
+# Use fixed indentation for arguments
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+# Ensure closing parenthesis on new line for multiline calls
+Layout/MultilineMethodCallBraceLayout:
+  EnforcedStyle: new_line

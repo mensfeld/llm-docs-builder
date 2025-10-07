@@ -60,10 +60,12 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'accepts custom options' do
-      transformer = described_class.new(temp_dir,
-                                        suffix: '.ai',
-                                        excludes: ['**/private.md'],
-                                        base_url: 'https://example.com')
+      transformer = described_class.new(
+        temp_dir,
+        suffix: '.ai',
+        excludes: ['**/private.md'],
+        base_url: 'https://example.com'
+      )
 
       expect(transformer.options[:suffix]).to eq('.ai')
       expect(transformer.options[:excludes]).to eq(['**/private.md'])
@@ -73,8 +75,10 @@ RSpec.describe LlmsTxt::BulkTransformer do
 
   describe '#transform_all' do
     it 'transforms all markdown files in directory' do
-      transformer = described_class.new(temp_dir,
-                                        base_url: 'https://myproject.io')
+      transformer = described_class.new(
+        temp_dir,
+        base_url: 'https://myproject.io'
+      )
 
       transformed_files = transformer.transform_all
 
@@ -89,9 +93,11 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'applies transformations to content' do
-      transformer = described_class.new(temp_dir,
-                                        base_url: 'https://myproject.io',
-                                        convert_urls: true)
+      transformer = described_class.new(
+        temp_dir,
+        base_url: 'https://myproject.io',
+        convert_urls: true
+      )
 
       transformer.transform_all
 
@@ -102,8 +108,10 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'respects exclusion patterns' do
-      transformer = described_class.new(temp_dir,
-                                        excludes: ['**/private.md', '**/guides/**'])
+      transformer = described_class.new(
+        temp_dir,
+        excludes: ['**/private.md', '**/guides/**']
+      )
 
       transformed_files = transformer.transform_all
 
@@ -177,9 +185,11 @@ RSpec.describe 'LlmsTxt.bulk_transform' do
   end
 
   it 'works with direct options' do
-    transformed_files = LlmsTxt.bulk_transform(temp_dir,
-                                               base_url: 'https://direct.com',
-                                               suffix: '.direct')
+    transformed_files = LlmsTxt.bulk_transform(
+      temp_dir,
+      base_url: 'https://direct.com',
+      suffix: '.direct'
+    )
 
     expect(transformed_files.size).to eq(2)
     expect(transformed_files).to all(match(/\.direct\.md$/))
