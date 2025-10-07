@@ -95,5 +95,45 @@ RSpec.describe LlmsTxt::CLI do
         end.to raise_error(SystemExit)
       end
     end
+
+    context 'transform command' do
+      let(:temp_file) do
+        file = Tempfile.new(['test', '.md'])
+        file.write("# Test\n\nSome content")
+        file.close
+        file
+      end
+
+      let(:output_file) do
+        file = Tempfile.new(['output', '.md'])
+        file.close
+        file
+      end
+
+      after do
+        temp_file.unlink
+        output_file.unlink
+      end
+
+      it 'accepts file path from -d/--docs flag' do
+        cli = described_class.new
+
+        expect do
+          cli.run(['transform', '-d', temp_file.path, '-o', output_file.path])
+        end.not_to raise_error
+
+        expect(File.exist?(output_file.path)).to be true
+      end
+
+      it 'accepts file path as positional argument' do
+        cli = described_class.new
+
+        expect do
+          cli.run(['transform', temp_file.path, '-o', output_file.path])
+        end.not_to raise_error
+
+        expect(File.exist?(output_file.path)).to be true
+      end
+    end
   end
 end
