@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 (2025-10-07)
+- [Fix] Fixed CLI error handling to use correct `LlmsTxt::Errors::BaseError` instead of non-existent `LlmsTxt::Error`.
+- [Enhancement] Extracted CLI class to `lib/llms_txt/cli.rb` for better testability.
+- [Enhancement] Added comprehensive CLI error handling specs.
+
 ## 0.1.1 (2025-10-07)
 - [Change] Updated repository metadata to use `master` branch instead of `main`.
 
