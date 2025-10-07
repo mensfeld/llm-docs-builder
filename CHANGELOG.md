@@ -15,6 +15,9 @@
   - `bin/rspec` - Runs unit tests only
   - `bin/integration` - Runs integration tests only
 - [Enhancement] Updated CI workflow to run both unit and integration tests separately.
+- [Enhancement] Added comprehensive YARD documentation to all CLI methods.
+- [Enhancement] Resolved all RuboCop offenses (0 offenses detected).
+- [Fix] Fixed validator bug where `each_value` was incorrectly called on Array.
 
 ## 0.1.3 (2025-10-07)
 - [Fix] Fixed `transform` command to accept file path from `-d/--docs` flag in addition to positional arguments.
