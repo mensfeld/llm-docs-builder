@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3 (2025-10-07)
+- [Fix] Fixed `transform` command to accept file path from `-d/--docs` flag in addition to positional arguments.
+
 ## 0.1.2 (2025-10-07)
 - [Fix] Fixed CLI error handling to use correct `LlmsTxt::Errors::BaseError` instead of non-existent `LlmsTxt::Error`.
 - [Enhancement] Extracted CLI class to `lib/llms_txt/cli.rb` for better testability.

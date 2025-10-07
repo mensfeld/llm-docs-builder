@@ -127,7 +127,9 @@ module LlmsTxt
       config = LlmsTxt::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
-      file_path = options[:file_path]
+      # Accept file path from either -d/--docs flag or positional argument
+      # Positional argument takes precedence over docs option
+      file_path = options[:file_path] || options[:docs] || merged_options[:docs]
 
       unless file_path
         puts "File path required for transform command"
