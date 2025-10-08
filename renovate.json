@@ -10,10 +10,13 @@
     "enabled": true,
     "pinDigests": true
   },
-  "ruby": {
-    "enabled": true
-  },
   "packageRules": [
+    {
+      "matchCategories": [
+        "ruby"
+      ],
+      "enabled": true
+    },
     {
       "matchManagers": [
         "github-actions"
