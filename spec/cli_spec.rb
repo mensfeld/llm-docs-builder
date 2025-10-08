@@ -125,14 +125,14 @@ RSpec.describe LlmsTxt::CLI do
         expect(File.exist?(output_file.path)).to be true
       end
 
-      it 'accepts file path as positional argument' do
+      it 'requires -d/--docs flag for file path' do
         cli = described_class.new
 
         expect do
-          cli.run(['transform', temp_file.path, '-o', output_file.path])
-        end.not_to raise_error
-
-        expect(File.exist?(output_file.path)).to be true
+          cli.run(['transform', '-o', output_file.path])
+        end.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
       end
     end
   end

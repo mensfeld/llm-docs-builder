@@ -43,7 +43,7 @@ RSpec.describe LlmsTxt::BulkTransformer do
     MD
 
     # Non-markdown file (should be ignored)
-    File.write(File.join(temp_dir, 'README.txt'), "This is not markdown")
+    File.write(File.join(temp_dir, 'README.txt'), 'This is not markdown')
   end
 
   after do
@@ -60,7 +60,8 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'accepts custom options' do
-      transformer = described_class.new(temp_dir,
+      transformer = described_class.new(
+        temp_dir,
         suffix: '.ai',
         excludes: ['**/private.md'],
         base_url: 'https://example.com'
@@ -74,7 +75,8 @@ RSpec.describe LlmsTxt::BulkTransformer do
 
   describe '#transform_all' do
     it 'transforms all markdown files in directory' do
-      transformer = described_class.new(temp_dir,
+      transformer = described_class.new(
+        temp_dir,
         base_url: 'https://myproject.io'
       )
 
@@ -91,7 +93,8 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'applies transformations to content' do
-      transformer = described_class.new(temp_dir,
+      transformer = described_class.new(
+        temp_dir,
         base_url: 'https://myproject.io',
         convert_urls: true
       )
@@ -105,7 +108,8 @@ RSpec.describe LlmsTxt::BulkTransformer do
     end
 
     it 'respects exclusion patterns' do
-      transformer = described_class.new(temp_dir,
+      transformer = described_class.new(
+        temp_dir,
         excludes: ['**/private.md', '**/guides/**']
       )
 
@@ -128,9 +132,9 @@ RSpec.describe LlmsTxt::BulkTransformer do
     it 'raises error for non-existent directory' do
       transformer = described_class.new('/non/existent/path')
 
-      expect {
+      expect do
         transformer.transform_all
-      }.to raise_error(LlmsTxt::Errors::GenerationError, /Directory not found/)
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Directory not found/)
     end
 
     it 'handles empty directory' do
@@ -181,7 +185,8 @@ RSpec.describe 'LlmsTxt.bulk_transform' do
   end
 
   it 'works with direct options' do
-    transformed_files = LlmsTxt.bulk_transform(temp_dir,
+    transformed_files = LlmsTxt.bulk_transform(
+      temp_dir,
       base_url: 'https://direct.com',
       suffix: '.direct'
     )

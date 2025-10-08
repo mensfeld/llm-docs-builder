@@ -60,7 +60,8 @@ RSpec.describe LlmsTxt do
     end
 
     it 'uses custom title and description' do
-      result = LlmsTxt.generate_from_docs(temp_dir,
+      result = LlmsTxt.generate_from_docs(
+        temp_dir,
         title: 'Custom Title',
         description: 'Custom description'
       )
@@ -110,7 +111,8 @@ RSpec.describe LlmsTxt do
     end
 
     it 'does both transformations' do
-      result = LlmsTxt.transform_markdown(temp_file.path,
+      result = LlmsTxt.transform_markdown(
+        temp_file.path,
         base_url: 'https://mysite.com',
         convert_urls: true
       )

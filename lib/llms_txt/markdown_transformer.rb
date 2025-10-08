@@ -61,8 +61,8 @@ module LlmsTxt
       base_url = options[:base_url]
 
       content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do |match|
-        text = $1
-        url = $2
+        text = ::Regexp.last_match(1)
+        url = ::Regexp.last_match(2)
 
         if url.start_with?('http://', 'https://', '//', '#')
           match # Already absolute or anchor

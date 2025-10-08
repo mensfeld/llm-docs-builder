@@ -9,7 +9,6 @@ loader.inflector.inflect('cli' => 'CLI')
 loader.setup
 
 module LlmsTxt
-
   class << self
     # Generates llms.txt from existing markdown documentation
     #

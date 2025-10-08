@@ -80,9 +80,7 @@ module LlmsTxt
     def validate_required_sections
       lines = content.lines
 
-      unless lines.first&.start_with?('# ')
-        errors << 'Missing required H1 title (must start with "# ")'
-      end
+      errors << 'Missing required H1 title (must start with "# ")' unless lines.first&.start_with?('# ')
 
       return unless lines.first&.strip&.length.to_i > 80
 
@@ -153,9 +151,7 @@ module LlmsTxt
             lib/
           ).*$
         }x
-        unless url =~ url_pattern
-          errors << "Invalid URL format: #{url}"
-        end
+        errors << "Invalid URL format: #{url}" unless url =~ url_pattern
       end
     end
 
@@ -192,9 +188,9 @@ module LlmsTxt
     #
     # Warns about non-HTTPS URLs and URLs containing spaces
     def validate_links
-      links = content.scan(/\[([^\]]+)\]\(([^)]+)\)/)
+      urls = content.scan(/\[([^\]]+)\]\(([^)]+)\)/).map(&:last)
 
-      links.each do |_text, url|
+      urls.each do |url|
         if url.start_with?('http') && !url.start_with?('https')
           errors << "Non-HTTPS URL found: #{url} (consider using HTTPS)"
         end
@@ -207,9 +203,7 @@ module LlmsTxt
     #
     # Enforces 50KB file size limit and 120 character line length limit
     def validate_file_size
-      if content.bytesize > MAX_FILE_SIZE
-        errors << "File size exceeds maximum (#{MAX_FILE_SIZE} bytes)"
-      end
+      errors << "File size exceeds maximum (#{MAX_FILE_SIZE} bytes)" if content.bytesize > MAX_FILE_SIZE
 
       lines = content.lines
       lines.each_with_index do |line, index|

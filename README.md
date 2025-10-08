@@ -76,7 +76,7 @@ llms-txt generate
 llms-txt generate --docs ./docs
 
 # Transform a single file
-llms-txt transform README.md
+llms-txt transform --docs README.md
 
 # Transform all markdown files in directory
 llms-txt bulk-transform --docs ./docs
@@ -91,10 +91,10 @@ llms-txt generate --config my-config.yml
 
 ```bash
 llms-txt generate [options]       # Generate llms.txt from documentation (default)
-llms-txt transform [file]         # Transform a markdown file to be AI-friendly
+llms-txt transform [options]      # Transform a markdown file to be AI-friendly
 llms-txt bulk-transform [options] # Transform all markdown files in directory
-llms-txt parse [file]             # Parse existing llms.txt file
-llms-txt validate [file]          # Validate llms.txt file
+llms-txt parse [options]          # Parse existing llms.txt file
+llms-txt validate [options]       # Validate llms.txt file
 llms-txt version                  # Show version
 ```
 

@@ -43,7 +43,7 @@ module LlmsTxt
 
       content = build_llms_txt(docs)
 
-      if output_path = options[:output]
+      if (output_path = options[:output])
         File.write(output_path, content)
       end
 
@@ -95,10 +95,10 @@ module LlmsTxt
     def analyze_file(file_path)
       # Handle single file case differently
       relative_path = if File.file?(docs_path)
-                       File.basename(file_path)
-                     else
-                       Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
-                     end
+                        File.basename(file_path)
+                      else
+                        Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
+                      end
 
       content = File.read(file_path)
 
@@ -120,7 +120,7 @@ module LlmsTxt
     def extract_title(content, file_path)
       # Try to extract title from first # header
       if content.match(/^#\s+(.+)/)
-        $1.strip
+        ::Regexp.last_match(1).strip
       else
         # Use filename as fallback
         File.basename(file_path, '.md').gsub(/[_-]/, ' ').split.map(&:capitalize).join(' ')
@@ -176,25 +176,25 @@ module LlmsTxt
 
       content = []
       content << "# #{title}"
-      content << ""
+      content << ''
       content << "> #{description}" if description
-      content << ""
+      content << ''
 
       if docs.any?
-        content << "## Documentation"
-        content << ""
+        content << '## Documentation'
+        content << ''
 
         docs.each do |doc|
           url = build_url(doc[:path])
-          if doc[:description] && !doc[:description].empty?
-            content << "- [#{doc[:title]}](#{url}): #{doc[:description]}"
-          else
-            content << "- [#{doc[:title]}](#{url})"
-          end
+          content << if doc[:description] && !doc[:description].empty?
+                       "- [#{doc[:title]}](#{url}): #{doc[:description]}"
+                     else
+                       "- [#{doc[:title]}](#{url})"
+                     end
         end
       end
 
-      content.join("\n") + "\n"
+      "#{content.join("\n")}\n"
     end
 
     # Attempts to detect project title from README or directory name
@@ -224,7 +224,7 @@ module LlmsTxt
     # @param path [String] relative path to file
     # @return [String] full URL or relative path
     def build_url(path)
-      if base_url = options[:base_url]
+      if (base_url = options[:base_url])
         File.join(base_url, path)
       else
         path

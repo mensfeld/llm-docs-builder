@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 (2025-10-07)
+- [Breaking] Removed positional argument support for all CLI commands. All file paths must now be specified using flags:
+  - `transform`: use `-d/--docs` flag instead of positional argument
+  - `parse`: use `-d/--docs` flag instead of positional argument (defaults to `llms.txt` if not specified)
+  - `validate`: use `-d/--docs` flag instead of positional argument (defaults to `llms.txt` if not specified)
+- [Enhancement] Improved CLI consistency by requiring explicit flags for all file paths.
+- [Enhancement] Added comprehensive CLI integration tests in `spec/integrations/` directory.
+  - Each command has its own dedicated integration test file
+  - Tests verify actual CLI binary execution, not just Ruby API
+  - All tests (unit and integration) run together with `bin/rspecs`
+- [Enhancement] Added convenient test runner script `bin/rspecs` for running all tests.
+- [Enhancement] Added comprehensive YARD documentation to all CLI methods.
+- [Enhancement] Resolved all RuboCop offenses (0 offenses detected).
+- [Fix] Fixed validator bug where `each_value` was incorrectly called on Array.
+
 ## 0.1.3 (2025-10-07)
 - [Fix] Fixed `transform` command to accept file path from `-d/--docs` flag in addition to positional arguments.
 
