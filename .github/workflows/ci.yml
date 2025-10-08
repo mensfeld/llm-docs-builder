@@ -52,7 +52,7 @@ jobs:
       - name: Run all tests
         env:
           GITHUB_COVERAGE: ${{ matrix.coverage }}
-        run: bin/rspec
+        run: bin/rspecs
 
 
   ci-success:

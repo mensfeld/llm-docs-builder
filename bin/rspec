@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# Run all specs
-
-set -e
-
-echo "Running specs..."
-bundle exec rspec --format documentation

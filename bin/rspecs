@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Run all tests (unit and integration specs)
+
+set -e
+
+echo "Running all tests..."
+bundle exec rspec --format documentation

@@ -9,8 +9,8 @@
 - [Enhancement] Added comprehensive CLI integration tests in `spec/integrations/` directory.
   - Each command has its own dedicated integration test file
   - Tests verify actual CLI binary execution, not just Ruby API
-  - All tests (unit and integration) run together with `bin/rspec`
-- [Enhancement] Added convenient test runner script `bin/rspec` for running all tests.
+  - All tests (unit and integration) run together with `bin/rspecs`
+- [Enhancement] Added convenient test runner script `bin/rspecs` for running all tests.
 - [Enhancement] Added comprehensive YARD documentation to all CLI methods.
 - [Enhancement] Resolved all RuboCop offenses (0 offenses detected).
 - [Fix] Fixed validator bug where `each_value` was incorrectly called on Array.
