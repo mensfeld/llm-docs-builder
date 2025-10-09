@@ -351,21 +351,25 @@ module LlmDocsBuilder
       puts 'Context Window Comparison'
       puts '=' * 60
       puts ''
-      puts "Human version:  #{format_bytes(result[:human_size])}"
+      puts "Human version:  #{format_bytes(result[:human_size])} (~#{format_number(result[:human_tokens])} tokens)"
       puts "  Source: #{result[:human_source]}"
       puts ''
-      puts "AI version:     #{format_bytes(result[:ai_size])}"
+      puts "AI version:     #{format_bytes(result[:ai_size])} (~#{format_number(result[:ai_tokens])} tokens)"
       puts "  Source: #{result[:ai_source]}"
       puts ''
       puts '-' * 60
 
       if result[:reduction_bytes].positive?
         puts "Reduction:      #{format_bytes(result[:reduction_bytes])} (#{result[:reduction_percent]}%)"
+        puts "Token savings:  #{format_number(result[:token_reduction])} tokens (#{result[:token_reduction_percent]}%)"
         puts "Factor:         #{result[:factor]}x smaller"
       elsif result[:reduction_bytes].negative?
         increase_bytes = result[:reduction_bytes].abs
         increase_percent = result[:reduction_percent].abs
+        token_increase = result[:token_reduction].abs
+        token_increase_percent = result[:token_reduction_percent].abs
         puts "Increase:       #{format_bytes(increase_bytes)} (#{increase_percent}%)"
+        puts "Token increase: #{format_number(token_increase)} tokens (#{token_increase_percent}%)"
         puts "Factor:         #{result[:factor]}x larger"
       else
         puts 'Same size'
@@ -387,6 +391,14 @@ module LlmDocsBuilder
       else
         "#{(bytes / (1024.0 * 1024)).round(2)} MB"
       end
+    end
+
+    # Format number with comma separators for readability
+    #
+    # @param number [Integer] number to format
+    # @return [String] formatted number with commas
+    def format_number(number)
+      number.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
     end
 
     # Validate llms.txt file format

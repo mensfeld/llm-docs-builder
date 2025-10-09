@@ -67,6 +67,26 @@ module LlmDocsBuilder
                       else
                         self['convert_urls'] || false
                       end,
+        remove_comments: if options.key?(:remove_comments)
+                           options[:remove_comments]
+                         else
+                           self['remove_comments'] || false
+                         end,
+        normalize_whitespace: if options.key?(:normalize_whitespace)
+                                options[:normalize_whitespace]
+                              else
+                                self['normalize_whitespace'] || false
+                              end,
+        remove_badges: if options.key?(:remove_badges)
+                         options[:remove_badges]
+                       else
+                         self['remove_badges'] || false
+                       end,
+        remove_frontmatter: if options.key?(:remove_frontmatter)
+                              options[:remove_frontmatter]
+                            else
+                              self['remove_frontmatter'] || false
+                            end,
         verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false),
         # Bulk transformation options
         suffix: options[:suffix] || self['suffix'] || '.llm',

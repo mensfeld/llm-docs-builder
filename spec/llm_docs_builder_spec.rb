@@ -120,6 +120,238 @@ RSpec.describe LlmDocsBuilder do
       expect(result).to include('[API docs](https://mysite.com/api.md)')
       expect(result).to include('https://example.com/docs.md')
     end
+
+    it 'removes HTML comments' do
+      temp_with_comments = Tempfile.new(['test', '.md'])
+      temp_with_comments.write(<<~MD)
+        # Test Document
+
+        <!-- This is a comment -->
+        This is visible content.
+
+        <!-- Multi-line comment
+             spanning several lines
+             should be removed -->
+
+        More content here.
+        <!-- Another comment -->
+      MD
+      temp_with_comments.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_comments.path, remove_comments: true)
+
+      expect(result).not_to include('<!-- This is a comment -->')
+      expect(result).not_to include('Multi-line comment')
+      expect(result).not_to include('Another comment')
+      expect(result).to include('This is visible content.')
+      expect(result).to include('More content here.')
+
+      temp_with_comments.unlink
+    end
+
+    it 'keeps comments when remove_comments is false' do
+      temp_with_comments = Tempfile.new(['test', '.md'])
+      temp_with_comments.write(<<~MD)
+        # Test Document
+
+        <!-- This comment should stay -->
+        Content here.
+      MD
+      temp_with_comments.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_comments.path, remove_comments: false)
+
+      expect(result).to include('<!-- This comment should stay -->')
+
+      temp_with_comments.unlink
+    end
+
+    it 'combines all transformations including comment removal' do
+      temp_all = Tempfile.new(['test', '.md'])
+      temp_all.write(<<~MD)
+        # Test Document
+
+        <!-- Internal note: update this later -->
+        Check out the [API docs](./api.md) and visit https://example.com/page.html
+
+        <!-- TODO: add more examples -->
+      MD
+      temp_all.close
+
+      result = LlmDocsBuilder.transform_markdown(
+        temp_all.path,
+        base_url: 'https://mysite.com',
+        convert_urls: true,
+        remove_comments: true
+      )
+
+      expect(result).to include('[API docs](https://mysite.com/api.md)')
+      expect(result).to include('https://example.com/page.md')
+      expect(result).not_to include('Internal note')
+      expect(result).not_to include('TODO')
+      expect(result).not_to include('<!--')
+      expect(result).not_to include('-->')
+
+      temp_all.unlink
+    end
+
+    it 'removes badges from markdown' do
+      temp_with_badges = Tempfile.new(['test', '.md'])
+      temp_with_badges.write(<<~MD)
+        # Project Title
+
+        [![CI](https://github.com/user/repo/workflows/CI/badge.svg)](https://github.com/user/repo/actions)
+        [![Version](https://badge.fury.io/rb/gem.svg)](https://badge.fury.io/rb/gem)
+        ![Coverage](https://coveralls.io/repos/user/repo/badge.svg)
+
+        ## Description
+
+        This is the actual content.
+      MD
+      temp_with_badges.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_badges.path, remove_badges: true)
+
+      expect(result).not_to include('badge.svg')
+      expect(result).not_to include('[![')
+      expect(result).not_to include('badge.fury.io')
+      expect(result).not_to include('coveralls.io')
+      expect(result).to include('# Project Title')
+      expect(result).to include('This is the actual content.')
+
+      temp_with_badges.unlink
+    end
+
+    it 'removes frontmatter from markdown' do
+      temp_with_frontmatter = Tempfile.new(['test', '.md'])
+      temp_with_frontmatter.write(<<~MD)
+        ---
+        layout: post
+        title: Blog Post
+        date: 2024-01-01
+        author: John Doe
+        ---
+
+        # Actual Content
+
+        This is the real content that should remain.
+      MD
+      temp_with_frontmatter.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_frontmatter.path, remove_frontmatter: true)
+
+      expect(result).not_to include('layout: post')
+      expect(result).not_to include('author: John Doe')
+      expect(result).to include('# Actual Content')
+      expect(result).to include('This is the real content')
+
+      temp_with_frontmatter.unlink
+    end
+
+    it 'removes TOML frontmatter from markdown' do
+      temp_with_toml = Tempfile.new(['test', '.md'])
+      temp_with_toml.write(<<~MD)
+        +++
+        title = "My Post"
+        date = 2024-01-01
+        +++
+
+        # Content Here
+
+        Real content.
+      MD
+      temp_with_toml.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_toml.path, remove_frontmatter: true)
+
+      expect(result).not_to include('+++')
+      expect(result).not_to include('title = "My Post"')
+      expect(result).to include('# Content Here')
+
+      temp_with_toml.unlink
+    end
+
+    it 'normalizes excessive whitespace' do
+      temp_with_whitespace = Tempfile.new(['test', '.md'])
+      temp_with_whitespace.write(<<~MD)
+        # Title
+
+
+
+        Paragraph with    trailing spaces
+
+
+
+        Another paragraph
+
+
+
+        More content
+      MD
+      temp_with_whitespace.close
+
+      result = LlmDocsBuilder.transform_markdown(temp_with_whitespace.path, normalize_whitespace: true)
+
+      # Should reduce 4+ consecutive newlines to 3 (2 blank lines)
+      expect(result).not_to match(/\n{4,}/)
+      # Should remove trailing spaces
+      expect(result).not_to match(/ +$/)
+      # Should trim leading/trailing whitespace
+      expect(result).to start_with('# Title')
+      expect(result).to end_with('More content')
+
+      temp_with_whitespace.unlink
+    end
+
+    it 'applies all transformations together' do
+      temp_complete = Tempfile.new(['test', '.md'])
+      temp_complete.write(<<~MD)
+        ---
+        title: Complete Test
+        ---
+
+        # Project
+
+        [![Build](https://badge.svg)](https://example.com)
+
+        <!-- TODO: update this -->
+
+
+
+        Check out [docs](./docs.md) and https://example.com/page.html
+
+
+
+        More content
+      MD
+      temp_complete.close
+
+      result = LlmDocsBuilder.transform_markdown(
+        temp_complete.path,
+        base_url: 'https://mysite.com',
+        convert_urls: true,
+        remove_comments: true,
+        remove_badges: true,
+        remove_frontmatter: true,
+        normalize_whitespace: true
+      )
+
+      # Frontmatter removed
+      expect(result).not_to include('title: Complete Test')
+      # Badges removed
+      expect(result).not_to include('badge.svg')
+      # Comments removed
+      expect(result).not_to include('TODO')
+      # Links expanded
+      expect(result).to include('[docs](https://mysite.com/docs.md)')
+      # URLs converted
+      expect(result).to include('https://example.com/page.md')
+      # Whitespace normalized
+      expect(result).not_to match(/\n{4,}/)
+      expect(result).not_to match(/ +$/)
+
+      temp_complete.unlink
+    end
   end
 
   describe '.parse' do
