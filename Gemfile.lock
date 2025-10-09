@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    llms-txt-ruby (0.2.0)
+    llm-docs-builder (0.3.0)
       zeitwerk (~> 2.6)
 
 GEM
@@ -76,7 +76,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 2.0)
-  llms-txt-ruby!
+  llm-docs-builder!
   pry
   pry-byebug
   rake (~> 13.0)

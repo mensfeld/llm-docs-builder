@@ -1,6 +1,21 @@
 # Changelog
 
 ## Unreleased
+- [Breaking] **Project renamed from `llms-txt-ruby` to `llm-docs-builder`** to better reflect expanded functionality beyond just llms.txt generation.
+  - Gem name: `llms-txt-ruby` → `llm-docs-builder`
+  - Module name: `LlmsTxt` → `LlmDocsBuilder`
+  - CLI command: `llms-txt` → `llm-docs-builder`
+  - Config file: `llms-txt.yml` → `llm-docs-builder.yml`
+  - Docker images: `mensfeld/llms-txt-ruby` → `mensfeld/llm-docs-builder`
+  - Repository: `llms-txt-ruby` → `llm-docs-builder`
+  - Updated all documentation, examples, and tests
+- [Feature] Added Docker support for easy CLI usage without Ruby installation.
+  - Multi-stage Dockerfile for minimal image size (~78MB)
+  - Multi-architecture support (linux/amd64, linux/arm64)
+  - Published to Docker Hub (`mensfeld/llm-docs-builder`) and GitHub Container Registry
+  - GitHub Actions workflow for automated Docker builds and publishing
+  - Comprehensive Docker usage documentation with examples for all commands
+  - CI/CD integration examples (GitHub Actions, GitLab CI, Jenkins)
 - [Feature] Added `compare` command to measure context window savings by comparing content sizes between human and AI versions.
   - Compare remote URL with different User-Agents (human browser vs AI bot)
   - Compare remote URL with local markdown file

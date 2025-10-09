@@ -3,7 +3,7 @@
 require 'net/http'
 require 'uri'
 
-module LlmsTxt
+module LlmDocsBuilder
   # Compares content sizes between human and AI versions
   #
   # Helps quantify context window savings by comparing:
@@ -11,12 +11,12 @@ module LlmsTxt
   # - Remote URL with local markdown file
   #
   # @example Compare remote versions
-  #   comparator = LlmsTxt::Comparator.new('https://example.com/docs/page.html')
+  #   comparator = LlmDocsBuilder::Comparator.new('https://example.com/docs/page.html')
   #   result = comparator.compare
   #   puts "Reduction: #{result[:reduction_percent]}%"
   #
   # @example Compare remote with local file
-  #   comparator = LlmsTxt::Comparator.new('https://example.com/docs/page.html',
+  #   comparator = LlmDocsBuilder::Comparator.new('https://example.com/docs/page.html',
   #     local_file: 'docs/page.md'
   #   )
   #   result = comparator.compare

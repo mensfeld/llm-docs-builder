@@ -2,14 +2,14 @@
 
 require 'optparse'
 
-module LlmsTxt
+module LlmDocsBuilder
   # Command-line interface for llms-txt gem
   #
   # Provides commands for generating, transforming, parsing, and validating llms.txt files.
   # All file paths must be specified using flags (-d/--docs) for consistency.
   #
   # @example Run the CLI
-  #   LlmsTxt::CLI.run(['generate', '--docs', './docs', '--output', 'llms.txt'])
+  #   LlmDocsBuilder::CLI.run(['generate', '--docs', './docs', '--output', 'llms.txt'])
   #
   # @api public
   class CLI
@@ -23,7 +23,7 @@ module LlmsTxt
     # Execute CLI command with error handling
     #
     # Parses command-line arguments and delegates to appropriate command handler.
-    # Handles all LlmsTxt errors gracefully with user-friendly messages.
+    # Handles all LlmDocsBuilder errors gracefully with user-friendly messages.
     #
     # @param argv [Array<String>] command-line arguments
     # @raise [SystemExit] exits with status 1 on error
@@ -47,10 +47,10 @@ module LlmsTxt
         show_version
       else
         puts "Unknown command: #{options[:command]}"
-        puts "Run 'llms-txt --help' for usage information"
+        puts "Run 'llm-docs-builder --help' for usage information"
         exit 1
       end
-    rescue LlmsTxt::Errors::BaseError => e
+    rescue LlmDocsBuilder::Errors::BaseError => e
       puts "Error: #{e.message}"
       exit 1
     rescue StandardError => e
@@ -73,7 +73,7 @@ module LlmsTxt
       }
 
       OptionParser.new do |opts|
-        opts.banner = "llms-txt - Simple tool for generating llms.txt from markdown documentation\n\nUsage: llms-txt [command] [options]\n\nFor advanced configuration (base_url, title, description, convert_urls), use a config file."
+        opts.banner = "llm-docs-builder - Build and optimize documentation for LLMs\n\nUsage: llm-docs-builder [command] [options]\n\nFor advanced configuration (base_url, title, description, convert_urls), use a config file."
 
         opts.separator ''
         opts.separator 'Commands:'
@@ -88,7 +88,7 @@ module LlmsTxt
         opts.separator ''
         opts.separator 'Options:'
 
-        opts.on('-c', '--config PATH', 'Configuration file path (default: llms-txt.yml)') do |path|
+        opts.on('-c', '--config PATH', 'Configuration file path (default: llm-docs-builder.yml)') do |path|
           options[:config] = path
         end
 
@@ -139,7 +139,7 @@ module LlmsTxt
     # @raise [SystemExit] exits with status 1 if docs path not found
     def generate(options)
       # Load config and merge with CLI options
-      config = LlmsTxt::Config.new(options[:config])
+      config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
@@ -151,7 +151,7 @@ module LlmsTxt
 
       puts "Generating llms.txt from #{docs_path}..." if merged_options[:verbose]
 
-      content = LlmsTxt.generate_from_docs(docs_path, merged_options)
+      content = LlmDocsBuilder.generate_from_docs(docs_path, merged_options)
       output_path = merged_options[:output]
 
       File.write(output_path, content)
@@ -159,7 +159,7 @@ module LlmsTxt
 
       return unless merged_options[:verbose]
 
-      validator = LlmsTxt::Validator.new(content)
+      validator = LlmDocsBuilder::Validator.new(content)
       if validator.valid?
         puts 'Valid llms.txt format'
       else
@@ -182,7 +182,7 @@ module LlmsTxt
     # @raise [SystemExit] exits with status 1 if file not found or -d flag missing
     def transform(options)
       # Load config and merge with CLI options
-      config = LlmsTxt::Config.new(options[:config])
+      config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
       file_path = merged_options[:docs]
@@ -199,7 +199,7 @@ module LlmsTxt
 
       puts "Transforming #{file_path}..." if merged_options[:verbose]
 
-      content = LlmsTxt.transform_markdown(file_path, merged_options)
+      content = LlmDocsBuilder.transform_markdown(file_path, merged_options)
 
       if merged_options[:output] && merged_options[:output] != 'llms.txt'
         File.write(merged_options[:output], content)
@@ -224,7 +224,7 @@ module LlmsTxt
     # @raise [SystemExit] exits with status 1 if directory not found or transformation fails
     def bulk_transform(options)
       # Load config and merge with CLI options
-      config = LlmsTxt::Config.new(options[:config])
+      config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
@@ -246,7 +246,7 @@ module LlmsTxt
       end
 
       begin
-        transformed_files = LlmsTxt.bulk_transform(docs_path, merged_options)
+        transformed_files = LlmDocsBuilder.bulk_transform(docs_path, merged_options)
 
         if transformed_files.empty?
           puts 'No markdown files found to transform'
@@ -259,7 +259,7 @@ module LlmsTxt
             end
           end
         end
-      rescue LlmsTxt::Errors::BaseError => e
+      rescue LlmDocsBuilder::Errors::BaseError => e
         puts "Error during bulk transformation: #{e.message}"
         exit 1
       end
@@ -277,7 +277,7 @@ module LlmsTxt
     # @raise [SystemExit] exits with status 1 if file not found
     def parse(options)
       # Load config and merge with CLI options
-      config = LlmsTxt::Config.new(options[:config])
+      config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
       file_path = merged_options[:docs] || 'llms.txt'
@@ -287,7 +287,7 @@ module LlmsTxt
         exit 1
       end
 
-      parsed = LlmsTxt.parse(file_path)
+      parsed = LlmDocsBuilder.parse(file_path)
 
       if options[:verbose]
         puts "Title: #{parsed.title}"
@@ -319,10 +319,10 @@ module LlmsTxt
         puts ''
         puts 'Examples:'
         puts '  # Compare remote versions (different User-Agents)'
-        puts '  llms-txt compare --url https://example.com/docs/page.html'
+        puts '  llm-docs-builder compare --url https://example.com/docs/page.html'
         puts ''
         puts '  # Compare remote with local file'
-        puts '  llms-txt compare --url https://example.com/docs/page.html --file docs/page.md'
+        puts '  llm-docs-builder compare --url https://example.com/docs/page.html --file docs/page.md'
         exit 1
       end
 
@@ -331,12 +331,12 @@ module LlmsTxt
         verbose: options[:verbose]
       }
 
-      comparator = LlmsTxt::Comparator.new(url, comparator_options)
+      comparator = LlmDocsBuilder::Comparator.new(url, comparator_options)
 
       begin
         result = comparator.compare
         display_comparison_results(result)
-      rescue LlmsTxt::Errors::BaseError => e
+      rescue LlmDocsBuilder::Errors::BaseError => e
         puts "Error during comparison: #{e.message}"
         exit 1
       end
@@ -400,7 +400,7 @@ module LlmsTxt
     # @raise [SystemExit] exits with status 1 if file not found or invalid
     def validate(options)
       # Load config and merge with CLI options
-      config = LlmsTxt::Config.new(options[:config])
+      config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
       file_path = merged_options[:docs] || 'llms.txt'
@@ -411,14 +411,14 @@ module LlmsTxt
       end
 
       content = File.read(file_path)
-      valid = LlmsTxt.validate(content)
+      valid = LlmDocsBuilder.validate(content)
 
       if valid
         puts 'Valid llms.txt file'
       else
         puts 'Invalid llms.txt file'
         puts "\nErrors:"
-        LlmsTxt::Validator.new(content).errors.each do |error|
+        LlmDocsBuilder::Validator.new(content).errors.each do |error|
           puts "  - #{error}"
         end
         exit 1
@@ -428,7 +428,7 @@ module LlmsTxt
     # Display version information
     #
     def show_version
-      puts "llms-txt version #{LlmsTxt::VERSION}"
+      puts "llm-docs-builder version #{LlmDocsBuilder::VERSION}"
     end
   end
 end

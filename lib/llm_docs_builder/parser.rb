@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module LlmsTxt
+module LlmDocsBuilder
   # Parses llms.txt files into structured data
   #
   # Reads and parses llms.txt files according to the llms.txt specification,
@@ -8,7 +8,7 @@ module LlmsTxt
   # Examples, Optional) with their links.
   #
   # @example Parse an llms.txt file
-  #   parser = LlmsTxt::Parser.new('llms.txt')
+  #   parser = LlmDocsBuilder::Parser.new('llms.txt')
   #   parsed = parser.parse
   #   parsed.title              # => "My Project"
   #   parsed.description        # => "Project description"

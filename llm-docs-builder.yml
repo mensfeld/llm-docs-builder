@@ -1,0 +1,7 @@
+docs: ./docs
+base_url: https://myproject.io
+title: My Awesome Project
+description: A Ruby library that helps developers build amazing applications
+output: llms.txt
+convert_urls: true
+verbose: false

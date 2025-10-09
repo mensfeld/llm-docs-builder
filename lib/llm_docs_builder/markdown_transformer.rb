@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module LlmsTxt
+module LlmDocsBuilder
   # Transforms markdown files to be AI-friendly
   #
   # Processes individual markdown files to make them more suitable for LLM consumption by
@@ -8,7 +8,7 @@ module LlmsTxt
   # formats.
   #
   # @example Transform with base URL
-  #   transformer = LlmsTxt::MarkdownTransformer.new('README.md',
+  #   transformer = LlmDocsBuilder::MarkdownTransformer.new('README.md',
   #     base_url: 'https://myproject.io'
   #   )
   #   content = transformer.transform

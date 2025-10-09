@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'tempfile'
 require 'tmpdir'
 
-RSpec.describe LlmsTxt::BulkTransformer do
+RSpec.describe LlmDocsBuilder::BulkTransformer do
   let(:temp_dir) { Dir.mktmpdir }
 
   before do
@@ -134,7 +134,7 @@ RSpec.describe LlmsTxt::BulkTransformer do
 
       expect do
         transformer.transform_all
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Directory not found/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Directory not found/)
     end
 
     it 'handles empty directory' do
@@ -151,9 +151,9 @@ RSpec.describe LlmsTxt::BulkTransformer do
   end
 end
 
-RSpec.describe 'LlmsTxt.bulk_transform' do
+RSpec.describe 'LlmDocsBuilder.bulk_transform' do
   let(:temp_dir) { Dir.mktmpdir }
-  let(:config_file) { File.join(temp_dir, 'llms-txt.yml') }
+  let(:config_file) { File.join(temp_dir, 'llm-docs-builder.yml') }
 
   before do
     # Create test files
@@ -185,7 +185,7 @@ RSpec.describe 'LlmsTxt.bulk_transform' do
   end
 
   it 'works with direct options' do
-    transformed_files = LlmsTxt.bulk_transform(
+    transformed_files = LlmDocsBuilder.bulk_transform(
       temp_dir,
       base_url: 'https://direct.com',
       suffix: '.direct'
@@ -199,7 +199,7 @@ RSpec.describe 'LlmsTxt.bulk_transform' do
   end
 
   it 'works with config file' do
-    transformed_files = LlmsTxt.bulk_transform(temp_dir, config_file: config_file)
+    transformed_files = LlmDocsBuilder.bulk_transform(temp_dir, config_file: config_file)
 
     expect(transformed_files.size).to eq(2)
     expect(transformed_files).to all(match(/\.llm\.md$/))

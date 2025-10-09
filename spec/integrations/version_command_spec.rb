@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'open3'
 
 RSpec.describe 'version command' do
-  let(:cli_path) { File.expand_path('../../bin/llms-txt', __dir__) }
+  let(:cli_path) { File.expand_path('../../bin/llm-docs-builder', __dir__) }
 
   def run_cli(*args)
     cmd = "bundle exec #{cli_path} #{args.join(' ')}"
@@ -16,7 +16,7 @@ RSpec.describe 'version command' do
     stdout, _stderr, status = run_cli('version')
 
     expect(status.success?).to be true
-    expect(stdout).to match(/llms-txt version \d+\.\d+\.\d+/)
+    expect(stdout).to match(/llm-docs-builder version \d+\.\d+\.\d+/)
   end
 
   it 'shows error for unknown command' do
