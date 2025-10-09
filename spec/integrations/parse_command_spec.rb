@@ -1,10 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'open3'
-require 'tempfile'
-require 'tmpdir'
-
 RSpec.describe 'parse command' do
   let(:cli_path) { File.expand_path('../../bin/llm-docs-builder', __dir__) }
   let(:temp_dir) { Dir.mktmpdir }

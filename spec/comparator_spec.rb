@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 RSpec.describe LlmDocsBuilder::Comparator do
   let(:url) { 'https://example.com/docs/page.html' }
   let(:human_content) { "<html><body>#{'x' * 1000}</body></html>" }
@@ -261,47 +259,4 @@ RSpec.describe LlmDocsBuilder::Comparator do
     end
   end
 
-  describe '#estimate_tokens' do
-    let(:comparator) { described_class.new(url) }
-
-    it 'estimates tokens using 4 characters per token heuristic' do
-      content = 'test' * 100 # 400 characters
-      expected_tokens = (400 / 4.0).round # 100 tokens
-
-      # Call private method for testing
-      result = comparator.send(:estimate_tokens, content)
-
-      expect(result).to eq(expected_tokens)
-    end
-
-    it 'handles empty content' do
-      result = comparator.send(:estimate_tokens, '')
-
-      expect(result).to eq(0)
-    end
-
-    it 'handles small content' do
-      content = 'hi' # 2 characters
-      expected_tokens = (2 / 4.0).round # 1 token (rounded)
-
-      result = comparator.send(:estimate_tokens, content)
-
-      expect(result).to eq(expected_tokens)
-    end
-
-    it 'provides reasonable estimates for documentation content' do
-      # Typical documentation paragraph
-      content = <<~TEXT
-        This is a typical documentation paragraph that explains how to use the API.
-        It contains multiple sentences with technical information about the endpoints,
-        parameters, and return values. The token estimation should be reasonably accurate
-        for this type of content.
-      TEXT
-
-      result = comparator.send(:estimate_tokens, content)
-
-      # Should be roughly 1/4 of character count
-      expect(result).to be_within(5).of(content.length / 4)
-    end
-  end
 end

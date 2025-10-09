@@ -231,9 +231,10 @@ module LlmDocsBuilder
                  Float::INFINITY
                end
 
-      # Estimate tokens
-      human_tokens = estimate_tokens(human_content)
-      ai_tokens = estimate_tokens(ai_content)
+      # Estimate tokens using TokenEstimator
+      estimator = TokenEstimator.new
+      human_tokens = estimator.estimate(human_content)
+      ai_tokens = estimator.estimate(ai_content)
       token_reduction = human_tokens - ai_tokens
       token_reduction_percent = if human_tokens.positive?
                                   ((token_reduction.to_f / human_tokens) * 100).round
@@ -256,18 +257,5 @@ module LlmDocsBuilder
       }
     end
 
-    # Estimate token count using character-based approximation
-    #
-    # Uses the common heuristic that ~4 characters equals 1 token for English text.
-    # This provides reasonable estimates for documentation content without requiring
-    # external tokenizer dependencies.
-    #
-    # @param content [String] text content to estimate tokens for
-    # @return [Integer] estimated number of tokens
-    def estimate_tokens(content)
-      # Use 4 characters per token as a reasonable approximation
-      # This is a common heuristic for English text and works well for documentation
-      (content.length / 4.0).round
-    end
   end
 end

@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'tempfile'
-require 'tmpdir'
-
 RSpec.describe LlmDocsBuilder::BulkTransformer do
   let(:temp_dir) { Dir.mktmpdir }
 

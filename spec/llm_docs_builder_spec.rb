@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'tempfile'
-require 'tmpdir'
-
 RSpec.describe LlmDocsBuilder do
   it 'has a version number' do
     expect(LlmDocsBuilder::VERSION).not_to be nil
