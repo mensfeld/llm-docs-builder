@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+- [Feature] Added `compare` command to measure context window savings by comparing content sizes between human and AI versions.
+  - Compare remote URL with different User-Agents (human browser vs AI bot)
+  - Compare remote URL with local markdown file
+  - Display reduction percentage, bytes saved, and compression factor
+  - Support for custom User-Agents and verbose output
+- [Enhancement] Added `Comparator` class with comprehensive specs for HTTP fetching and size comparison.
+- [Enhancement] Added `-u/--url` and `-f/--file` CLI flags for compare command.
+- [Security] Added redirect depth limiting (MAX_REDIRECTS = 10) to prevent infinite redirect loops.
+- [Security] Added URL validation to reject non-HTTP/HTTPS schemes (prevents file://, javascript:, ftp://, etc.).
+- [Security] Added URL format validation to ensure proper host and scheme presence.
+- [Enhancement] Added verbose redirect logging to show redirect chains when --verbose flag is used.
+
 ## 0.2.0 (2025-10-07)
 - [Breaking] Removed positional argument support for all CLI commands. All file paths must now be specified using flags:
   - `transform`: use `-d/--docs` flag instead of positional argument

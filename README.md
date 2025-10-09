@@ -93,6 +93,7 @@ llms-txt generate --config my-config.yml
 llms-txt generate [options]       # Generate llms.txt from documentation (default)
 llms-txt transform [options]      # Transform a markdown file to be AI-friendly
 llms-txt bulk-transform [options] # Transform all markdown files in directory
+llms-txt compare [options]        # Compare content sizes to measure context savings
 llms-txt parse [options]          # Parse existing llms.txt file
 llms-txt validate [options]       # Validate llms.txt file
 llms-txt version                  # Show version
@@ -104,6 +105,8 @@ llms-txt version                  # Show version
 -c, --config PATH        Configuration file path (default: llms-txt.yml)
 -d, --docs PATH          Path to documentation directory or file
 -o, --output PATH        Output file path
+-u, --url URL            URL to fetch for comparison
+-f, --file PATH          Local markdown file for comparison
 -v, --verbose            Verbose output
 -h, --help               Show help message
 ```
@@ -575,6 +578,70 @@ When generating llms.txt, files are automatically prioritized:
 3. **Guides and tutorials** - Step-by-step content
 4. **API references** - Technical documentation
 5. **Other files** - Everything else
+
+## Comparing Context Window Savings
+
+The `compare` command helps you measure how much context window space is saved by serving LLM-optimized versions of your documentation. It compares content sizes between human and AI versions to quantify the reduction.
+
+### Use Cases
+
+**1. Compare remote versions with different User-Agents**
+
+Check how much smaller your server sends to AI bots compared to regular browsers:
+
+```bash
+llms-txt compare --url https://karafka.io/docs/Getting-Started.html
+```
+
+Output:
+```
+============================================================
+Context Window Comparison
+============================================================
+
+Human version:  45.2 KB
+  Source: https://karafka.io/docs/Getting-Started.html (User-Agent: human)
+
+AI version:     12.8 KB
+  Source: https://karafka.io/docs/Getting-Started.html (User-Agent: AI)
+
+------------------------------------------------------------
+Reduction:      32.4 KB (72%)
+Factor:         3.5x smaller
+============================================================
+```
+
+**2. Compare remote with local markdown**
+
+Test your local markdown files before deploying:
+
+```bash
+llms-txt compare --url https://example.com/docs/page.html --file docs/page.md
+```
+
+This fetches the current live version and compares it with your local markdown to see the potential savings.
+
+**3. Verbose mode for debugging**
+
+```bash
+llms-txt compare --url https://example.com/docs --verbose
+```
+
+Shows fetching progress and detailed information about what's being compared.
+
+### How It Works
+
+The compare command:
+1. **For remote-only comparison**: Fetches the URL twice with different User-Agents (simulating human browser vs AI bot)
+2. **For local comparison**: Fetches the URL once (human User-Agent) and reads your local markdown file
+3. **Calculates metrics**: Computes reduction percentage and compression factor
+4. **Displays results**: Shows size comparison in human-readable format (bytes, KB, MB)
+
+This helps you:
+- **Validate optimizations**: Confirm your LLM-optimized versions are actually smaller
+- **Measure impact**: Quantify context window savings for your users
+- **Test before deploy**: Check local changes against live versions
+- **Monitor effectiveness**: Track savings across different pages
 
 ## Example Output
 
