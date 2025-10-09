@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'llms_txt'
+require 'llm_docs_builder'
 require 'simplecov'
 
 SimpleCov.start do

@@ -4,9 +4,9 @@ require 'spec_helper'
 require 'tempfile'
 require 'tmpdir'
 
-RSpec.describe LlmsTxt do
+RSpec.describe LlmDocsBuilder do
   it 'has a version number' do
-    expect(LlmsTxt::VERSION).not_to be nil
+    expect(LlmDocsBuilder::VERSION).not_to be nil
   end
 
   describe '.generate_from_docs' do
@@ -17,7 +17,7 @@ RSpec.describe LlmsTxt do
       File.write(File.join(temp_dir, 'README.md'), <<~MD)
         # Test Project
 
-        This is a sample project for testing the llms-txt generator.
+        This is a sample project for testing the llm-docs-builder generator.
 
         ## Features
         - Simple and clean
@@ -42,7 +42,7 @@ RSpec.describe LlmsTxt do
     end
 
     it 'generates llms.txt from documentation directory' do
-      result = LlmsTxt.generate_from_docs(temp_dir, config_file: '/nonexistent')
+      result = LlmDocsBuilder.generate_from_docs(temp_dir, config_file: '/nonexistent')
 
       expect(result).to be_a(String)
       expect(result).to include('# Test Project')
@@ -53,14 +53,14 @@ RSpec.describe LlmsTxt do
     end
 
     it 'generates with base URL' do
-      result = LlmsTxt.generate_from_docs(temp_dir, base_url: 'https://example.com')
+      result = LlmDocsBuilder.generate_from_docs(temp_dir, base_url: 'https://example.com')
 
       expect(result).to include('https://example.com/README.md')
       expect(result).to include('https://example.com/getting-started.md')
     end
 
     it 'uses custom title and description' do
-      result = LlmsTxt.generate_from_docs(
+      result = LlmDocsBuilder.generate_from_docs(
         temp_dir,
         title: 'Custom Title',
         description: 'Custom description'
@@ -72,7 +72,7 @@ RSpec.describe LlmsTxt do
 
     it 'works with single file' do
       readme_file = File.join(temp_dir, 'README.md')
-      result = LlmsTxt.generate_from_docs(readme_file, config_file: '/nonexistent')
+      result = LlmDocsBuilder.generate_from_docs(readme_file, config_file: '/nonexistent')
 
       expect(result).to include('# Test Project')
       expect(result).to include('README')
@@ -98,20 +98,20 @@ RSpec.describe LlmsTxt do
     end
 
     it 'expands relative links' do
-      result = LlmsTxt.transform_markdown(temp_file.path, base_url: 'https://mysite.com')
+      result = LlmDocsBuilder.transform_markdown(temp_file.path, base_url: 'https://mysite.com')
 
       expect(result).to include('[API docs](https://mysite.com/api.md)')
       expect(result).to include('[guide](https://mysite.com/docs/guide.md)')
     end
 
     it 'converts HTML URLs to markdown' do
-      result = LlmsTxt.transform_markdown(temp_file.path, convert_urls: true)
+      result = LlmDocsBuilder.transform_markdown(temp_file.path, convert_urls: true)
 
       expect(result).to include('https://example.com/docs.md')
     end
 
     it 'does both transformations' do
-      result = LlmsTxt.transform_markdown(
+      result = LlmDocsBuilder.transform_markdown(
         temp_file.path,
         base_url: 'https://mysite.com',
         convert_urls: true
@@ -152,7 +152,7 @@ RSpec.describe LlmsTxt do
     end
 
     it 'parses llms.txt file correctly' do
-      parsed = LlmsTxt.parse(temp_file.path)
+      parsed = LlmDocsBuilder.parse(temp_file.path)
 
       expect(parsed.title).to eq('Test Project')
       expect(parsed.description).to eq('A sample Ruby project for testing')
@@ -181,17 +181,17 @@ RSpec.describe LlmsTxt do
     end
 
     it 'validates valid content' do
-      expect(LlmsTxt.validate(valid_content)).to be true
+      expect(LlmDocsBuilder.validate(valid_content)).to be true
     end
 
     it 'rejects invalid content' do
-      expect(LlmsTxt.validate(invalid_content)).to be false
+      expect(LlmDocsBuilder.validate(invalid_content)).to be false
     end
   end
 
   describe 'config file support' do
     let(:temp_dir) { Dir.mktmpdir }
-    let(:config_file) { File.join(temp_dir, 'llms-txt.yml') }
+    let(:config_file) { File.join(temp_dir, 'llm-docs-builder.yml') }
 
     before do
       # Create sample markdown files
@@ -219,7 +219,7 @@ RSpec.describe LlmsTxt do
 
     describe '.generate_from_docs with config file' do
       it 'uses config file settings' do
-        result = LlmsTxt.generate_from_docs(config_file: config_file)
+        result = LlmDocsBuilder.generate_from_docs(config_file: config_file)
 
         expect(result).to include('# Config Title')
         expect(result).to include('> Config Description')
@@ -227,14 +227,14 @@ RSpec.describe LlmsTxt do
       end
 
       it 'allows CLI options to override config' do
-        result = LlmsTxt.generate_from_docs(config_file: config_file, title: 'Override Title')
+        result = LlmDocsBuilder.generate_from_docs(config_file: config_file, title: 'Override Title')
 
         expect(result).to include('# Override Title')
         expect(result).to include('> Config Description') # description not overridden
       end
 
       it 'supports config-first usage pattern' do
-        result = LlmsTxt.generate_from_docs(config_file: config_file)
+        result = LlmDocsBuilder.generate_from_docs(config_file: config_file)
 
         expect(result).to include('# Config Title')
         expect(result).to include('https://config-test.com/README.md')
@@ -253,7 +253,7 @@ RSpec.describe LlmsTxt do
       end
 
       it 'uses config file for transformation' do
-        result = LlmsTxt.transform_markdown(markdown_file, config_file: config_file)
+        result = LlmDocsBuilder.transform_markdown(markdown_file, config_file: config_file)
 
         expect(result).to include('[API](https://config-test.com/api.md)')
         expect(result).to include('https://example.com/page.md') # convert_urls: true

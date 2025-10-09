@@ -1,9 +1,9 @@
-# llms-txt-ruby
+# llm-docs-builder
 
-[![CI](https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml/badge.svg)](
-  https://github.com/mensfeld/llms-txt-ruby/actions/workflows/ci.yml)
+[![CI](https://github.com/mensfeld/llm-docs-builder/actions/workflows/ci.yml/badge.svg)](
+  https://github.com/mensfeld/llm-docs-builder/actions/workflows/ci.yml)
 
-A Ruby tool for generating [llms.txt](https://llmstxt.org/) files from existing markdown
+A Ruby tool for building and optimizing documentation for Large Language Models. Generate [llms.txt](https://llmstxt.org/) files, transform markdown, compare content sizes, and more.
 documentation. Transform your docs to be AI-friendly.
 
 ## What is llms.txt?
@@ -28,10 +28,37 @@ This library converts existing human-first documentation into LLM-friendly forma
 
 ## Installation
 
+### Option 1: Using Docker (Recommended for Non-Ruby Users)
+
+Docker allows you to use llm-docs-builder without installing Ruby or any gems. Perfect for CI/CD, scripts, or quick usage:
+
+```bash
+# Pull the latest image
+docker pull mensfeld/llm-docs-builder:latest
+
+# Or use GitHub Container Registry
+docker pull ghcr.io/mensfeld/llm-docs-builder:latest
+```
+
+The image is multi-architecture (amd64/arm64) and only ~50MB in size.
+
+**Quick example:**
+```bash
+# Generate llms.txt from your docs directory
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder generate --docs ./docs
+
+# Compare pages
+docker run mensfeld/llm-docs-builder compare --url https://karafka.io/docs/Getting-Started/
+```
+
+See [Docker Usage](#docker-usage) section below for detailed examples.
+
+### Option 2: Using RubyGems
+
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'llms-txt-ruby'
+gem 'llm-docs-builder'
 ```
 
 And then execute:
@@ -43,17 +70,17 @@ $ bundle install
 Or install it yourself as:
 
 ```bash
-$ gem install llms-txt-ruby
+$ gem install llm-docs-builder
 ```
 
 ## Quick Start
 
 ### Option 1: Using Config File (Recommended)
 
-Create a `llms-txt.yml` file in your project root:
+Create a `llm-docs-builder.yml` file in your project root:
 
 ```yaml
-# llms-txt.yml
+# llm-docs-builder.yml
 docs: ./docs
 base_url: https://myproject.io
 title: My Awesome Project
@@ -66,23 +93,173 @@ verbose: false
 Then simply run:
 
 ```bash
-llms-txt generate
+llm-docs-builder generate
 ```
 
 ### Option 2: Using CLI Only
 
 ```bash
 # Generate from docs directory
-llms-txt generate --docs ./docs
+llm-docs-builder generate --docs ./docs
 
 # Transform a single file
-llms-txt transform --docs README.md
+llm-docs-builder transform --docs README.md
 
 # Transform all markdown files in directory
-llms-txt bulk-transform --docs ./docs
+llm-docs-builder bulk-transform --docs ./docs
 
 # Use custom config file
-llms-txt generate --config my-config.yml
+llm-docs-builder generate --config my-config.yml
+```
+
+## Docker Usage
+
+Docker provides a convenient way to use llm-docs-builder without installing Ruby. All CLI commands work exactly the same way, just prefix them with the Docker run command.
+
+### Basic Pattern
+
+```bash
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder [command] [options]
+```
+
+The `-v $(pwd):/workspace` flag mounts your current directory into the container, allowing the tool to access your files.
+
+### Common Commands
+
+**Generate llms.txt:**
+```bash
+# From docs directory
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder generate --docs ./docs
+
+# With config file
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder generate --config llm-docs-builder.yml
+
+# Specify output location
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder generate --docs ./wiki --output my-llms.txt
+```
+
+**Transform markdown files:**
+```bash
+# Transform single file
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder transform --docs README.md --output README.llm.md
+
+# Transform with config
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder transform --docs docs/guide.md --config llm-docs-builder.yml
+```
+
+**Bulk transform:**
+```bash
+# Transform all markdown files in directory
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder bulk-transform --docs ./docs
+
+# Transform with config file
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder bulk-transform --config llm-docs-builder.yml
+
+# Verbose output
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder bulk-transform --docs ./wiki --verbose
+```
+
+**Compare content sizes:**
+```bash
+# Compare remote versions (no volume mount needed)
+docker run mensfeld/llm-docs-builder compare --url https://karafka.io/docs/Getting-Started/
+
+# Compare remote with local file
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder compare \
+  --url https://example.com/docs/page.html \
+  --file docs/page.md
+```
+
+**Parse and validate:**
+```bash
+# Parse llms.txt
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder parse --docs llms.txt --verbose
+
+# Validate llms.txt
+docker run -v $(pwd):/workspace mensfeld/llm-docs-builder validate --docs llms.txt
+```
+
+**Show version and help:**
+```bash
+# Show version
+docker run mensfeld/llm-docs-builder version
+
+# Show help
+docker run mensfeld/llm-docs-builder --help
+```
+
+### Using Aliases for Convenience
+
+Add this to your `.bashrc` or `.zshrc`:
+
+```bash
+alias llm-docs-builder='docker run -v $(pwd):/workspace mensfeld/llm-docs-builder'
+```
+
+Then use it like a native command:
+
+```bash
+llm-docs-builder generate --docs ./docs
+llm-docs-builder transform --docs README.md
+llm-docs-builder compare --url https://example.com/docs
+```
+
+### CI/CD Integration
+
+**GitHub Actions:**
+```yaml
+- name: Generate llms.txt
+  run: |
+    docker run -v ${{ github.workspace }}:/workspace \
+      mensfeld/llm-docs-builder generate --config llm-docs-builder.yml
+```
+
+**GitLab CI:**
+```yaml
+generate-llms:
+  image: mensfeld/llm-docs-builder:latest
+  script:
+    - llm-docs-builder generate --docs ./docs
+```
+
+**Jenkins:**
+```groovy
+stage('Generate LLMS.txt') {
+    steps {
+        sh 'docker run -v ${WORKSPACE}:/workspace mensfeld/llm-docs-builder generate --docs ./docs'
+    }
+}
+```
+
+### Using Specific Versions
+
+```bash
+# Use specific version
+docker run mensfeld/llm-docs-builder:0.3.0 version
+
+# Use major version (gets latest patch)
+docker run mensfeld/llm-docs-builder:0 version
+
+# Use GitHub Container Registry
+docker run ghcr.io/mensfeld/llm-docs-builder:latest version
+```
+
+### Volume Mount Tips
+
+**Mount specific directory:**
+```bash
+# Mount only the docs folder
+docker run -v $(pwd)/docs:/workspace/docs mensfeld/llm-docs-builder generate --docs ./docs
+```
+
+**Windows (PowerShell):**
+```powershell
+docker run -v ${PWD}:/workspace mensfeld/llm-docs-builder generate --docs ./docs
+```
+
+**Windows (Command Prompt):**
+```cmd
+docker run -v %cd%:/workspace mensfeld/llm-docs-builder generate --docs ./docs
 ```
 
 ## CLI Reference
@@ -90,19 +267,19 @@ llms-txt generate --config my-config.yml
 ### Commands
 
 ```bash
-llms-txt generate [options]       # Generate llms.txt from documentation (default)
-llms-txt transform [options]      # Transform a markdown file to be AI-friendly
-llms-txt bulk-transform [options] # Transform all markdown files in directory
-llms-txt compare [options]        # Compare content sizes to measure context savings
-llms-txt parse [options]          # Parse existing llms.txt file
-llms-txt validate [options]       # Validate llms.txt file
-llms-txt version                  # Show version
+llm-docs-builder generate [options]       # Generate llms.txt from documentation (default)
+llm-docs-builder transform [options]      # Transform a markdown file to be AI-friendly
+llm-docs-builder bulk-transform [options] # Transform all markdown files in directory
+llm-docs-builder compare [options]        # Compare content sizes to measure context savings
+llm-docs-builder parse [options]          # Parse existing llms.txt file
+llm-docs-builder validate [options]       # Validate llms.txt file
+llm-docs-builder version                  # Show version
 ```
 
 ### Options
 
 ```bash
--c, --config PATH        Configuration file path (default: llms-txt.yml)
+-c, --config PATH        Configuration file path (default: llm-docs-builder.yml)
 -d, --docs PATH          Path to documentation directory or file
 -o, --output PATH        Output file path
 -u, --url URL            URL to fetch for comparison
@@ -115,7 +292,7 @@ llms-txt version                  # Show version
 
 ## Configuration File
 
-The recommended way to use llms-txt is with a `llms-txt.yml` config file. This allows you to:
+The recommended way to use llm-docs-builder is with a `llm-docs-builder.yml` config file. This allows you to:
 
 - ✅ Store all your settings in one place
 - ✅ Version control your llms.txt configuration
@@ -150,9 +327,9 @@ excludes:
 ```
 
 The config file will be automatically found if named:
-- `llms-txt.yml`
-- `llms-txt.yaml`
-- `.llms-txt.yml`
+- `llm-docs-builder.yml`
+- `llm-docs-builder.yaml`
+- `.llm-docs-builder.yml`
 
 ### Configuration Options Reference
 
@@ -186,7 +363,7 @@ AI-friendly versions. By default, it creates new files with a `.llm.md` suffix, 
 By default, `bulk-transform` creates new `.llm.md` files alongside your originals:
 
 ```yaml
-# llms-txt.yml
+# llm-docs-builder.yml
 docs: ./docs
 base_url: https://myproject.io
 suffix: .llm         # Creates .llm.md files (default if omitted)
@@ -194,7 +371,7 @@ convert_urls: true
 ```
 
 ```bash
-llms-txt bulk-transform --config llms-txt.yml
+llm-docs-builder bulk-transform --config llm-docs-builder.yml
 ```
 
 **Result:**
@@ -213,7 +390,7 @@ This preserves your original files and creates LLM-optimized versions separately
 For build pipelines where you want to transform documentation directly without maintaining separate copies, use `suffix: ""`:
 
 ```yaml
-# llms-txt.yml
+# llm-docs-builder.yml
 docs: ./docs
 base_url: https://myproject.io
 convert_urls: true
@@ -224,7 +401,7 @@ excludes:
 ```
 
 ```bash
-llms-txt bulk-transform --config llms-txt.yml
+llm-docs-builder bulk-transform --config llm-docs-builder.yml
 ```
 
 **Before transformation** (`docs/setup.md`):
@@ -249,7 +426,7 @@ This is perfect for:
 The [Karafka framework](https://github.com/karafka/website) uses in-place transformation in its documentation build process. Previously, it had 140+ lines of custom Ruby code for link expansion and URL conversion. Now it uses:
 
 ```yaml
-# llms-txt.yml
+# llm-docs-builder.yml
 docs: ./online/docs
 base_url: https://karafka.io/docs
 convert_urls: true
@@ -260,7 +437,7 @@ excludes:
 
 ```bash
 # In their build script (sync.rb)
-system!("llms-txt bulk-transform --config llms-txt.yml")
+system!("llm-docs-builder bulk-transform --config llm-docs-builder.yml")
 ```
 
 This configuration:
@@ -277,13 +454,13 @@ This configuration:
 
 ```bash
 # Transform all files with default settings (creates .llm.md files)
-llms-txt bulk-transform --docs ./wiki
+llm-docs-builder bulk-transform --docs ./wiki
 
 # Transform in-place using config file
-llms-txt bulk-transform --config karafka-config.yml
+llm-docs-builder bulk-transform --config karafka-config.yml
 
 # Verbose output to see processing details
-llms-txt bulk-transform --config llms-txt.yml --verbose
+llm-docs-builder bulk-transform --config llm-docs-builder.yml --verbose
 ```
 
 ### Example Config for Bulk Transformation
@@ -496,37 +673,37 @@ const llmPath = url.pathname.replace(/\.md$/, '.ai.md');
 ### Basic Usage
 
 ```ruby
-require 'llms_txt'
+require 'llm_docs_builder'
 
 # Option 1: Using config file (recommended)
-content = LlmsTxt.generate_from_docs(config_file: 'llms-txt.yml')
+content = LlmDocsBuilder.generate_from_docs(config_file: 'llm-docs-builder.yml')
 
 # Option 2: Direct options (overrides config)
-content = LlmsTxt.generate_from_docs('./docs',
+content = LlmDocsBuilder.generate_from_docs('./docs',
   base_url: 'https://myproject.io',
   title: 'My Project',
   description: 'A great project'
 )
 
 # Option 3: Mix config file with overrides
-content = LlmsTxt.generate_from_docs('./docs',
+content = LlmDocsBuilder.generate_from_docs('./docs',
   config_file: 'my-config.yml',
   title: 'Override Title'  # This overrides config file title
 )
 
 # Transform markdown with config
-transformed = LlmsTxt.transform_markdown('README.md',
-  config_file: 'llms-txt.yml'
+transformed = LlmDocsBuilder.transform_markdown('README.md',
+  config_file: 'llm-docs-builder.yml'
 )
 
 # Transform with direct options
-transformed = LlmsTxt.transform_markdown('README.md',
+transformed = LlmDocsBuilder.transform_markdown('README.md',
   base_url: 'https://myproject.io',
   convert_urls: true
 )
 
 # Bulk transform all files in directory (creates .llm.md files)
-transformed_files = LlmsTxt.bulk_transform('./wiki',
+transformed_files = LlmDocsBuilder.bulk_transform('./wiki',
   base_url: 'https://karafka.io',
   suffix: '.llm',
   excludes: ['**/private/**', '**/draft-*.md']
@@ -534,7 +711,7 @@ transformed_files = LlmsTxt.bulk_transform('./wiki',
 puts "Transformed #{transformed_files.size} files"
 
 # Bulk transform in-place (overwrites original files)
-transformed_files = LlmsTxt.bulk_transform('./wiki',
+transformed_files = LlmDocsBuilder.bulk_transform('./wiki',
   base_url: 'https://karafka.io',
   suffix: '',  # Empty string for in-place transformation
   convert_urls: true,
@@ -542,16 +719,16 @@ transformed_files = LlmsTxt.bulk_transform('./wiki',
 )
 
 # Bulk transform with config file
-transformed_files = LlmsTxt.bulk_transform('./wiki',
+transformed_files = LlmDocsBuilder.bulk_transform('./wiki',
   config_file: 'karafka-config.yml'
 )
 
 # Parse and validate (unchanged)
-parsed = LlmsTxt.parse('llms.txt')
+parsed = LlmDocsBuilder.parse('llms.txt')
 puts parsed.title
 puts parsed.description
 
-valid = LlmsTxt.validate(content)
+valid = LlmDocsBuilder.validate(content)
 ```
 
 ## How It Works
@@ -590,7 +767,7 @@ The `compare` command helps you measure how much context window space is saved b
 Check how much smaller your server sends to AI bots compared to regular browsers:
 
 ```bash
-llms-txt compare --url https://karafka.io/docs/Getting-Started.html
+llm-docs-builder compare --url https://karafka.io/docs/Getting-Started.html
 ```
 
 Output:
@@ -616,7 +793,7 @@ Factor:         3.5x smaller
 Test your local markdown files before deploying:
 
 ```bash
-llms-txt compare --url https://example.com/docs/page.html --file docs/page.md
+llm-docs-builder compare --url https://example.com/docs/page.html --file docs/page.md
 ```
 
 This fetches the current live version and compares it with your local markdown to see the potential savings.
@@ -624,7 +801,7 @@ This fetches the current live version and compares it with your local markdown t
 **3. Verbose mode for debugging**
 
 ```bash
-llms-txt compare --url https://example.com/docs --verbose
+llm-docs-builder compare --url https://example.com/docs --verbose
 ```
 
 Shows fetching progress and detailed information about what's being compared.
@@ -650,7 +827,7 @@ Given a `docs/` directory with:
 - `getting-started.md`
 - `api-reference.md`
 
-Running `llms-txt generate --docs ./docs --base-url https://myproject.io` creates:
+Running `llm-docs-builder generate --docs ./docs --base-url https://myproject.io` creates:
 
 ```markdown
 # My Project
@@ -667,7 +844,7 @@ Running `llms-txt generate --docs ./docs --base-url https://myproject.io` create
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/mensfeld/llms-txt-ruby.
+Bug reports and pull requests are welcome on GitHub at https://github.com/mensfeld/llm-docs-builder.
 
 ## License
 

@@ -3,17 +3,17 @@
 require 'spec_helper'
 require 'tempfile'
 require 'tmpdir'
-require 'llms_txt/cli'
+require 'llm_docs_builder/cli'
 
-RSpec.describe LlmsTxt::CLI do
+RSpec.describe LlmDocsBuilder::CLI do
   describe '#run' do
-    context 'when LlmsTxt::Errors::GenerationError is raised' do
+    context 'when LlmDocsBuilder::Errors::GenerationError is raised' do
       it 'catches the error and exits with status 1' do
         cli = described_class.new
 
         # Mock the generate method to raise an error
-        allow(LlmsTxt).to receive(:generate_from_docs).and_raise(
-          LlmsTxt::Errors::GenerationError.new('Test generation error')
+        allow(LlmDocsBuilder).to receive(:generate_from_docs).and_raise(
+          LlmDocsBuilder::Errors::GenerationError.new('Test generation error')
         )
 
         expect do
@@ -26,8 +26,8 @@ RSpec.describe LlmsTxt::CLI do
       it 'displays the error message' do
         cli = described_class.new
 
-        allow(LlmsTxt).to receive(:generate_from_docs).and_raise(
-          LlmsTxt::Errors::GenerationError.new('Test generation error')
+        allow(LlmDocsBuilder).to receive(:generate_from_docs).and_raise(
+          LlmDocsBuilder::Errors::GenerationError.new('Test generation error')
         )
 
         expect do
@@ -38,12 +38,12 @@ RSpec.describe LlmsTxt::CLI do
       end
     end
 
-    context 'when LlmsTxt::Errors::ValidationError is raised' do
+    context 'when LlmDocsBuilder::Errors::ValidationError is raised' do
       it 'catches the error and exits with status 1' do
         cli = described_class.new
 
-        allow(LlmsTxt).to receive(:generate_from_docs).and_raise(
-          LlmsTxt::Errors::ValidationError.new('Test validation error')
+        allow(LlmDocsBuilder).to receive(:generate_from_docs).and_raise(
+          LlmDocsBuilder::Errors::ValidationError.new('Test validation error')
         )
 
         expect do
@@ -61,15 +61,15 @@ RSpec.describe LlmsTxt::CLI do
         FileUtils.rm_rf(temp_dir)
       end
 
-      it 'catches LlmsTxt::Errors::BaseError in bulk_transform rescue block' do
+      it 'catches LlmDocsBuilder::Errors::BaseError in bulk_transform rescue block' do
         cli = described_class.new
 
         # Create a valid directory
         File.write(File.join(temp_dir, 'test.md'), '# Test')
 
         # Mock bulk_transform to raise an error
-        allow(LlmsTxt).to receive(:bulk_transform).and_raise(
-          LlmsTxt::Errors::GenerationError.new('Bulk transformation failed')
+        allow(LlmDocsBuilder).to receive(:bulk_transform).and_raise(
+          LlmDocsBuilder::Errors::GenerationError.new('Bulk transformation failed')
         )
 
         expect do
@@ -84,8 +84,8 @@ RSpec.describe LlmsTxt::CLI do
 
         File.write(File.join(temp_dir, 'test.md'), '# Test')
 
-        allow(LlmsTxt).to receive(:bulk_transform).and_raise(
-          LlmsTxt::Errors::GenerationError.new('Bulk transformation failed')
+        allow(LlmDocsBuilder).to receive(:bulk_transform).and_raise(
+          LlmDocsBuilder::Errors::GenerationError.new('Bulk transformation failed')
         )
 
         expect do

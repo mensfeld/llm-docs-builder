@@ -6,7 +6,7 @@ require 'tempfile'
 require 'tmpdir'
 
 RSpec.describe 'parse command' do
-  let(:cli_path) { File.expand_path('../../bin/llms-txt', __dir__) }
+  let(:cli_path) { File.expand_path('../../bin/llm-docs-builder', __dir__) }
   let(:temp_dir) { Dir.mktmpdir }
 
   after do

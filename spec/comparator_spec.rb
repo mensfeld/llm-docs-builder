@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe LlmsTxt::Comparator do
+RSpec.describe LlmDocsBuilder::Comparator do
   let(:url) { 'https://example.com/docs/page.html' }
   let(:human_content) { "<html><body>#{'x' * 1000}</body></html>" }
   let(:ai_content) { 'x' * 500 }
@@ -74,7 +74,7 @@ RSpec.describe LlmsTxt::Comparator do
 
         expect do
           comparator.compare
-        end.to raise_error(LlmsTxt::Errors::GenerationError, /not found/)
+        end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /not found/)
       end
     end
 
@@ -120,7 +120,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Error fetching/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Error fetching/)
     end
   end
 
@@ -131,7 +131,7 @@ RSpec.describe LlmsTxt::Comparator do
       # Mock fetch_url to simulate hitting the redirect limit
       allow(comparator).to receive(:fetch_url) do |_url, _ua, redirect_count = 0|
         if redirect_count >= described_class::MAX_REDIRECTS
-          raise LlmsTxt::Errors::GenerationError,
+          raise LlmDocsBuilder::Errors::GenerationError,
             "Too many redirects (#{described_class::MAX_REDIRECTS}) when fetching #{url}"
         end
 
@@ -141,20 +141,20 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Too many redirects/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Too many redirects/)
     end
 
     it 'includes redirect count in error message' do
       comparator = described_class.new(url)
 
       allow(comparator).to receive(:fetch_url) do
-        raise LlmsTxt::Errors::GenerationError,
+        raise LlmDocsBuilder::Errors::GenerationError,
           "Too many redirects (10) when fetching #{url}"
       end
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /10/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /10/)
     end
   end
 
@@ -164,7 +164,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Unsupported URL scheme/)
     end
 
     it 'rejects file:// scheme' do
@@ -172,7 +172,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Unsupported URL scheme/)
     end
 
     it 'rejects javascript: scheme' do
@@ -180,7 +180,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Unsupported URL scheme/)
     end
 
     it 'rejects URLs without scheme' do
@@ -188,7 +188,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Unsupported URL scheme/)
     end
 
     it 'rejects URLs without host' do
@@ -196,7 +196,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /missing host/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /missing host/)
     end
 
     it 'rejects malformed URLs' do
@@ -204,7 +204,7 @@ RSpec.describe LlmsTxt::Comparator do
 
       expect do
         comparator.compare
-      end.to raise_error(LlmsTxt::Errors::GenerationError, /Invalid URL format/)
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Invalid URL format/)
     end
 
     it 'accepts valid HTTP URLs' do

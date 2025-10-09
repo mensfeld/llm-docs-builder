@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-module LlmsTxt
+module LlmDocsBuilder
   # Simple generator that creates llms.txt from existing markdown documentation
   #
   # Takes a documentation directory or file and generates a properly formatted llms.txt file by
   # analyzing markdown files, extracting titles and descriptions, and organizing them by priority.
   #
   # @example Generate from docs directory
-  #   generator = LlmsTxt::Generator.new('./docs', base_url: 'https://myproject.io')
+  #   generator = LlmDocsBuilder::Generator.new('./docs', base_url: 'https://myproject.io')
   #   content = generator.generate
   #
   # @api public

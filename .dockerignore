@@ -1,0 +1,44 @@
+# Git
+.git
+.github
+.gitignore
+
+# Development
+spec/
+coverage/
+.rspec
+.rubocop.yml
+
+# Documentation
+*.md
+!README.md
+CLAUDE.md
+
+# Build artifacts
+*.gem
+pkg/
+vendor/bundle
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# Temp files
+tmp/
+*.log
+.DS_Store
+
+# Config examples
+*.example
+llms-txt.yml
+config-output.txt
+
+# CI
+.github/workflows/
+
+# Ruby
+# Keep Gemfile.lock for reproducible builds

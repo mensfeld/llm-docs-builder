@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module LlmsTxt
+module LlmDocsBuilder
   # Validates llms.txt content against the llms.txt specification
   #
   # Ensures that llms.txt content follows proper formatting rules including:
@@ -11,7 +11,7 @@ module LlmsTxt
   # - File size and line length limits
   #
   # @example Validate llms.txt content
-  #   validator = LlmsTxt::Validator.new(content)
+  #   validator = LlmDocsBuilder::Validator.new(content)
   #   validator.valid? # => true or false
   #   validator.errors # => Array of error messages
   #

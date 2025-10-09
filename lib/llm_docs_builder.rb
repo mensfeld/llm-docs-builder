@@ -8,14 +8,14 @@ loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect('cli' => 'CLI')
 loader.setup
 
-module LlmsTxt
+module LlmDocsBuilder
   class << self
     # Generates llms.txt from existing markdown documentation
     #
     # @param docs_path [String, nil] path to documentation directory or file (optional if
     #   config_file provided)
     # @param options [Hash] generation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
+    # @option options [String] :config_file path to YAML config file (auto-finds llm-docs-builder.yml)
     # @option options [String] :base_url base URL for converting relative links (overrides config)
     # @option options [String] :title project title (auto-detected if not provided, overrides
     #   config)
@@ -28,13 +28,13 @@ module LlmsTxt
     # @return [String] generated llms.txt content
     #
     # @example Generate from docs directory
-    #   LlmsTxt.generate_from_docs('./docs')
+    #   LlmDocsBuilder.generate_from_docs('./docs')
     #
     # @example Generate using config file
-    #   LlmsTxt.generate_from_docs(config_file: 'llms-txt.yml')
+    #   LlmDocsBuilder.generate_from_docs(config_file: 'llm-docs-builder.yml')
     #
     # @example Generate with config file and overrides
-    #   LlmsTxt.generate_from_docs('./docs',
+    #   LlmDocsBuilder.generate_from_docs('./docs',
     #     config_file: 'my-config.yml',
     #     title: 'Override Title'
     #   )
@@ -58,7 +58,7 @@ module LlmsTxt
     #
     # @param file_path [String] path to markdown file
     # @param options [Hash] transformation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
+    # @option options [String] :config_file path to YAML config file (auto-finds llm-docs-builder.yml)
     # @option options [String] :base_url base URL for expanding relative links (overrides config)
     # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
     #   config)
@@ -66,13 +66,13 @@ module LlmsTxt
     # @return [String] transformed markdown content
     #
     # @example Transform with direct options
-    #   LlmsTxt.transform_markdown('README.md',
+    #   LlmDocsBuilder.transform_markdown('README.md',
     #     base_url: 'https://myproject.io',
     #     convert_urls: true
     #   )
     #
     # @example Transform using config file
-    #   LlmsTxt.transform_markdown('README.md', config_file: 'llms-txt.yml')
+    #   LlmDocsBuilder.transform_markdown('README.md', config_file: 'llm-docs-builder.yml')
     def transform_markdown(file_path, options = {})
       config = Config.new(options[:config_file])
       merged_options = config.merge_with_options(options)
@@ -84,7 +84,7 @@ module LlmsTxt
     #
     # @param docs_path [String] path to documentation directory
     # @param options [Hash] transformation options
-    # @option options [String] :config_file path to YAML config file (auto-finds llms-txt.yml)
+    # @option options [String] :config_file path to YAML config file (auto-finds llm-docs-builder.yml)
     # @option options [String] :base_url base URL for expanding relative links (overrides config)
     # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
     #   config)
@@ -96,14 +96,14 @@ module LlmsTxt
     # @return [Array<String>] paths of transformed files
     #
     # @example Bulk transform with direct options
-    #   LlmsTxt.bulk_transform('./docs',
+    #   LlmDocsBuilder.bulk_transform('./docs',
     #     base_url: 'https://myproject.io',
     #     suffix: '.ai',
     #     excludes: ['**/private/**', 'draft-*.md']
     #   )
     #
     # @example Bulk transform using config file
-    #   LlmsTxt.bulk_transform('./docs', config_file: 'llms-txt.yml')
+    #   LlmDocsBuilder.bulk_transform('./docs', config_file: 'llm-docs-builder.yml')
     def bulk_transform(docs_path, options = {})
       config = Config.new(options[:config_file])
       merged_options = config.merge_with_options(options)

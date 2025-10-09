@@ -2,17 +2,17 @@
 
 require 'yaml'
 
-module LlmsTxt
-  # Simple configuration loader for llms-txt.yml files
+module LlmDocsBuilder
+  # Simple configuration loader for llm-docs-builder.yml files
   #
   # Loads YAML configuration files and provides a simple interface for accessing configuration
   # values. Automatically looks for config files in the current directory if none specified.
   #
   # @example Load default config file
-  #   config = LlmsTxt::Config.new
+  #   config = LlmDocsBuilder::Config.new
   #
   # @example Load specific config file
-  #   config = LlmsTxt::Config.new('my-config.yml')
+  #   config = LlmDocsBuilder::Config.new('my-config.yml')
   #
   # @example Access config values
   #   config['base_url']        # => "https://myproject.io"
@@ -87,13 +87,13 @@ module LlmsTxt
     # Find config file in current directory
     #
     # Looks for config files in order of preference:
-    # 1. llms-txt.yml
-    # 2. llms-txt.yaml
-    # 3. .llms-txt.yml
+    # 1. llm-docs-builder.yml
+    # 2. llm-docs-builder.yaml
+    # 3. .llm-docs-builder.yml
     #
     # @return [String, nil] path to config file or nil if none found
     def find_config_file
-      candidates = ['llms-txt.yml', 'llms-txt.yaml', '.llms-txt.yml']
+      candidates = ['llm-docs-builder.yml', 'llm-docs-builder.yaml', '.llm-docs-builder.yml']
       candidates.find { |file| File.exist?(file) }
     end
 
