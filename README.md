@@ -9,7 +9,7 @@ llm-docs-builder normalizes markdown documentation to be AI-friendly and generat
 
 ## The Problem
 
-When LLMs fetch documentation, they typically get HTML pages designed for humans—complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
+When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
 **Real example from Karafka documentation:**
 - Human HTML version: 72.4 KB
@@ -652,7 +652,7 @@ Not if you use the default `suffix: .llm` mode. This creates separate `.llm.md` 
 
 **Q: Can I use this in my build pipeline?**
 
-Yes. Use `suffix: ""` for in-place transformation. The Karafka framework does this—they transform their markdown as part of their deployment process.
+Yes. Use `suffix: ""` for in-place transformation. The Karafka framework does this - they transform their markdown as part of their deployment process.
 
 **Q: How do I know if it's working?**
 
