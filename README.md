@@ -64,7 +64,7 @@ This single command shows you the potential ROI before you invest any time in op
 
 ### Real-World Results
 
-**Karafka Framework Documentation** (10 pages analyzed):
+**[Karafka Framework Documentation](https://karafka.io/docs)** (10 pages analyzed):
 
 | Page | Human HTML | AI Markdown | Reduction | Factor |
 |------|-----------|-------------|-----------|---------|

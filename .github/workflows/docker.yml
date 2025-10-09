@@ -4,8 +4,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Temporarily disabled
-# on:
+# Temporarily disabled - only runs on manual trigger
+on:
+  workflow_dispatch:
+
+# Automatic triggers disabled for now:
 #   push:
 #     branches:
 #       - master
