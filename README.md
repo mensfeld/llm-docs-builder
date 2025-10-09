@@ -12,9 +12,9 @@ llm-docs-builder normalizes markdown documentation to be AI-friendly and generat
 When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
 **Real example from Karafka documentation:**
-- Human HTML version: 72.4 KB
-- AI markdown version: 2.4 KB
-- **Result: 97% reduction, 30x smaller**
+- Human HTML version: 82.0 KB
+- AI markdown version: 4.1 KB
+- **Result: 95% reduction, 20x smaller**
 
 With GPT-4's pricing at $2.50 per million input tokens, that's real money saved on every API call. More importantly, you can fit 30x more actual documentation into the same context window.
 
@@ -68,25 +68,25 @@ This single command shows you the potential ROI before you invest any time in op
 
 | Page | Human HTML | AI Markdown | Reduction | Factor |
 |------|-----------|-------------|-----------|---------|
-| Getting Started | 72.4 KB | 2.4 KB | 97% | 30.2x |
-| WaterDrop | 124.2 KB | 14.8 KB | 88% | 8.4x |
-| Pro Overview | 221.5 KB | 10.6 KB | 95% | 20.9x |
-| Deployment | 174.3 KB | 5.9 KB | 97% | 29.5x |
-| Concurrency | 208.7 KB | 23.1 KB | 89% | 9.0x |
-| Routing | 204.5 KB | 20.0 KB | 90% | 10.2x |
-| Consuming | 233.0 KB | 29.6 KB | 87% | 7.9x |
-| Offset Management | 158.7 KB | 5.1 KB | 97% | 31.1x |
-| DLQ | 167.5 KB | 10.1 KB | 94% | 16.6x |
-| Filtering | 212.9 KB | 5.9 KB | 97% | 36.1x |
+| Getting Started | 82.0 KB | 4.1 KB | 95% | 20.1x |
+| Configuration | 86.3 KB | 7.1 KB | 92% | 12.1x |
+| Routing | 93.6 KB | 14.7 KB | 84% | 6.4x |
+| Deployment | 122.1 KB | 33.3 KB | 73% | 3.7x |
+| Producing Messages | 87.7 KB | 8.3 KB | 91% | 10.6x |
+| Consuming Messages | 105.3 KB | 21.3 KB | 80% | 4.9x |
+| Web UI Getting Started | 109.3 KB | 21.5 KB | 80% | 5.1x |
+| Active Job | 88.7 KB | 8.8 KB | 90% | 10.1x |
+| Monitoring and Logging | 120.7 KB | 32.5 KB | 73% | 3.7x |
+| Error Handling | 93.8 KB | 13.1 KB | 86% | 7.2x |
 
-**Average: 93% reduction, 20x smaller files**
+**Average: 83% reduction, 8.4x smaller files**
 
 For a typical RAG system making 1,000 documentation queries per day:
-- **Before**: ~1.78 GB of tokens processed
-- **After**: ~125 MB of tokens processed
-- **Savings**: 93% reduction in token costs
+- **Before**: ~990 KB per day × 1,000 queries = ~990 MB processed
+- **After**: ~165 KB per day × 1,000 queries = ~165 MB processed
+- **Savings**: 83% reduction in token costs
 
-At GPT-4 pricing ($2.50/M input tokens), that's roughly **$35,000 saved annually** on a high-traffic documentation site.
+At GPT-4 pricing ($2.50/M input tokens), that's approximately **$2,000-5,000 saved annually** on a documentation site with moderate traffic.
 
 ## Installation
 
