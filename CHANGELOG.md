@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 (2025-10-09)
 - [Breaking] **Project renamed from `llms-txt-ruby` to `llm-docs-builder`** to better reflect expanded functionality beyond just llms.txt generation.
   - Gem name: `llms-txt-ruby` → `llm-docs-builder`
   - Module name: `LlmsTxt` → `LlmDocsBuilder`
