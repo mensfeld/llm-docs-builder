@@ -37,6 +37,8 @@ module LlmsTxt
         transform(options)
       when 'bulk-transform'
         bulk_transform(options)
+      when 'compare'
+        compare(options)
       when 'parse'
         parse(options)
       when 'validate'
@@ -78,6 +80,7 @@ module LlmsTxt
         opts.separator '  generate       Generate llms.txt from documentation (default)'
         opts.separator '  transform      Transform a markdown file to be AI-friendly'
         opts.separator '  bulk-transform Transform all markdown files in directory'
+        opts.separator '  compare        Compare content sizes to measure context savings'
         opts.separator '  parse          Parse existing llms.txt file'
         opts.separator '  validate       Validate llms.txt file'
         opts.separator '  version        Show version'
@@ -95,6 +98,14 @@ module LlmsTxt
 
         opts.on('-o', '--output PATH', 'Output file path') do |path|
           options[:output] = path
+        end
+
+        opts.on('-u', '--url URL', 'URL to fetch for comparison') do |url|
+          options[:url] = url
+        end
+
+        opts.on('-f', '--file PATH', 'Local markdown file for comparison') do |path|
+          options[:file] = path
         end
 
         opts.on('-v', '--verbose', 'Verbose output') do
@@ -286,6 +297,95 @@ module LlmsTxt
         puts "Optional Links: #{parsed.optional_links.size}" if parsed.respond_to?(:optional_links)
       elsif parsed.respond_to?(:to_xml)
         puts parsed.to_xml
+      end
+    end
+
+    # Compare content sizes between human and AI versions
+    #
+    # Measures context window savings by comparing:
+    # - Remote URL with different User-Agents (human vs AI bot)
+    # - Remote URL with local markdown file
+    #
+    # @param options [Hash] command options from parse_options
+    # @option options [String] :url URL to fetch for comparison (required)
+    # @option options [String] :file local markdown file for comparison (optional)
+    # @option options [Boolean] :verbose enable verbose output
+    # @raise [SystemExit] exits with status 1 if URL not provided or fetch fails
+    def compare(options)
+      url = options[:url]
+
+      unless url
+        puts 'URL required for compare command (use -u/--url)'
+        puts ''
+        puts 'Examples:'
+        puts '  # Compare remote versions (different User-Agents)'
+        puts '  llms-txt compare --url https://example.com/docs/page.html'
+        puts ''
+        puts '  # Compare remote with local file'
+        puts '  llms-txt compare --url https://example.com/docs/page.html --file docs/page.md'
+        exit 1
+      end
+
+      comparator_options = {
+        local_file: options[:file],
+        verbose: options[:verbose]
+      }
+
+      comparator = LlmsTxt::Comparator.new(url, comparator_options)
+
+      begin
+        result = comparator.compare
+        display_comparison_results(result)
+      rescue LlmsTxt::Errors::BaseError => e
+        puts "Error during comparison: #{e.message}"
+        exit 1
+      end
+    end
+
+    # Display formatted comparison results
+    #
+    # @param result [Hash] comparison results from Comparator
+    def display_comparison_results(result)
+      puts ''
+      puts '=' * 60
+      puts 'Context Window Comparison'
+      puts '=' * 60
+      puts ''
+      puts "Human version:  #{format_bytes(result[:human_size])}"
+      puts "  Source: #{result[:human_source]}"
+      puts ''
+      puts "AI version:     #{format_bytes(result[:ai_size])}"
+      puts "  Source: #{result[:ai_source]}"
+      puts ''
+      puts '-' * 60
+
+      if result[:reduction_bytes].positive?
+        puts "Reduction:      #{format_bytes(result[:reduction_bytes])} (#{result[:reduction_percent]}%)"
+        puts "Factor:         #{result[:factor]}x smaller"
+      elsif result[:reduction_bytes].negative?
+        increase_bytes = result[:reduction_bytes].abs
+        increase_percent = result[:reduction_percent].abs
+        puts "Increase:       #{format_bytes(increase_bytes)} (#{increase_percent}%)"
+        puts "Factor:         #{result[:factor]}x larger"
+      else
+        puts 'Same size'
+      end
+
+      puts '=' * 60
+      puts ''
+    end
+
+    # Format bytes into human-readable string
+    #
+    # @param bytes [Integer] number of bytes
+    # @return [String] formatted string with units
+    def format_bytes(bytes)
+      if bytes < 1024
+        "#{bytes} bytes"
+      elsif bytes < 1024 * 1024
+        "#{(bytes / 1024.0).round(1)} KB"
+      else
+        "#{(bytes / (1024.0 * 1024)).round(2)} MB"
       end
     end
 
