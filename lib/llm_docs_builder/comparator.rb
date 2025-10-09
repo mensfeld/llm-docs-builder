@@ -62,6 +62,10 @@ module LlmDocsBuilder
     #   - :reduction_bytes [Integer] bytes saved
     #   - :reduction_percent [Integer] percentage reduction
     #   - :factor [Float] compression factor
+    #   - :human_tokens [Integer] estimated tokens in human version
+    #   - :ai_tokens [Integer] estimated tokens in AI version
+    #   - :token_reduction [Integer] estimated tokens saved
+    #   - :token_reduction_percent [Integer] percentage of tokens saved
     #   - :human_source [String] source description (URL or file)
     #   - :ai_source [String] source description (URL or file)
     def compare
@@ -85,8 +89,8 @@ module LlmDocsBuilder
       ai_content = fetch_url(url, options[:ai_user_agent])
 
       calculate_results(
-        human_content.bytesize,
-        ai_content.bytesize,
+        human_content,
+        ai_content,
         "#{url} (User-Agent: human)",
         "#{url} (User-Agent: AI)"
       )
@@ -112,8 +116,8 @@ module LlmDocsBuilder
       ai_content = File.read(local_file)
 
       calculate_results(
-        human_content.bytesize,
-        ai_content.bytesize,
+        human_content,
+        ai_content,
         url,
         local_file
       )
@@ -205,12 +209,15 @@ module LlmDocsBuilder
 
     # Calculate comparison statistics
     #
-    # @param human_size [Integer] size of human version in bytes
-    # @param ai_size [Integer] size of AI version in bytes
+    # @param human_content [String] content of human version
+    # @param ai_content [String] content of AI version
     # @param human_source [String] description of human source
     # @param ai_source [String] description of AI source
     # @return [Hash] comparison results
-    def calculate_results(human_size, ai_size, human_source, ai_source)
+    def calculate_results(human_content, ai_content, human_source, ai_source)
+      human_size = human_content.bytesize
+      ai_size = ai_content.bytesize
+
       reduction_bytes = human_size - ai_size
       reduction_percent = if human_size.positive?
                             ((reduction_bytes.to_f / human_size) * 100).round
@@ -224,15 +231,43 @@ module LlmDocsBuilder
                  Float::INFINITY
                end
 
+      # Estimate tokens
+      human_tokens = estimate_tokens(human_content)
+      ai_tokens = estimate_tokens(ai_content)
+      token_reduction = human_tokens - ai_tokens
+      token_reduction_percent = if human_tokens.positive?
+                                  ((token_reduction.to_f / human_tokens) * 100).round
+                                else
+                                  0
+                                end
+
       {
         human_size: human_size,
         ai_size: ai_size,
         reduction_bytes: reduction_bytes,
         reduction_percent: reduction_percent,
         factor: factor,
+        human_tokens: human_tokens,
+        ai_tokens: ai_tokens,
+        token_reduction: token_reduction,
+        token_reduction_percent: token_reduction_percent,
         human_source: human_source,
         ai_source: ai_source
       }
+    end
+
+    # Estimate token count using character-based approximation
+    #
+    # Uses the common heuristic that ~4 characters equals 1 token for English text.
+    # This provides reasonable estimates for documentation content without requiring
+    # external tokenizer dependencies.
+    #
+    # @param content [String] text content to estimate tokens for
+    # @return [Integer] estimated number of tokens
+    def estimate_tokens(content)
+      # Use 4 characters per token as a reasonable approximation
+      # This is a common heuristic for English text and works well for documentation
+      (content.length / 4.0).round
     end
   end
 end

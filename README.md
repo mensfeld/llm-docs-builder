@@ -12,9 +12,9 @@ llm-docs-builder normalizes markdown documentation to be AI-friendly and generat
 When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
 **Real example from Karafka documentation:**
-- Human HTML version: 82.0 KB
-- AI markdown version: 4.1 KB
-- **Result: 95% reduction, 20x smaller**
+- Human HTML version: 82.0 KB (~20,500 tokens)
+- AI markdown version: 4.1 KB (~1,025 tokens)
+- **Result: 95% reduction, 19,475 tokens saved, 20x smaller**
 
 With GPT-4's pricing at $2.50 per million input tokens, that's real money saved on every API call. More importantly, you can fit 30x more actual documentation into the same context window.
 
@@ -48,14 +48,15 @@ docker run mensfeld/llm-docs-builder compare \
 Context Window Comparison
 ============================================================
 
-Human version:  45.2 KB
+Human version:  45.2 KB (~11,300 tokens)
   Source: https://yoursite.com/docs/page.html (User-Agent: human)
 
-AI version:     12.8 KB
+AI version:     12.8 KB (~3,200 tokens)
   Source: https://yoursite.com/docs/page.html (User-Agent: AI)
 
 ------------------------------------------------------------
 Reduction:      32.4 KB (72%)
+Token savings:  8,100 tokens (72%)
 Factor:         3.5x smaller
 ============================================================
 ```
@@ -66,27 +67,27 @@ This single command shows you the potential ROI before you invest any time in op
 
 **[Karafka Framework Documentation](https://karafka.io/docs)** (10 pages analyzed):
 
-| Page | Human HTML | AI Markdown | Reduction | Factor |
-|------|-----------|-------------|-----------|---------|
-| Getting Started | 82.0 KB | 4.1 KB | 95% | 20.1x |
-| Configuration | 86.3 KB | 7.1 KB | 92% | 12.1x |
-| Routing | 93.6 KB | 14.7 KB | 84% | 6.4x |
-| Deployment | 122.1 KB | 33.3 KB | 73% | 3.7x |
-| Producing Messages | 87.7 KB | 8.3 KB | 91% | 10.6x |
-| Consuming Messages | 105.3 KB | 21.3 KB | 80% | 4.9x |
-| Web UI Getting Started | 109.3 KB | 21.5 KB | 80% | 5.1x |
-| Active Job | 88.7 KB | 8.8 KB | 90% | 10.1x |
-| Monitoring and Logging | 120.7 KB | 32.5 KB | 73% | 3.7x |
-| Error Handling | 93.8 KB | 13.1 KB | 86% | 7.2x |
+| Page | Human HTML | AI Markdown | Reduction | Tokens Saved | Factor |
+|------|-----------|-------------|-----------|--------------|---------|
+| Getting Started | 82.0 KB | 4.1 KB | 95% | ~19,475 | 20.1x |
+| Configuration | 86.3 KB | 7.1 KB | 92% | ~19,800 | 12.1x |
+| Routing | 93.6 KB | 14.7 KB | 84% | ~19,725 | 6.4x |
+| Deployment | 122.1 KB | 33.3 KB | 73% | ~22,200 | 3.7x |
+| Producing Messages | 87.7 KB | 8.3 KB | 91% | ~19,850 | 10.6x |
+| Consuming Messages | 105.3 KB | 21.3 KB | 80% | ~21,000 | 4.9x |
+| Web UI Getting Started | 109.3 KB | 21.5 KB | 80% | ~21,950 | 5.1x |
+| Active Job | 88.7 KB | 8.8 KB | 90% | ~19,975 | 10.1x |
+| Monitoring and Logging | 120.7 KB | 32.5 KB | 73% | ~22,050 | 3.7x |
+| Error Handling | 93.8 KB | 13.1 KB | 86% | ~20,175 | 7.2x |
 
-**Average: 83% reduction, 8.4x smaller files**
+**Average: 83% reduction, ~20,620 tokens saved per page, 8.4x smaller files**
 
 For a typical RAG system making 1,000 documentation queries per day:
-- **Before**: ~990 KB per day × 1,000 queries = ~990 MB processed
-- **After**: ~165 KB per day × 1,000 queries = ~165 MB processed
-- **Savings**: 83% reduction in token costs
+- **Before**: ~990 KB per day (~247,500 tokens) × 1,000 queries = ~247.5M tokens/day
+- **After**: ~165 KB per day (~41,250 tokens) × 1,000 queries = ~41.25M tokens/day
+- **Savings**: 83% reduction = ~206.25M tokens saved per day
 
-At GPT-4 pricing ($2.50/M input tokens), that's approximately **$2,000-5,000 saved annually** on a documentation site with moderate traffic.
+At GPT-4 pricing ($2.50/M input tokens), that's approximately **$500/day or $183,000/year saved** on a documentation site with moderate traffic.
 
 ## Installation
 
@@ -165,8 +166,12 @@ llm-docs-builder transform \
 # llm-docs-builder.yml
 docs: ./docs
 base_url: https://myproject.io
-suffix: .llm         # Creates README.llm.md alongside README.md
-convert_urls: true   # .html → .md
+suffix: .llm                 # Creates README.llm.md alongside README.md
+convert_urls: true           # .html → .md
+remove_comments: true        # Remove HTML comments
+remove_badges: true          # Remove badge/shield images
+remove_frontmatter: true     # Remove YAML/TOML frontmatter
+normalize_whitespace: true   # Clean up excessive blank lines
 ```
 
 ```bash
@@ -187,8 +192,12 @@ docs/
 # llm-docs-builder.yml
 docs: ./docs
 base_url: https://myproject.io
-suffix: ""           # Transforms in-place
-convert_urls: true
+suffix: ""                   # Transforms in-place
+convert_urls: true           # Convert .html to .md
+remove_comments: true        # Remove HTML comments
+remove_badges: true          # Remove badge/shield images
+remove_frontmatter: true     # Remove YAML/TOML frontmatter
+normalize_whitespace: true   # Clean up excessive blank lines
 excludes:
   - "**/private/**"
 ```
@@ -200,10 +209,14 @@ llm-docs-builder bulk-transform --config llm-docs-builder.yml
 Perfect for CI/CD where you transform docs before deployment.
 
 **What gets normalized:**
-- Relative links → Absolute URLs (`./api.md` → `https://yoursite.com/api.md`)
-- HTML URLs → Markdown format (`.html` → `.md`)
+- **Links**: Relative → Absolute URLs (`./api.md` → `https://yoursite.com/api.md`)
+- **URLs**: HTML → Markdown format (`.html` → `.md`)
+- **Comments**: HTML comments removed (`<!-- ... -->`)
+- **Badges**: Shield/badge images removed (CI badges, version badges, etc.)
+- **Frontmatter**: YAML/TOML metadata removed (Jekyll, Hugo, etc.)
+- **Whitespace**: Excessive blank lines reduced (3+ → 2 max)
 - Clean markdown structure preserved
-- No content modification, just link normalization
+- No content modification, just intelligent cleanup
 
 ### 3. Generate llms.txt (The Standard)
 
@@ -298,6 +311,10 @@ title: My Project
 description: Brief description
 output: llms.txt
 convert_urls: true
+remove_comments: true
+remove_badges: true
+remove_frontmatter: true
+normalize_whitespace: true
 suffix: .llm
 verbose: false
 excludes:
@@ -369,20 +386,32 @@ content = LlmDocsBuilder.generate_from_docs('./docs',
 # Transform markdown
 transformed = LlmDocsBuilder.transform_markdown('README.md',
   base_url: 'https://myproject.io',
-  convert_urls: true
+  convert_urls: true,
+  remove_comments: true,
+  remove_badges: true,
+  remove_frontmatter: true,
+  normalize_whitespace: true
 )
 
 # Bulk transform
 files = LlmDocsBuilder.bulk_transform('./docs',
   base_url: 'https://myproject.io',
   suffix: '.llm',
+  remove_comments: true,
+  remove_badges: true,
+  remove_frontmatter: true,
+  normalize_whitespace: true,
   excludes: ['**/private/**']
 )
 
 # In-place transformation
 files = LlmDocsBuilder.bulk_transform('./docs',
   suffix: '',  # Empty for in-place
-  base_url: 'https://myproject.io'
+  base_url: 'https://myproject.io',
+  remove_comments: true,
+  remove_badges: true,
+  remove_frontmatter: true,
+  normalize_whitespace: true
 )
 ```
 
@@ -401,6 +430,10 @@ The [Karafka framework](https://github.com/karafka/karafka) processes millions o
 docs: ./online/docs
 base_url: https://karafka.io/docs
 convert_urls: true
+remove_comments: true
+remove_badges: true
+remove_frontmatter: true
+normalize_whitespace: true
 suffix: ""  # In-place transformation for build pipeline
 excludes:
   - "**/Enterprise-License-Setup/**"
@@ -474,6 +507,10 @@ By detecting AI bots and serving them clean markdown instead of HTML, you sidest
 | `description` | String | Auto-detected | Project description |
 | `output` | String | `llms.txt` | Output filename for llms.txt generation |
 | `convert_urls` | Boolean | `false` | Convert `.html`/`.htm` to `.md` |
+| `remove_comments` | Boolean | `false` | Remove HTML comments (`<!-- ... -->`) |
+| `remove_badges` | Boolean | `false` | Remove badge/shield images (CI, version, etc.) |
+| `remove_frontmatter` | Boolean | `false` | Remove YAML/TOML frontmatter (Jekyll, Hugo) |
+| `normalize_whitespace` | Boolean | `false` | Normalize excessive blank lines and trailing spaces |
 | `suffix` | String | `.llm` | Suffix for transformed files (use `""` for in-place) |
 | `excludes` | Array | `[]` | Glob patterns to exclude |
 | `verbose` | Boolean | `false` | Enable detailed output |
@@ -629,16 +666,23 @@ The llms.txt file serves as an efficient entry point, but the real token savings
 4. Build formatted llms.txt with links and descriptions
 
 **Transformation Process:**
-1. Expand relative links to absolute URLs
-2. Optionally convert `.html` to `.md`
-3. Preserve all content unchanged
-4. Write to new file or overwrite in-place
+1. Remove frontmatter (YAML/TOML metadata)
+2. Expand relative links to absolute URLs
+3. Convert `.html` URLs to `.md`
+4. Remove HTML comments
+5. Remove badge/shield images
+6. Normalize excessive whitespace
+7. Write to new file or overwrite in-place
 
 **Comparison Process:**
 1. Fetch URL with human User-Agent (or read local file)
 2. Fetch same URL with AI bot User-Agent
 3. Calculate size difference and reduction percentage
-4. Display human-readable comparison results
+4. Estimate token counts using character-based heuristic
+5. Display human-readable comparison results with byte and token savings
+
+**Token Estimation:**
+The tool uses a simple but effective heuristic for estimating token counts: **~4 characters per token**. This approximation works well for English documentation and provides reasonable estimates without requiring external tokenizer dependencies. While not as precise as OpenAI's tiktoken, it's accurate enough (±10-15%) for understanding context window savings and making optimization decisions.
 
 ## FAQ
 

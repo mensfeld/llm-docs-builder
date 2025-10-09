@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    llm-docs-builder (0.3.0)
+    llm-docs-builder (0.6.0)
       zeitwerk (~> 2.6)
 
 GEM

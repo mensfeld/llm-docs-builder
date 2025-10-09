@@ -30,6 +30,12 @@ RSpec.describe LlmDocsBuilder::Comparator do
         expect(result[:factor]).to be_within(0.1).of(2.1)
         expect(result[:human_source]).to include(url)
         expect(result[:ai_source]).to include(url)
+
+        # Token estimation tests
+        expect(result[:human_tokens]).to eq((human_content.length / 4.0).round)
+        expect(result[:ai_tokens]).to eq((ai_content.length / 4.0).round)
+        expect(result[:token_reduction]).to eq(result[:human_tokens] - result[:ai_tokens])
+        expect(result[:token_reduction_percent]).to be > 0
       end
 
       it 'handles verbose mode' do
@@ -67,6 +73,11 @@ RSpec.describe LlmDocsBuilder::Comparator do
         expect(result[:reduction_bytes]).to eq(human_content.bytesize - ai_content.bytesize)
         expect(result[:human_source]).to eq(url)
         expect(result[:ai_source]).to eq(local_file)
+
+        # Token estimation tests
+        expect(result[:human_tokens]).to be > 0
+        expect(result[:ai_tokens]).to be > 0
+        expect(result[:token_reduction]).to eq(result[:human_tokens] - result[:ai_tokens])
       end
 
       it 'raises error if local file does not exist' do
@@ -247,6 +258,50 @@ RSpec.describe LlmDocsBuilder::Comparator do
       expect(comparator).to receive(:fetch_url).with(url, custom_ua).and_return('test')
 
       comparator.compare
+    end
+  end
+
+  describe '#estimate_tokens' do
+    let(:comparator) { described_class.new(url) }
+
+    it 'estimates tokens using 4 characters per token heuristic' do
+      content = 'test' * 100 # 400 characters
+      expected_tokens = (400 / 4.0).round # 100 tokens
+
+      # Call private method for testing
+      result = comparator.send(:estimate_tokens, content)
+
+      expect(result).to eq(expected_tokens)
+    end
+
+    it 'handles empty content' do
+      result = comparator.send(:estimate_tokens, '')
+
+      expect(result).to eq(0)
+    end
+
+    it 'handles small content' do
+      content = 'hi' # 2 characters
+      expected_tokens = (2 / 4.0).round # 1 token (rounded)
+
+      result = comparator.send(:estimate_tokens, content)
+
+      expect(result).to eq(expected_tokens)
+    end
+
+    it 'provides reasonable estimates for documentation content' do
+      # Typical documentation paragraph
+      content = <<~TEXT
+        This is a typical documentation paragraph that explains how to use the API.
+        It contains multiple sentences with technical information about the endpoints,
+        parameters, and return values. The token estimation should be reasonably accurate
+        for this type of content.
+      TEXT
+
+      result = comparator.send(:estimate_tokens, content)
+
+      # Should be roughly 1/4 of character count
+      expect(result).to be_within(5).of(content.length / 4)
     end
   end
 end
