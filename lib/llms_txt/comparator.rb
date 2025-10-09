@@ -29,6 +29,9 @@ module LlmsTxt
     # Default User-Agent for simulating AI bot
     AI_USER_AGENT = 'Claude-Web/1.0 (Anthropic AI Assistant)'
 
+    # Maximum number of redirects to follow before raising an error
+    MAX_REDIRECTS = 10
+
     # @return [String] URL to compare
     attr_reader :url
 
@@ -95,7 +98,12 @@ module LlmsTxt
     def compare_with_local_file
       local_file = options[:local_file]
 
-      raise Errors::GenerationError, "Local file not found: #{local_file}" unless File.exist?(local_file)
+      unless File.exist?(local_file)
+        raise(
+          Errors::GenerationError,
+          "Local file not found: #{local_file}"
+        )
+      end
 
       puts "Fetching human version from #{url}..." if options[:verbose]
       human_content = fetch_url(url, options[:human_user_agent])
@@ -113,14 +121,23 @@ module LlmsTxt
 
     # Fetch URL content with specified User-Agent
     #
-    # Follows redirects and handles HTTPS
+    # Follows redirects (up to MAX_REDIRECTS) and handles HTTPS
     #
     # @param url_string [String] URL to fetch
     # @param user_agent [String] User-Agent header value
+    # @param redirect_count [Integer] current redirect depth (internal use)
     # @return [String] response body
-    # @raise [Errors::GenerationError] if fetch fails
-    def fetch_url(url_string, user_agent)
-      uri = URI.parse(url_string)
+    # @raise [Errors::GenerationError] if fetch fails or too many redirects
+    def fetch_url(url_string, user_agent, redirect_count = 0)
+      if redirect_count >= MAX_REDIRECTS
+        raise(
+          Errors::GenerationError,
+          "Too many redirects (#{MAX_REDIRECTS}) when fetching #{url_string}"
+        )
+      end
+
+      uri = validate_and_parse_url(url_string)
+
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
       http.open_timeout = 10
@@ -135,15 +152,55 @@ module LlmsTxt
       when Net::HTTPSuccess
         response.body
       when Net::HTTPRedirection
-        # Follow redirect
+        # Follow redirect with incremented counter
         redirect_url = response['location']
-        fetch_url(redirect_url, user_agent)
+        puts "  Redirecting to #{redirect_url}..." if options[:verbose] && redirect_count.positive?
+        fetch_url(redirect_url, user_agent, redirect_count + 1)
       else
-        raise Errors::GenerationError,
+        raise(
+          Errors::GenerationError,
           "Failed to fetch #{url_string}: #{response.code} #{response.message}"
+        )
       end
+    rescue Errors::GenerationError
+      raise
     rescue StandardError => e
-      raise Errors::GenerationError, "Error fetching #{url_string}: #{e.message}"
+      raise(
+        Errors::GenerationError,
+        "Error fetching #{url_string}: #{e.message}"
+      )
+    end
+
+    # Validates and parses URL to prevent malformed URLs
+    #
+    # @param url_string [String] URL to validate and parse
+    # @return [URI::HTTP, URI::HTTPS] parsed URI
+    # @raise [Errors::GenerationError] if URL is invalid or uses unsupported scheme
+    def validate_and_parse_url(url_string)
+      uri = URI.parse(url_string)
+
+      # Only allow HTTP and HTTPS schemes
+      unless %w[http https].include?(uri.scheme&.downcase)
+        raise(
+          Errors::GenerationError,
+          "Unsupported URL scheme: #{uri.scheme || 'none'} (only http/https allowed)"
+        )
+      end
+
+      # Ensure host is present
+      if uri.host.nil? || uri.host.empty?
+        raise(
+          Errors::GenerationError,
+          "Invalid URL: missing host in #{url_string}"
+        )
+      end
+
+      uri
+    rescue URI::InvalidURIError => e
+      raise(
+        Errors::GenerationError,
+        "Invalid URL format: #{e.message}"
+      )
     end
 
     # Calculate comparison statistics

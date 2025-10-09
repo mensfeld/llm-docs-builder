@@ -8,6 +8,10 @@
   - Support for custom User-Agents and verbose output
 - [Enhancement] Added `Comparator` class with comprehensive specs for HTTP fetching and size comparison.
 - [Enhancement] Added `-u/--url` and `-f/--file` CLI flags for compare command.
+- [Security] Added redirect depth limiting (MAX_REDIRECTS = 10) to prevent infinite redirect loops.
+- [Security] Added URL validation to reject non-HTTP/HTTPS schemes (prevents file://, javascript:, ftp://, etc.).
+- [Security] Added URL format validation to ensure proper host and scheme presence.
+- [Enhancement] Added verbose redirect logging to show redirect chains when --verbose flag is used.
 
 ## 0.2.0 (2025-10-07)
 - [Breaking] Removed positional argument support for all CLI commands. All file paths must now be specified using flags:

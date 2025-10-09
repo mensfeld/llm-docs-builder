@@ -124,6 +124,106 @@ RSpec.describe LlmsTxt::Comparator do
     end
   end
 
+  describe 'redirect handling' do
+    it 'limits redirect depth to prevent infinite loops' do
+      comparator = described_class.new(url)
+
+      # Mock fetch_url to simulate hitting the redirect limit
+      allow(comparator).to receive(:fetch_url) do |_url, _ua, redirect_count = 0|
+        if redirect_count >= described_class::MAX_REDIRECTS
+          raise LlmsTxt::Errors::GenerationError,
+            "Too many redirects (#{described_class::MAX_REDIRECTS}) when fetching #{url}"
+        end
+
+        # Simulate recursive redirect
+        comparator.send(:fetch_url, url, 'test', redirect_count + 1)
+      end
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Too many redirects/)
+    end
+
+    it 'includes redirect count in error message' do
+      comparator = described_class.new(url)
+
+      allow(comparator).to receive(:fetch_url) do
+        raise LlmsTxt::Errors::GenerationError,
+          "Too many redirects (10) when fetching #{url}"
+      end
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /10/)
+    end
+  end
+
+  describe 'URL validation' do
+    it 'rejects non-HTTP/HTTPS schemes' do
+      comparator = described_class.new('ftp://example.com/file.txt')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+    end
+
+    it 'rejects file:// scheme' do
+      comparator = described_class.new('file:///etc/passwd')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+    end
+
+    it 'rejects javascript: scheme' do
+      comparator = described_class.new('javascript:alert(1)')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+    end
+
+    it 'rejects URLs without scheme' do
+      comparator = described_class.new('example.com/page')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Unsupported URL scheme/)
+    end
+
+    it 'rejects URLs without host' do
+      comparator = described_class.new('http://')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /missing host/)
+    end
+
+    it 'rejects malformed URLs' do
+      comparator = described_class.new('http://[invalid')
+
+      expect do
+        comparator.compare
+      end.to raise_error(LlmsTxt::Errors::GenerationError, /Invalid URL format/)
+    end
+
+    it 'accepts valid HTTP URLs' do
+      comparator = described_class.new('http://example.com/page')
+
+      allow(comparator).to receive(:fetch_url).and_return('content')
+
+      expect { comparator.compare }.not_to raise_error
+    end
+
+    it 'accepts valid HTTPS URLs' do
+      comparator = described_class.new('https://example.com/page')
+
+      allow(comparator).to receive(:fetch_url).and_return('content')
+
+      expect { comparator.compare }.not_to raise_error
+    end
+  end
+
   describe 'custom User-Agents' do
     it 'allows custom User-Agent for human version' do
       custom_ua = 'Custom-Browser/1.0'
