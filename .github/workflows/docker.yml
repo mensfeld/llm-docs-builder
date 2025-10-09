@@ -4,18 +4,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on:
-  push:
-    branches:
-      - master
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - master
-  schedule:
-    # Rebuild weekly to get latest base image security updates
-    - cron: '0 2 * * 0'
+# Temporarily disabled
+# on:
+#   push:
+#     branches:
+#       - master
+#     tags:
+#       - 'v*'
+#   pull_request:
+#     branches:
+#       - master
+#   schedule:
+#     # Rebuild weekly to get latest base image security updates
+#     - cron: '0 2 * * 0'
 
 permissions:
   contents: read
