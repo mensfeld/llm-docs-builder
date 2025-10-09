@@ -3,6 +3,10 @@
 require 'bundler/setup'
 require 'llm_docs_builder'
 require 'simplecov'
+require 'tempfile'
+require 'tmpdir'
+require 'open3'
+require 'fileutils'
 
 SimpleCov.start do
   add_filter '/spec/'

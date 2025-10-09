@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'open3'
-
 RSpec.describe 'version command' do
   let(:cli_path) { File.expand_path('../../bin/llm-docs-builder', __dir__) }
 

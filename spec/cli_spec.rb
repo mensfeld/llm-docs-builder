@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'tempfile'
-require 'tmpdir'
 require 'llm_docs_builder/cli'
 
 RSpec.describe LlmDocsBuilder::CLI do
