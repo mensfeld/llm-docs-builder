@@ -32,4 +32,19 @@ RSpec.configure do |config|
   config.profile_examples = 10
   config.order = :random
   Kernel.srand config.seed
+
+  # Temporarily rename config file during tests to prevent auto-loading
+  config.before(:suite) do
+    config_file = 'llm-docs-builder.yml'
+    if File.exist?(config_file)
+      FileUtils.mv(config_file, "#{config_file}.backup")
+    end
+  end
+
+  config.after(:suite) do
+    backup_file = 'llm-docs-builder.yml.backup'
+    if File.exist?(backup_file)
+      FileUtils.mv(backup_file, 'llm-docs-builder.yml')
+    end
+  end
 end

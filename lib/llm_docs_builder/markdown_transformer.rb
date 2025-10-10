@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Transforms markdown files to be AI-friendly
   #
-  # Processes individual markdown files to make them more suitable for LLM consumption by
-  # expanding relative links to absolute URLs and converting HTML URLs to markdown-friendly
-  # formats.
+  # Orchestrates a pipeline of specialized transformers to process markdown content.
+  # Each transformer is responsible for a specific aspect of the transformation.
   #
   # @example Transform with base URL
   #   transformer = LlmDocsBuilder::MarkdownTransformer.new('README.md',
@@ -31,163 +30,90 @@ module LlmDocsBuilder
     # @option options [Boolean] :normalize_whitespace normalize excessive whitespace
     # @option options [Boolean] :remove_badges remove badge/shield images
     # @option options [Boolean] :remove_frontmatter remove YAML/TOML frontmatter
+    # @option options [Boolean] :remove_code_examples remove code blocks and inline code
+    # @option options [Boolean] :remove_images remove image syntax
+    # @option options [Boolean] :simplify_links shorten verbose link text
+    # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+    # @option options [Boolean] :generate_toc generate table of contents at the top
+    # @option options [String] :custom_instruction custom instruction text to inject at top
+    # @option options [Boolean] :remove_stopwords remove common stopwords (aggressive)
+    # @option options [Boolean] :remove_duplicates remove duplicate paragraphs
     def initialize(file_path, options = {})
       @file_path = file_path
       @options = options
     end
 
-    # Transform markdown content to be AI-friendly
+    # Transform markdown content using a pipeline of transformers
     #
-    # Applies transformations to make the markdown more suitable for LLM processing:
-    # - Removes YAML/TOML frontmatter (if remove_frontmatter enabled)
-    # - Expands relative links to absolute URLs (if base_url provided)
-    # - Converts HTML URLs to markdown format (if convert_urls enabled)
-    # - Removes HTML comments (if remove_comments enabled)
-    # - Removes badge/shield images (if remove_badges enabled)
-    # - Normalizes excessive whitespace (if normalize_whitespace enabled)
+    # Processes content through specialized transformers in order:
+    # 1. ContentCleanupTransformer - Removes unwanted elements
+    # 2. LinkTransformer - Processes links
+    # 3. TextCompressor - Advanced compression (if enabled)
+    # 4. EnhancementTransformer - Adds TOC and instructions
+    # 5. WhitespaceTransformer - Normalizes whitespace
     #
     # @return [String] transformed markdown content
     def transform
       content = File.read(file_path)
 
-      # Remove frontmatter first (before any other processing)
-      content = remove_frontmatter(content) if options[:remove_frontmatter]
-
-      # Link transformations
-      content = expand_relative_links(content) if options[:base_url]
-      content = convert_html_urls(content) if options[:convert_urls]
-
-      # Content cleanup
-      content = remove_comments(content) if options[:remove_comments]
-      content = remove_badges(content) if options[:remove_badges]
-
-      # Whitespace normalization last (after all other transformations)
-      content = normalize_whitespace(content) if options[:normalize_whitespace]
+      # Build and execute transformation pipeline
+      content = cleanup_transformer.transform(content, options)
+      content = link_transformer.transform(content, options)
+      content = compress_content(content) if should_compress?
+      content = enhancement_transformer.transform(content, options)
+      content = whitespace_transformer.transform(content, options)
 
       content
     end
 
     private
 
-    # Expand relative links to absolute URLs
+    # Get content cleanup transformer instance
     #
-    # Converts markdown links like `[text](./path.md)` to `[text](https://base.url/path.md)`.
-    # Leaves absolute URLs and anchors unchanged.
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with expanded links
-    def expand_relative_links(content)
-      base_url = options[:base_url]
-
-      content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do |match|
-        text = ::Regexp.last_match(1)
-        url = ::Regexp.last_match(2)
-
-        if url.start_with?('http://', 'https://', '//', '#')
-          match # Already absolute or anchor
-        else
-          # Clean up relative path
-          clean_url = url.gsub(%r{^\./}, '') # Remove leading './'
-          expanded_url = File.join(base_url, clean_url)
-          "[#{text}](#{expanded_url})"
-        end
-      end
+    # @return [Transformers::ContentCleanupTransformer]
+    def cleanup_transformer
+      @cleanup_transformer ||= Transformers::ContentCleanupTransformer.new
     end
 
-    # Convert HTML URLs to markdown-friendly format
+    # Get link transformer instance
     #
-    # Changes URLs ending in .html or .htm to .md for better LLM understanding
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with converted URLs
-    def convert_html_urls(content)
-      content.gsub(%r{https?://[^\s<>]+\.html?(?=[)\s]|$)}) do |url|
-        url.sub(/\.html?$/, '.md')
-      end
+    # @return [Transformers::LinkTransformer]
+    def link_transformer
+      @link_transformer ||= Transformers::LinkTransformer.new
     end
 
-    # Remove HTML comments from markdown content
+    # Get enhancement transformer instance
     #
-    # Strips out HTML comments (<!-- ... -->) which are typically metadata for developers
-    # and not relevant for LLM consumption. This reduces token usage and improves clarity.
-    #
-    # Handles:
-    # - Single-line comments: <!-- comment -->
-    # - Multi-line comments spanning multiple lines
-    # - Multiple comments in the same content
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with comments removed
-    def remove_comments(content)
-      # Remove HTML comments (single and multi-line)
-      # The .*? makes it non-greedy so it stops at the first -->
-      content.gsub(/<!--.*?-->/m, '')
+    # @return [Transformers::EnhancementTransformer]
+    def enhancement_transformer
+      @enhancement_transformer ||= Transformers::EnhancementTransformer.new
     end
 
-    # Remove badge and shield images from markdown
+    # Get whitespace transformer instance
     #
-    # Strips out badge/shield images (typically from shields.io, badge.fury.io, etc.)
-    # which are visual indicators for humans but provide no value to LLMs.
-    #
-    # Recognizes common patterns:
-    # - [![Badge](badge.svg)](link) (linked badges)
-    # - ![Badge](badge.svg) (unlinked badges)
-    # - Common badge domains: shields.io, badge.fury.io, travis-ci.org, etc.
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with badges removed
-    def remove_badges(content)
-      # Remove linked badges: [![...](badge-url)](link-url)
-      content = content.gsub(/\[\!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)\]\([^\)]*\)/i, '')
-
-      # Remove standalone badges: ![...](badge-url)
-      content = content.gsub(/!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)/i, '')
-
-      content
+    # @return [Transformers::WhitespaceTransformer]
+    def whitespace_transformer
+      @whitespace_transformer ||= Transformers::WhitespaceTransformer.new
     end
 
-    # Remove YAML or TOML frontmatter from markdown
+    # Check if content compression should be applied
     #
-    # Strips out frontmatter blocks which are metadata used by static site generators
-    # (Jekyll, Hugo, etc.) but not relevant for LLM consumption.
-    #
-    # Recognizes:
-    # - YAML frontmatter: --- ... ---
-    # - TOML frontmatter: +++ ... +++
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with frontmatter removed
-    def remove_frontmatter(content)
-      # Remove YAML frontmatter (--- ... ---)
-      content = content.sub(/\A---\s*$.*?^---\s*$/m, '')
-
-      # Remove TOML frontmatter (+++ ... +++)
-      content = content.sub(/\A\+\+\+\s*$.*?^\+\+\+\s*$/m, '')
-
-      content
+    # @return [Boolean]
+    def should_compress?
+      options[:remove_stopwords] || options[:remove_duplicates]
     end
 
-    # Normalize excessive whitespace in markdown
+    # Compress content using TextCompressor
     #
-    # Reduces excessive blank lines and trailing whitespace to make content more compact
-    # for LLM consumption without affecting readability.
-    #
-    # Transformations:
-    # - Multiple consecutive blank lines (3+) → 2 blank lines max
-    # - Trailing whitespace on lines → removed
-    # - Leading/trailing whitespace in file → trimmed
-    #
-    # @param content [String] markdown content to process
-    # @return [String] content with normalized whitespace
-    def normalize_whitespace(content)
-      # Remove trailing whitespace from each line
-      content = content.gsub(/ +$/, '')
-
-      # Reduce multiple consecutive blank lines to maximum of 2
-      content = content.gsub(/\n{4,}/, "\n\n\n")
-
-      # Trim leading and trailing whitespace from the entire content
-      content.strip
+    # @param content [String] content to compress
+    # @return [String] compressed content
+    def compress_content(content)
+      compressor = TextCompressor.new
+      compression_methods = {
+        remove_stopwords: options[:remove_stopwords],
+        remove_duplicates: options[:remove_duplicates]
+      }
+      compressor.compress(content, compression_methods)
     end
   end
 end
