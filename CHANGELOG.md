@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.7.0 (2025-10-09)
+- [Feature] **Advanced Token Optimization** - Added 8 new compression options to reduce token consumption:
+  - `remove_code_examples`: Remove code blocks and inline code
+  - `remove_images`: Remove all image syntax
+  - `simplify_links`: Simplify verbose link text (e.g., "Click here to see the docs" → "docs")
+  - `remove_blockquotes`: Remove blockquote formatting while preserving content
+  - `generate_toc`: Generate table of contents from headings with anchor links
+  - `custom_instruction`: Inject AI context messages at document top
+  - `remove_stopwords`: Remove common stopwords from prose (preserves code blocks)
+  - `remove_duplicates`: Remove duplicate paragraphs using fuzzy matching
+- [Feature] **Compression Presets** - 6 built-in presets for easy usage:
+  - `conservative`: 15-25% reduction (safest transformations)
+  - `moderate`: 30-45% reduction (balanced approach)
+  - `aggressive`: 50-70% reduction (maximum compression)
+  - `documentation`: 35-50% reduction (preserves code examples)
+  - `tutorial`: 20% reduction (minimal compression for learning materials)
+  - `api_reference`: 40% reduction (optimized for API documentation)
+- [Enhancement] **Refactored Architecture** - Split monolithic `MarkdownTransformer` into focused transformer classes following SRP:
+  - `BaseTransformer`: Common interface for all transformers
+  - `LinkTransformer`: Link expansion, URL conversion, link simplification
+  - `ContentCleanupTransformer`: All removal operations
+  - `EnhancementTransformer`: TOC generation and custom instructions
+  - `WhitespaceTransformer`: Whitespace normalization
+  - `MarkdownTransformer`: Pipeline orchestrator
+- [Enhancement] Added `TextCompressor` class for advanced text compression (stopwords, duplicates).
+- [Enhancement] Added `TokenEstimator` class for token count estimation.
+- [Enhancement] Added `OutputFormatter` class for formatted output (extracted from CLI).
+- [Enhancement] Added `CompressionPresets` class with preset configurations.
+- [Enhancement] Custom instructions now adapt to blockquote removal setting (no blockquote format when `remove_blockquotes: true`).
+- [Enhancement] Updated `Config#merge_with_options` to support all new compression options.
+- [Testing] Added 20 new integration tests for compression features and presets.
+- [Testing] Added automatic config file backup/restore in test suite to prevent interference.
+- [Testing] All 110 tests passing with 79.44% code coverage.
+- [Documentation] **Shortened README.md by 47%** (729 → 381 lines) while adding all new features.
+- [Documentation] Added comprehensive compression examples and use cases.
+- [Documentation] Added preset comparison table showing what each preset does.
+
 ## 0.6.0 (2025-10-09)
 - [Breaking] **Project renamed from `llms-txt-ruby` to `llm-docs-builder`** to better reflect expanded functionality beyond just llms.txt generation.
   - Gem name: `llms-txt-ruby` → `llm-docs-builder`

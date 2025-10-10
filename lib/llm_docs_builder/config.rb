@@ -91,7 +91,44 @@ module LlmDocsBuilder
         # Bulk transformation options
         suffix: options[:suffix] || self['suffix'] || '.llm',
         excludes: options[:excludes] || self['excludes'] || [],
-        bulk: options.key?(:bulk) ? options[:bulk] : (self['bulk'] || false)
+        bulk: options.key?(:bulk) ? options[:bulk] : (self['bulk'] || false),
+        # New compression options
+        remove_code_examples: if options.key?(:remove_code_examples)
+                                options[:remove_code_examples]
+                              else
+                                self['remove_code_examples'] || false
+                              end,
+        remove_images: if options.key?(:remove_images)
+                         options[:remove_images]
+                       else
+                         self['remove_images'] || false
+                       end,
+        simplify_links: if options.key?(:simplify_links)
+                          options[:simplify_links]
+                        else
+                          self['simplify_links'] || false
+                        end,
+        remove_blockquotes: if options.key?(:remove_blockquotes)
+                              options[:remove_blockquotes]
+                            else
+                              self['remove_blockquotes'] || false
+                            end,
+        generate_toc: if options.key?(:generate_toc)
+                        options[:generate_toc]
+                      else
+                        self['generate_toc'] || false
+                      end,
+        custom_instruction: options[:custom_instruction] || self['custom_instruction'],
+        remove_stopwords: if options.key?(:remove_stopwords)
+                            options[:remove_stopwords]
+                          else
+                            self['remove_stopwords'] || false
+                          end,
+        remove_duplicates: if options.key?(:remove_duplicates)
+                             options[:remove_duplicates]
+                           else
+                             self['remove_duplicates'] || false
+                           end
       }
     end
 
