@@ -75,17 +75,17 @@ module LlmDocsBuilder
         normalize_whitespace: if options.key?(:normalize_whitespace)
                                 options[:normalize_whitespace]
                               else
-                                self['normalize_whitespace'] || false
+                                self['normalize_whitespace'] || true
                               end,
         remove_badges: if options.key?(:remove_badges)
                          options[:remove_badges]
                        else
-                         self['remove_badges'] || false
+                         self['remove_badges'] || true
                        end,
         remove_frontmatter: if options.key?(:remove_frontmatter)
                               options[:remove_frontmatter]
                             else
-                              self['remove_frontmatter'] || false
+                              self['remove_frontmatter'] || true
                             end,
         verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false),
         # Bulk transformation options
