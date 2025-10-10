@@ -12,9 +12,9 @@ llm-docs-builder transforms markdown documentation to be AI-friendly and generat
 When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
 **Real example from Karafka documentation:**
-- Human HTML version: 82.0 KB (~20,500 tokens)
-- AI markdown version: 4.1 KB (~1,025 tokens)
-- **Result: 95% reduction, 19,475 tokens saved, 20x smaller**
+- Human HTML version: 104.4 KB (~26,735 tokens)
+- AI markdown version: 21.5 KB (~5,496 tokens)
+- **Result: 79% reduction, 21,239 tokens saved, 5x smaller**
 
 ## Quick Start
 
@@ -56,34 +56,46 @@ gem install llm-docs-builder
 
 ## Features
 
-### 1. Compression Presets
+### Compression Presets
 
 Choose from 6 built-in presets optimized for different use cases:
 
 ```ruby
 # Conservative (15-25% reduction) - safest
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.conservative)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.conservative
+)
 
 # Moderate (30-45% reduction) - balanced
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.moderate)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.moderate
+)
 
 # Aggressive (50-70% reduction) - maximum compression
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.aggressive)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.aggressive
+)
 
 # Documentation (35-50% reduction) - preserves code examples
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.documentation)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.documentation
+)
 
 # Tutorial (20% reduction) - minimal compression, preserves all code
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.tutorial)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.tutorial
+)
 
 # API Reference (40% reduction) - optimized for API docs
-LlmDocsBuilder.transform_markdown('README.md',
-  **CompressionPresets.api_reference)
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  **CompressionPresets.api_reference
+)
 ```
 
 **What each preset does:**
@@ -97,39 +109,7 @@ LlmDocsBuilder.transform_markdown('README.md',
 | Tutorial | Like conservative | TOC, AI context | Learning materials |
 | API Reference | Like moderate + duplicates | TOC, AI context | API documentation |
 
-### 2. Advanced Compression Options
-
-All features can be used individually:
-
-```yaml
-# llm-docs-builder.yml
-docs: ./docs
-base_url: https://myproject.io
-suffix: .llm
-
-# Content removal
-remove_frontmatter: true      # Remove YAML/TOML metadata
-remove_comments: true          # Remove HTML comments
-remove_badges: true            # Remove badge images
-remove_images: true            # Remove all images
-remove_code_examples: true     # Remove code blocks
-remove_blockquotes: true       # Remove blockquote formatting
-remove_duplicates: true        # Remove duplicate paragraphs
-remove_stopwords: true         # Remove common words (aggressive)
-
-# Content enhancement
-generate_toc: true             # Add table of contents
-custom_instruction: "AI-optimized docs"  # Add AI context message
-simplify_links: true           # Simplify verbose link text
-convert_urls: true             # Convert .html to .md
-normalize_whitespace: true     # Clean up excessive whitespace
-
-# Exclusions
-excludes:
-  - "**/private/**"
-```
-
-### 3. Measure and Compare
+### Measure and Compare
 
 ```bash
 # Compare what your server sends to humans vs AI
@@ -141,7 +121,7 @@ llm-docs-builder compare \
   --file docs/api.md
 ```
 
-### 4. Generate llms.txt
+### Generate llms.txt
 
 ```bash
 # Create standardized documentation index
@@ -167,7 +147,7 @@ remove_badges: true
 remove_frontmatter: true
 normalize_whitespace: true
 
-# Advanced compression (use presets or configure individually)
+# Compression options (or use presets)
 remove_code_examples: false
 remove_images: true
 remove_blockquotes: true
@@ -215,12 +195,14 @@ llm-docs-builder version                  # Show version
 require 'llm_docs_builder'
 
 # Using presets
-transformed = LlmDocsBuilder.transform_markdown('README.md',
+transformed = LlmDocsBuilder.transform_markdown(
+  'README.md',
   LlmDocsBuilder::CompressionPresets.moderate
 )
 
 # Custom options
-transformed = LlmDocsBuilder.transform_markdown('README.md',
+transformed = LlmDocsBuilder.transform_markdown(
+  'README.md',
   base_url: 'https://myproject.io',
   remove_code_examples: true,
   remove_images: true,
@@ -229,7 +211,8 @@ transformed = LlmDocsBuilder.transform_markdown('README.md',
 )
 
 # Bulk transform
-files = LlmDocsBuilder.bulk_transform('./docs',
+files = LlmDocsBuilder.bulk_transform(
+  './docs',
   base_url: 'https://myproject.io',
   suffix: '.llm',
   remove_duplicates: true,
@@ -237,7 +220,8 @@ files = LlmDocsBuilder.bulk_transform('./docs',
 )
 
 # Generate llms.txt
-content = LlmDocsBuilder.generate_from_docs('./docs',
+content = LlmDocsBuilder.generate_from_docs(
+  './docs',
   base_url: 'https://myproject.io',
   title: 'My Project'
 )
@@ -370,6 +354,62 @@ Use `llm-docs-builder compare` to measure before and after.
 
 **Q: What about private documentation?**
 Use the `excludes` option to skip sensitive files.
+
+## Advanced Compression Options
+
+All compression features can be used individually for fine-grained control:
+
+### Content Removal Options
+
+- `remove_frontmatter: true` - Remove YAML/TOML metadata blocks
+- `remove_comments: true` - Remove HTML comments (`<!-- ... -->`)
+- `remove_badges: true` - Remove badge/shield images (CI badges, version badges, etc.)
+- `remove_images: true` - Remove all image syntax
+- `remove_code_examples: true` - Remove fenced code blocks, indented code, and inline code
+- `remove_blockquotes: true` - Remove blockquote formatting (preserves content)
+- `remove_duplicates: true` - Remove duplicate paragraphs using fuzzy matching
+- `remove_stopwords: true` - Remove common stopwords from prose (preserves code blocks)
+
+### Content Enhancement Options
+
+- `generate_toc: true` - Generate table of contents from headings with anchor links
+- `custom_instruction: "text"` - Inject AI context message at document top
+- `simplify_links: true` - Simplify verbose link text (e.g., "Click here to see the docs" → "docs")
+- `convert_urls: true` - Convert `.html`/`.htm` URLs to `.md` format
+- `normalize_whitespace: true` - Reduce excessive blank lines and remove trailing whitespace
+
+### Example Usage
+
+```ruby
+# Fine-grained control
+LlmDocsBuilder.transform_markdown(
+  'README.md',
+  remove_frontmatter: true,
+  remove_badges: true,
+  remove_images: true,
+  simplify_links: true,
+  generate_toc: true,
+  normalize_whitespace: true
+)
+```
+
+Or configure via YAML:
+
+```yaml
+# llm-docs-builder.yml
+docs: ./docs
+base_url: https://myproject.io
+suffix: .llm
+
+# Pick exactly what you need
+remove_frontmatter: true
+remove_comments: true
+remove_badges: true
+remove_images: true
+simplify_links: true
+generate_toc: true
+normalize_whitespace: true
+```
 
 ## Contributing
 
