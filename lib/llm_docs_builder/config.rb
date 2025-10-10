@@ -70,7 +70,7 @@ module LlmDocsBuilder
         remove_comments: if options.key?(:remove_comments)
                            options[:remove_comments]
                          else
-                           self['remove_comments'] || false
+                           self['remove_comments'] || true
                          end,
         normalize_whitespace: if options.key?(:normalize_whitespace)
                                 options[:normalize_whitespace]
