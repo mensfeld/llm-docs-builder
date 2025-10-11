@@ -259,4 +259,91 @@ RSpec.describe LlmDocsBuilder::Comparator do
     end
   end
 
+  describe '#send(:fetch_url) implementation' do
+    let(:comparator) { described_class.new(url) }
+
+    it 'configures HTTP with SSL for HTTPS URLs' do
+      http_mock = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).with('example.com', 443).and_return(http_mock)
+      allow(http_mock).to receive(:use_ssl=)
+      allow(http_mock).to receive(:open_timeout=)
+      allow(http_mock).to receive(:read_timeout=)
+
+      response = Net::HTTPSuccess.new('1.1', '200', 'OK')
+      allow(response).to receive(:body).and_return('test content')
+      allow(http_mock).to receive(:request).and_return(response)
+
+      result = comparator.send(:fetch_url, 'https://example.com/page', 'Test-Agent')
+
+      expect(http_mock).to have_received(:use_ssl=).with(true)
+      expect(http_mock).to have_received(:open_timeout=).with(10)
+      expect(http_mock).to have_received(:read_timeout=).with(30)
+      expect(result).to eq('test content')
+    end
+
+    it 'follows redirect responses' do
+      http_mock = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_mock)
+      allow(http_mock).to receive(:use_ssl=)
+      allow(http_mock).to receive(:open_timeout=)
+      allow(http_mock).to receive(:read_timeout=)
+
+      # First request returns redirect
+      redirect_response = Net::HTTPMovedPermanently.new('1.1', '301', 'Moved')
+      allow(redirect_response).to receive(:[]).with('location').and_return('https://example.com/new-page')
+
+      # Second request returns success
+      success_response = Net::HTTPSuccess.new('1.1', '200', 'OK')
+      allow(success_response).to receive(:body).and_return('final content')
+
+      allow(http_mock).to receive(:request).and_return(redirect_response, success_response)
+
+      result = comparator.send(:fetch_url, 'https://example.com/old-page', 'Test-Agent')
+
+      expect(result).to eq('final content')
+    end
+
+    it 'raises error for non-success HTTP responses' do
+      http_mock = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_mock)
+      allow(http_mock).to receive(:use_ssl=)
+      allow(http_mock).to receive(:open_timeout=)
+      allow(http_mock).to receive(:read_timeout=)
+
+      error_response = Net::HTTPNotFound.new('1.1', '404', 'Not Found')
+      allow(error_response).to receive(:code).and_return('404')
+      allow(error_response).to receive(:message).and_return('Not Found')
+      allow(http_mock).to receive(:request).and_return(error_response)
+
+      expect do
+        comparator.send(:fetch_url, 'https://example.com/missing', 'Test-Agent')
+      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Failed to fetch.*404/)
+    end
+  end
+
+  describe 'edge cases in calculate_results' do
+    let(:comparator) { described_class.new(url) }
+
+    it 'handles zero human size' do
+      result = comparator.send(:calculate_results, '', 'content', 'source1', 'source2')
+
+      expect(result[:reduction_percent]).to eq(0)
+      expect(result[:token_reduction_percent]).to eq(0)
+    end
+
+    it 'handles zero AI size' do
+      result = comparator.send(:calculate_results, 'content', '', 'source1', 'source2')
+
+      expect(result[:factor]).to eq(Float::INFINITY)
+    end
+
+    it 'handles zero token counts' do
+      allow_any_instance_of(LlmDocsBuilder::TokenEstimator).to receive(:estimate).and_return(0)
+
+      result = comparator.send(:calculate_results, '', '', 'source1', 'source2')
+
+      expect(result[:token_reduction_percent]).to eq(0)
+    end
+  end
+
 end

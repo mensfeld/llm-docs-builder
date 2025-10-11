@@ -4,4 +4,5 @@
 set -e
 
 echo "Running all tests..."
-bundle exec rspec --format documentation
+# Explicitly specify the spec directory to ensure all tests are discovered
+bundle exec rspec spec/ --format documentation

@@ -160,59 +160,5 @@ module LlmDocsBuilder
       unique_paragraphs.join("\n\n")
     end
 
-    # Remove near-duplicate sentences using fuzzy matching
-    #
-    # More aggressive than paragraph deduplication. Detects sentences that
-    # convey similar information even if worded slightly differently.
-    #
-    # @param content [String] text to process
-    # @param similarity_threshold [Float] similarity threshold (0.0-1.0)
-    # @return [String] text with duplicate sentences removed
-    def remove_duplicate_sentences(content, similarity_threshold: 0.8)
-      # Split into sentences
-      sentences = content.split(/\. |\n/)
-
-      seen = []
-      unique_sentences = []
-
-      sentences.each do |sentence|
-        normalized = sentence.gsub(/\s+/, ' ').strip.downcase
-
-        next if normalized.empty?
-
-        # Check similarity with previously seen sentences
-        is_duplicate = seen.any? do |seen_sentence|
-          similarity(normalized, seen_sentence) >= similarity_threshold
-        end
-
-        unless is_duplicate
-          seen << normalized
-          unique_sentences << sentence
-        end
-      end
-
-      unique_sentences.join('. ')
-    end
-
-    private
-
-    # Calculate similarity between two strings using Jaccard similarity
-    #
-    # @param str1 [String] first string
-    # @param str2 [String] second string
-    # @return [Float] similarity score (0.0-1.0)
-    def similarity(str1, str2)
-      words1 = str1.split
-      words2 = str2.split
-
-      return 1.0 if words1 == words2
-      return 0.0 if words1.empty? || words2.empty?
-
-      # Jaccard similarity: intersection / union
-      intersection = (words1 & words2).length
-      union = (words1 | words2).length
-
-      intersection.to_f / union
-    end
   end
 end

@@ -295,8 +295,6 @@ module LlmDocsBuilder
         puts "Documentation Links: #{parsed.documentation_links.size}"
         puts "Example Links: #{parsed.example_links.size}" if parsed.respond_to?(:example_links)
         puts "Optional Links: #{parsed.optional_links.size}" if parsed.respond_to?(:optional_links)
-      elsif parsed.respond_to?(:to_xml)
-        puts parsed.to_xml
       end
     end
 

@@ -5,7 +5,7 @@
 
 **Optimize your documentation for LLMs and RAG systems. Reduce token consumption by 67-95%.**
 
-llm-docs-builder transforms markdown documentation to be AI-friendly and generates llms.txt files. It normalizes links, removes unnecessary content, and provides compression presets to maximize context window efficiency.
+llm-docs-builder transforms markdown documentation to be AI-friendly and generates llms.txt files. It normalizes links, removes unnecessary content, and optimizes documents for LLM context windows.
 
 ## The Problem
 
@@ -32,10 +32,10 @@ docker run mensfeld/llm-docs-builder compare \
 ### Transform Your Documentation
 
 ```bash
-# Single file with compression preset
-llm-docs-builder transform --docs README.md --preset moderate
+# Single file
+llm-docs-builder transform --docs README.md
 
-# Bulk transform with custom options
+# Bulk transform with config
 llm-docs-builder bulk-transform --config llm-docs-builder.yml
 ```
 
@@ -55,59 +55,6 @@ gem install llm-docs-builder
 ```
 
 ## Features
-
-### Compression Presets
-
-Choose from 6 built-in presets optimized for different use cases:
-
-```ruby
-# Conservative (15-25% reduction) - safest
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.conservative
-)
-
-# Moderate (30-45% reduction) - balanced
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.moderate
-)
-
-# Aggressive (50-70% reduction) - maximum compression
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.aggressive
-)
-
-# Documentation (35-50% reduction) - preserves code examples
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.documentation
-)
-
-# Tutorial (20% reduction) - minimal compression, preserves all code
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.tutorial
-)
-
-# API Reference (40% reduction) - optimized for API docs
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  **CompressionPresets.api_reference
-)
-```
-
-**What each preset does:**
-
-| Preset | Removes | Adds | Best For |
-|--------|---------|------|----------|
-| Conservative | Frontmatter, comments, badges, images | - | Public docs with minimal changes |
-| Moderate | + Blockquotes | TOC | General documentation |
-| Aggressive | + Code, duplicates, stopwords | TOC | Maximum token savings |
-| Documentation | Like moderate + duplicates | TOC, AI context | Technical docs with code |
-| Tutorial | Like conservative | TOC, AI context | Learning materials |
-| API Reference | Like moderate + duplicates | TOC, AI context | API documentation |
 
 ### Measure and Compare
 
@@ -147,7 +94,7 @@ remove_badges: true
 remove_frontmatter: true
 normalize_whitespace: true
 
-# Compression options (or use presets)
+# Additional compression options
 remove_code_examples: false
 remove_images: true
 remove_blockquotes: true
@@ -194,13 +141,7 @@ llm-docs-builder version                  # Show version
 ```ruby
 require 'llm_docs_builder'
 
-# Using presets
-transformed = LlmDocsBuilder.transform_markdown(
-  'README.md',
-  LlmDocsBuilder::CompressionPresets.moderate
-)
-
-# Custom options
+# Transform single file with custom options
 transformed = LlmDocsBuilder.transform_markdown(
   'README.md',
   base_url: 'https://myproject.io',
@@ -319,15 +260,9 @@ api = API.new
 ![Diagram](./diagram.png)
 ```
 
-**With `moderate` preset:**
+**After transformation (with default options):**
 ```markdown
 # API Documentation
-
-## Table of Contents
-
-- [API Documentation](#api-documentation)
-
-Important: This is a note
 
 [complete API documentation](./api.md)
 
@@ -336,7 +271,7 @@ api = API.new
 ```
 ```
 
-**Token reduction:** ~30-45%
+**Token reduction:** ~40-60% depending on configuration
 
 ## FAQ
 

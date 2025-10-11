@@ -10,7 +10,9 @@ require 'fileutils'
 
 SimpleCov.start do
   add_filter '/spec/'
-end
+  enable_coverage :branch
+  primary_coverage :line
+end unless ENV['SIMPLECOV'] == 'false'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|

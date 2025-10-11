@@ -108,14 +108,12 @@ module LlmDocsBuilder
   # Represents parsed llms.txt content with structured access to sections
   #
   # Provides convenient access to parsed llms.txt sections including title,
-  # description, and link collections. Can be converted to Hash or XML formats.
+  # description, and link collections.
   #
   # @example Access parsed content
   #   parsed.title              # => "My Project"
   #   parsed.description        # => "A description"
   #   parsed.documentation_links # => [{title: "...", url: "...", description: "..."}]
-  #   parsed.to_h               # => Hash representation
-  #   parsed.to_xml             # => XML string
   #
   # @api public
   class ParsedContent
@@ -162,62 +160,6 @@ module LlmDocsBuilder
     # @return [Array<Hash>] array of optional links with :title, :url, and :description
     def optional_links
       sections[:optional] || []
-    end
-
-    # Convert to hash representation
-    #
-    # @return [Hash] hash containing all parsed sections
-    def to_h
-      sections
-    end
-
-    # Convert to XML representation
-    #
-    # Generates an XML document with all parsed sections and links.
-    #
-    # @return [String] XML string representation
-    def to_xml
-      builder = []
-      builder << '<?xml version="1.0" encoding="UTF-8"?>'
-      builder << '<llms_context>'
-      builder << "  <title>#{title}</title>" if title
-      builder << "  <description>#{description}</description>" if description
-
-      add_xml_section(builder, 'documentation', documentation_links)
-      add_xml_section(builder, 'examples', example_links)
-      add_xml_section(builder, 'optional', optional_links) if sections[:optional]
-
-      builder << '</llms_context>'
-      builder.join("\n")
-    end
-
-    private
-
-    # Appends section XML elements to builder array
-    #
-    # Handles both array of link hashes and raw string content
-    #
-    # @param builder [Array<String>] XML lines accumulator
-    # @param name [String] section name
-    # @param links [Array<Hash>, String] section links or content
-    def add_xml_section(builder, name, links)
-      return if links.empty?
-
-      builder << "  <#{name}>"
-
-      if links.is_a?(Array)
-        links.each do |link|
-          builder << '    <link>'
-          builder << "      <title>#{link[:title]}</title>"
-          builder << "      <url>#{link[:url]}</url>"
-          builder << "      <description>#{link[:description]}</description>"
-          builder << '    </link>'
-        end
-      else
-        builder << "    #{links}"
-      end
-
-      builder << "  </#{name}>"
     end
   end
 end
