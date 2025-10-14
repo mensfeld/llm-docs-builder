@@ -48,9 +48,10 @@ module LlmDocsBuilder
     # Processes content through specialized transformers in order:
     # 1. ContentCleanupTransformer - Removes unwanted elements
     # 2. LinkTransformer - Processes links
-    # 3. TextCompressor - Advanced compression (if enabled)
-    # 4. EnhancementTransformer - Adds TOC and instructions
-    # 5. WhitespaceTransformer - Normalizes whitespace
+    # 3. HeadingTransformer - Normalizes heading hierarchy (if enabled)
+    # 4. TextCompressor - Advanced compression (if enabled)
+    # 5. EnhancementTransformer - Adds TOC and instructions
+    # 6. WhitespaceTransformer - Normalizes whitespace
     #
     # @return [String] transformed markdown content
     def transform
@@ -59,6 +60,7 @@ module LlmDocsBuilder
       # Build and execute transformation pipeline
       content = cleanup_transformer.transform(content, options)
       content = link_transformer.transform(content, options)
+      content = heading_transformer.transform(content, options)
       content = compress_content(content) if should_compress?
       content = enhancement_transformer.transform(content, options)
       content = whitespace_transformer.transform(content, options)
@@ -80,6 +82,13 @@ module LlmDocsBuilder
     # @return [Transformers::LinkTransformer]
     def link_transformer
       @link_transformer ||= Transformers::LinkTransformer.new
+    end
+
+    # Get heading transformer instance
+    #
+    # @return [Transformers::HeadingTransformer]
+    def heading_transformer
+      @heading_transformer ||= Transformers::HeadingTransformer.new
     end
 
     # Get enhancement transformer instance

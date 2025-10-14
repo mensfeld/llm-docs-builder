@@ -128,7 +128,39 @@ module LlmDocsBuilder
                              options[:remove_duplicates]
                            else
                              self['remove_duplicates'] || false
-                           end
+                           end,
+        # New RAG enhancement options
+        normalize_headings: if options.key?(:normalize_headings)
+                              options[:normalize_headings]
+                            else
+                              self['normalize_headings'] || false
+                            end,
+        heading_separator: options[:heading_separator] || self['heading_separator'] || ' / ',
+        include_metadata: if options.key?(:include_metadata)
+                            options[:include_metadata]
+                          else
+                            self['include_metadata'] || false
+                          end,
+        include_tokens: if options.key?(:include_tokens)
+                          options[:include_tokens]
+                        else
+                          self['include_tokens'] || false
+                        end,
+        include_timestamps: if options.key?(:include_timestamps)
+                              options[:include_timestamps]
+                            else
+                              self['include_timestamps'] || false
+                            end,
+        include_priority: if options.key?(:include_priority)
+                            options[:include_priority]
+                          else
+                            self['include_priority'] || false
+                          end,
+        calculate_compression: if options.key?(:calculate_compression)
+                                 options[:calculate_compression]
+                               else
+                                 self['calculate_compression'] || false
+                               end
       }
     end
 
