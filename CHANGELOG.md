@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.0 (2025-10-14)
+- [Feature] **RAG Enhancement: Heading Normalization** - Transform headings to include hierarchical context for better RAG retrieval.
+  - Adds parent context to H2-H6 headings (e.g., "Configuration / Consumer Settings / auto_offset_reset")
+  - Makes each section self-contained when documents are chunked
+  - Configurable separator (default: " / ")
+  - Enable with `normalize_headings: true`
+  - Perfect for vector databases and RAG systems
+- [Feature] **RAG Enhancement: Enhanced llms.txt Metadata** - Generate enriched llms.txt files with machine-readable metadata.
+  - Token counts per document (helps AI agents manage context windows)
+  - Last modified timestamps (helps prefer recent docs)
+  - Priority labels: high/medium/low (helps guide which docs to fetch first)
+  - Optional compression ratios (shows optimization effectiveness)
+  - Enable with `include_metadata: true`, `include_tokens: true`, `include_timestamps: true`, `include_priority: true`
+- [Enhancement] Added `HeadingTransformer` class with comprehensive heading hierarchy tracking.
+- [Enhancement] Added priority calculation in Generator (README=high, getting started=high, tutorials=medium, etc.).
+- [Enhancement] Updated `Config#merge_with_options` to support all new RAG options.
+- [Testing] Added 10 comprehensive tests for HeadingTransformer covering edge cases.
+- [Testing] All 303 tests passing with 96.94% line coverage and 85.59% branch coverage.
+- [Documentation] Added "RAG Enhancement Features" section to README with examples and use cases.
+- [Documentation] Added detailed implementation guide in RAG_FEATURES.md.
+- [Documentation] Added example RAG configuration in examples/rag-config.yml.
+
 ## 0.7.0 (2025-10-09)
 - [Feature] **Advanced Token Optimization** - Added 8 new compression options to reduce token consumption:
   - `remove_code_examples`: Remove code blocks and inline code

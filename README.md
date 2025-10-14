@@ -5,7 +5,7 @@
 
 **Optimize your documentation for LLMs and RAG systems. Reduce token consumption by 67-95%.**
 
-llm-docs-builder transforms markdown documentation to be AI-friendly and generates llms.txt files. It normalizes links, removes unnecessary content, and optimizes documents for LLM context windows.
+llm-docs-builder transforms markdown documentation to be AI-friendly and generates llms.txt files. It normalizes links, removes unnecessary content, optimizes documents for LLM context windows, and enhances documents for RAG retrieval with hierarchical heading context and metadata.
 
 ## The Problem
 
@@ -103,6 +103,15 @@ remove_stopwords: false
 simplify_links: true
 generate_toc: true
 custom_instruction: "This documentation is optimized for AI consumption"
+
+# RAG enhancement options
+normalize_headings: true          # Add hierarchical context to headings
+heading_separator: " / "          # Separator for heading hierarchy
+include_metadata: true            # Enable enhanced llms.txt metadata
+include_tokens: true              # Include token counts in llms.txt
+include_timestamps: true          # Include update timestamps in llms.txt
+include_priority: true            # Include priority labels in llms.txt
+calculate_compression: false      # Calculate compression ratios (slower)
 
 # Exclusions
 excludes:
@@ -289,6 +298,70 @@ Use `llm-docs-builder compare` to measure before and after.
 
 **Q: What about private documentation?**
 Use the `excludes` option to skip sensitive files.
+
+## RAG Enhancement Features
+
+### Heading Normalization
+
+Transform headings to include hierarchical context, making each section self-contained for RAG retrieval:
+
+**Before:**
+```markdown
+# Configuration
+## Consumer Settings
+### auto_offset_reset
+
+Controls behavior when no offset exists...
+```
+
+**After (with `normalize_headings: true`):**
+```markdown
+# Configuration
+## Configuration / Consumer Settings
+### Configuration / Consumer Settings / auto_offset_reset
+
+Controls behavior when no offset exists...
+```
+
+**Why this matters for RAG:** When documents are chunked and retrieved independently, each section retains full context. An LLM seeing just the `auto_offset_reset` section knows it's about "Configuration / Consumer Settings / auto_offset_reset" not just generic "auto_offset_reset".
+
+```yaml
+# Enable in config
+normalize_headings: true
+heading_separator: " / "  # Customize separator (default: " / ")
+```
+
+### Enhanced llms.txt Metadata
+
+Generate enriched llms.txt files with token counts, timestamps, and priority labels to help AI agents make better decisions:
+
+**Standard llms.txt:**
+```markdown
+- [Getting Started](https://myproject.io/docs/Getting-Started.md)
+- [Configuration](https://myproject.io/docs/Configuration.md)
+```
+
+**Enhanced llms.txt (with metadata enabled):**
+```markdown
+- [Getting Started](https://myproject.io/docs/Getting-Started.md) tokens:450 updated:2025-10-13 priority:high
+- [Configuration](https://myproject.io/docs/Configuration.md) tokens:2800 updated:2025-10-12 priority:high
+- [Advanced Topics](https://myproject.io/docs/Advanced.md) tokens:5200 updated:2025-09-15 priority:medium
+```
+
+**Benefits:**
+- AI agents can see token counts → load multiple small docs vs one large doc
+- Timestamps help prefer recent documentation
+- Priority signals guide which docs to fetch first
+- Compression ratios show optimization effectiveness
+
+```yaml
+# Enable in config
+include_metadata: true      # Master switch
+include_tokens: true        # Show token counts
+include_timestamps: true    # Show last modified dates
+include_priority: true      # Show priority labels (high/medium/low)
+calculate_compression: true # Show compression ratios (slower, requires transformation)
+```
 
 ## Advanced Compression Options
 

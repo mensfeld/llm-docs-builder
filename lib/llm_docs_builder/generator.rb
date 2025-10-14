@@ -88,10 +88,10 @@ module LlmDocsBuilder
 
     # Extracts metadata from a documentation file
     #
-    # Analyzes file content to extract title, description, and priority
+    # Analyzes file content to extract title, description, priority, and optional metadata
     #
     # @param file_path [String] path to file to analyze
-    # @return [Hash] file metadata with :path, :title, :description, :priority
+    # @return [Hash] file metadata with :path, :title, :description, :priority, :tokens, :updated
     def analyze_file(file_path)
       # Handle single file case differently
       relative_path = if File.file?(docs_path)
@@ -102,12 +102,28 @@ module LlmDocsBuilder
 
       content = File.read(file_path)
 
-      {
+      metadata = {
         path: relative_path,
         title: extract_title(content, file_path),
         description: extract_description(content),
         priority: calculate_priority(file_path)
       }
+
+      # Add optional enhanced metadata
+      if options[:include_metadata]
+        metadata[:tokens] = TokenEstimator.estimate(content) if options[:include_tokens]
+        metadata[:updated] = File.mtime(file_path).strftime('%Y-%m-%d') if options[:include_timestamps]
+
+        # Calculate compression ratio if transformation is enabled
+        if options[:calculate_compression]
+          transformed = apply_transformations(content, file_path)
+          original_tokens = TokenEstimator.estimate(content)
+          transformed_tokens = TokenEstimator.estimate(transformed)
+          metadata[:compression] = (transformed_tokens.to_f / original_tokens).round(2)
+        end
+      end
+
+      metadata
     end
 
     # Extracts title from file content or generates from filename
@@ -164,6 +180,21 @@ module LlmDocsBuilder
       7 # default priority
     end
 
+    # Applies transformations to content for compression ratio calculation
+    #
+    # @param content [String] original content
+    # @param file_path [String] path to file
+    # @return [String] transformed content
+    def apply_transformations(content, file_path)
+      transformer = MarkdownTransformer.new(file_path, options)
+
+      # Read file again through transformer to get transformed version
+      transformer.transform
+    rescue StandardError
+      # If transformation fails, return original content
+      content
+    end
+
     # Constructs llms.txt content from analyzed documentation files
     #
     # Combines title, description, and documentation links into formatted output
@@ -186,11 +217,24 @@ module LlmDocsBuilder
 
         docs.each do |doc|
           url = build_url(doc[:path])
-          content << if doc[:description] && !doc[:description].empty?
-                       "- [#{doc[:title]}](#{url}): #{doc[:description]}"
-                     else
-                       "- [#{doc[:title]}](#{url})"
-                     end
+          line = if doc[:description] && !doc[:description].empty?
+                   "- [#{doc[:title]}](#{url}): #{doc[:description]}"
+                 else
+                   "- [#{doc[:title]}](#{url})"
+                 end
+
+          # Append metadata if enabled
+          if options[:include_metadata]
+            metadata_parts = []
+            metadata_parts << "tokens:#{doc[:tokens]}" if doc[:tokens]
+            metadata_parts << "compression:#{doc[:compression]}" if doc[:compression]
+            metadata_parts << "updated:#{doc[:updated]}" if doc[:updated]
+            metadata_parts << priority_label(doc[:priority]) if options[:include_priority]
+
+            line += " #{metadata_parts.join(' ')}" unless metadata_parts.empty?
+          end
+
+          content << line
         end
       end
 
@@ -228,6 +272,21 @@ module LlmDocsBuilder
         File.join(base_url, path)
       else
         path
+      end
+    end
+
+    # Converts numeric priority to human-readable label
+    #
+    # @param priority [Integer] priority value (1-7)
+    # @return [String] priority label (high, medium, low)
+    def priority_label(priority)
+      case priority
+      when 1..2
+        'priority:high'
+      when 3..5
+        'priority:medium'
+      when 6..7
+        'priority:low'
       end
     end
   end
