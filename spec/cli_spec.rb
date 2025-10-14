@@ -436,7 +436,14 @@ RSpec.describe LlmDocsBuilder::CLI do
     end
 
     context 'validate command' do
-      let(:temp_file) do
+      let(:valid_temp_file) do
+        file = Tempfile.new(['llms', '.txt'])
+        file.write("# Test Project\n\n> A test project\n\n## Documentation\n\n- [Test](https://example.com/test.md): Test documentation")
+        file.close
+        file
+      end
+
+      let(:invalid_temp_file) do
         file = Tempfile.new(['llms', '.txt'])
         file.write("# Test\n\nDescription\n\n## Documentation\n- [Link](http://example.com)")
         file.close
@@ -444,7 +451,8 @@ RSpec.describe LlmDocsBuilder::CLI do
       end
 
       after do
-        temp_file.unlink
+        valid_temp_file.unlink if defined?(valid_temp_file)
+        invalid_temp_file.unlink if defined?(invalid_temp_file)
       end
 
       it 'displays errors when file is invalid' do
@@ -481,7 +489,7 @@ RSpec.describe LlmDocsBuilder::CLI do
         cli = described_class.new
 
         expect do
-          cli.run(['validate', '--docs', temp_file.path])
+          cli.run(['validate', '--docs', valid_temp_file.path])
         end.to output(/Valid llms\.txt file/).to_stdout
       end
 
