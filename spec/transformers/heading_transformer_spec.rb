@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
   subject(:transformer) { described_class.new }
 
