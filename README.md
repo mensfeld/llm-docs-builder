@@ -442,10 +442,6 @@ generate_toc: true
 normalize_whitespace: true
 ```
 
-## Contributing
-
-Bug reports and pull requests welcome at [github.com/mensfeld/llm-docs-builder](https://github.com/mensfeld/llm-docs-builder).
-
 ## License
 
 Available as open source under the [MIT License](https://opensource.org/licenses/MIT).

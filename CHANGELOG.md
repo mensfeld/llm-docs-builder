@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 (2025-10-17)
+- [Feature] **No AI Version Detection** - The `compare` command now detects when websites don't serve AI-optimized versions.
+  - Triggers when reduction is <5% (nearly identical content for human and AI User-Agents)
+  - Displays prominent warning: "WARNING: NO DEDICATED AI VERSION DETECTED"
+  - Shows potential savings estimates based on typical 83% reduction rate
+  - Provides page-specific calculations (estimated token savings, potential size)
+  - Includes implementation guide with actionable steps
+  - Helps identify opportunities to optimize documentation
+- [Enhancement] Updated `OutputFormatter#display_comparison_results` to include marketing message for unoptimized sites.
+- [Enhancement] Added utility script `probe_karafka_simple.rb` for batch comparison testing.
+
 ## 0.8.2 (2025-10-17)
 - [Fix] Fixed Docker workflow test to properly invoke help command (use `generate --help` instead of `--help`).
 
