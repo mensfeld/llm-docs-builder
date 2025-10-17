@@ -8,6 +8,8 @@ module LlmDocsBuilder
   #
   # @api private
   class OutputFormatter
+    # Threshold percentage below which we consider there's no AI-optimized version
+    NO_AI_VERSION_THRESHOLD = 5
     # Format bytes into human-readable string
     #
     # @param bytes [Integer] number of bytes
@@ -56,10 +58,16 @@ module LlmDocsBuilder
 
       if result[:reduction_bytes].positive?
         display_reduction(result)
+
+        # Detect if there's no dedicated AI version
+        if result[:reduction_percent] < NO_AI_VERSION_THRESHOLD
+          display_no_ai_version_message(result)
+        end
       elsif result[:reduction_bytes].negative?
         display_increase(result)
       else
         puts 'Same size'
+        display_no_ai_version_message(result)
       end
 
       puts '=' * 60
@@ -88,6 +96,44 @@ module LlmDocsBuilder
       puts "Increase:       #{format_bytes(increase_bytes)} (#{increase_percent}%)"
       puts "Token increase: #{format_number(token_increase)} tokens (#{token_increase_percent}%)"
       puts "Factor:         #{result[:factor]}x larger"
+    end
+
+    # Display message when no dedicated AI version is detected
+    #
+    # @param result [Hash] comparison results
+    # @api private
+    def self.display_no_ai_version_message(result)
+      puts ''
+      puts 'WARNING: NO DEDICATED AI VERSION DETECTED'
+      puts ''
+      puts 'The server is returning nearly identical content to both human and AI'
+      puts 'User-Agents, indicating no AI-optimized version is currently served.'
+      puts ''
+      puts 'POTENTIAL SAVINGS WITH AI OPTIMIZATION:'
+      puts ''
+      puts 'Based on typical documentation optimization results, you could expect:'
+      puts '  • 67-95% token reduction (average 83%)'
+      puts '  • 3-20x smaller file sizes'
+      puts '  • Faster LLM processing times'
+      puts '  • Reduced API costs for AI queries'
+      puts '  • Improved response accuracy'
+      puts ''
+      puts "For this page specifically (~#{format_number(result[:human_tokens])} tokens):"
+      puts "  • Estimated savings: ~#{format_number((result[:human_tokens] * 0.83).round)} tokens (83% reduction)"
+      puts "  • Could reduce to: ~#{format_number((result[:human_tokens] * 0.17).round)} tokens"
+      puts "  • Potential size: ~#{format_bytes((result[:human_size] * 0.17).round)}"
+      puts ''
+      puts 'HOW TO IMPLEMENT AI-OPTIMIZED DOCUMENTATION:'
+      puts ''
+      puts '1. Transform your docs with llm-docs-builder:'
+      puts '   llm-docs-builder bulk-transform --docs ./docs --config llm-docs-builder.yml'
+      puts ''
+      puts '2. Configure your web server to serve .md files to AI bots:'
+      puts '   See: https://github.com/mensfeld/llm-docs-builder#serving-optimized-docs'
+      puts ''
+      puts '3. Measure your actual savings:'
+      puts '   llm-docs-builder compare --url <your-url> --file <local-md>'
+      puts ''
     end
   end
 end

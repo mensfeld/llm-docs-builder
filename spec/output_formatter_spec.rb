@@ -92,5 +92,85 @@ RSpec.describe LlmDocsBuilder::OutputFormatter do
         described_class.display_comparison_results(result)
       end.to output(/Same size/).to_stdout
     end
+
+    it 'displays no AI version warning when reduction is less than 5%' do
+      result = {
+        human_size: 1000,
+        ai_size: 960,
+        reduction_bytes: 40,
+        reduction_percent: 4,
+        factor: 1.04,
+        human_tokens: 250,
+        ai_tokens: 240,
+        token_reduction: 10,
+        token_reduction_percent: 4,
+        human_source: 'https://example.com (User-Agent: human)',
+        ai_source: 'https://example.com (User-Agent: AI)'
+      }
+
+      output = capture_stdout do
+        described_class.display_comparison_results(result)
+      end
+
+      expect(output).to include('WARNING: NO DEDICATED AI VERSION DETECTED')
+      expect(output).to include('POTENTIAL SAVINGS WITH AI OPTIMIZATION')
+      expect(output).to include('67-95% token reduction (average 83%)')
+      expect(output).to include('For this page specifically (~250 tokens)')
+    end
+
+    it 'displays no AI version warning when sizes are exactly equal' do
+      result = {
+        human_size: 1000,
+        ai_size: 1000,
+        reduction_bytes: 0,
+        reduction_percent: 0,
+        factor: 1.0,
+        human_tokens: 250,
+        ai_tokens: 250,
+        token_reduction: 0,
+        token_reduction_percent: 0,
+        human_source: 'https://example.com (User-Agent: human)',
+        ai_source: 'https://example.com (User-Agent: AI)'
+      }
+
+      output = capture_stdout do
+        described_class.display_comparison_results(result)
+      end
+
+      expect(output).to include('WARNING: NO DEDICATED AI VERSION DETECTED')
+      expect(output).to include('POTENTIAL SAVINGS WITH AI OPTIMIZATION')
+    end
+
+    it 'does not display no AI version warning when reduction is 5% or more' do
+      result = {
+        human_size: 1000,
+        ai_size: 950,
+        reduction_bytes: 50,
+        reduction_percent: 5,
+        factor: 1.05,
+        human_tokens: 250,
+        ai_tokens: 237,
+        token_reduction: 13,
+        token_reduction_percent: 5,
+        human_source: 'https://example.com (User-Agent: human)',
+        ai_source: 'https://example.com (User-Agent: AI)'
+      }
+
+      output = capture_stdout do
+        described_class.display_comparison_results(result)
+      end
+
+      expect(output).not_to include('WARNING: NO DEDICATED AI VERSION DETECTED')
+      expect(output).to include('Reduction:')
+    end
+  end
+
+  def capture_stdout
+    original_stdout = $stdout
+    $stdout = StringIO.new
+    yield
+    $stdout.string
+  ensure
+    $stdout = original_stdout
   end
 end
