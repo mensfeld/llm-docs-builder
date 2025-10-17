@@ -18,10 +18,10 @@ When LLMs fetch documentation, they typically get HTML pages designed for humans
 **Real-world results from Karafka documentation (10 pages analyzed):**
 
 <p align="center">
-  <img src="misc/diff.png" alt="Karafka documentation optimization results" width="800">
+  <img src="misc/diff.png" alt="Karafka documentation optimization results">
 </p>
 
-**Average reduction: 83% fewer tokens, 8.3x smaller files**
+**Average reduction: 83% fewer tokens**
 
 ## Quick Start
 
