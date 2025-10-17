@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="misc/logo.svg" alt="llm-docs-builder logo" width="400">
+</p>
+
 # llm-docs-builder
 
 [![CI](https://github.com/mensfeld/llm-docs-builder/actions/workflows/ci.yml/badge.svg)](
