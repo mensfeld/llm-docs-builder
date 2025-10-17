@@ -168,38 +168,6 @@ llm-docs-builder version                  # Show version
 -v, --verbose        Detailed output
 ```
 
-## Ruby API
-
-```ruby
-require 'llm_docs_builder'
-
-# Transform single file with custom options
-transformed = LlmDocsBuilder.transform_markdown(
-  'README.md',
-  base_url: 'https://myproject.io',
-  remove_code_examples: true,
-  remove_images: true,
-  generate_toc: true,
-  custom_instruction: 'AI-optimized documentation'
-)
-
-# Bulk transform
-files = LlmDocsBuilder.bulk_transform(
-  './docs',
-  base_url: 'https://myproject.io',
-  suffix: '.llm',
-  remove_duplicates: true,
-  generate_toc: true
-)
-
-# Generate llms.txt
-content = LlmDocsBuilder.generate_from_docs(
-  './docs',
-  base_url: 'https://myproject.io',
-  title: 'My Project'
-)
-```
-
 ## Serving Optimized Docs to AI Bots
 
 After using `bulk-transform` with `suffix: .llm`, configure your web server to serve optimized versions to AI bots:
@@ -285,22 +253,17 @@ layout: docs
 
 [Click here to see the complete API documentation](./api.md)
 
-```ruby
 api = API.new
 ```
 
-![Diagram](./diagram.png)
-```
-
 **After transformation (with default options):**
+
 ```markdown
 # API Documentation
 
 [complete API documentation](./api.md)
 
-```ruby
 api = API.new
-```
 ```
 
 **Token reduction:** ~40-60% depending on configuration
