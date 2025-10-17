@@ -79,7 +79,7 @@ jobs:
       - name: Test Docker image
         run: |
           docker run --rm ${{ fromJSON(steps.meta.outputs.json).tags[0] }} version
-          docker run --rm ${{ fromJSON(steps.meta.outputs.json).tags[0] }} --help
+          docker run --rm ${{ fromJSON(steps.meta.outputs.json).tags[0] }} generate --help
 
   docker-success:
     name: Docker Success

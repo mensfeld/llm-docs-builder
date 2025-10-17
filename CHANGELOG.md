@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.2 (2025-10-17)
+- [Fix] Fixed Docker workflow test to properly invoke help command (use `generate --help` instead of `--help`).
+
 ## 0.8.1 (2025-10-17)
 - [Enhancement] Ship the docker container.
 
