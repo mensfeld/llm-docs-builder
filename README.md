@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="misc/logo_wide.svg" alt="llm-docs-builder logo">
+  <img src="misc/logo_wide.png" alt="llm-docs-builder logo">
 </p>
 
 # llm-docs-builder
