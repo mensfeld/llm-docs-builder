@@ -15,10 +15,13 @@ llm-docs-builder transforms markdown documentation to be AI-friendly and generat
 
 When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
-**Real example from Karafka documentation:**
-- Human HTML version: 104.4 KB (~26,735 tokens)
-- AI markdown version: 21.5 KB (~5,496 tokens)
-- **Result: 79% reduction, 21,239 tokens saved, 5x smaller**
+**Real-world results from Karafka documentation (10 pages analyzed):**
+
+<p align="center">
+  <img src="misc/diff.png" alt="Karafka documentation optimization results" width="800">
+</p>
+
+**Average reduction: 83% fewer tokens, 8.3x smaller files**
 
 ## Quick Start
 
@@ -141,11 +144,6 @@ excludes:
   - "**/private/**"
   - "**/drafts/**"
 ```
-
-**Configuration precedence:**
-1. CLI flags (highest)
-2. Config file
-3. Defaults
 
 ## CLI Commands
 
