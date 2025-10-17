@@ -29,6 +29,25 @@ docker run mensfeld/llm-docs-builder compare \
   --url https://yoursite.com/docs/getting-started.html
 ```
 
+**Example output:**
+```
+============================================================
+Context Window Comparison
+============================================================
+
+Human version:  127.4 KB (~32,620 tokens)
+  Source: https://karafka.io/docs/Pro-Virtual-Partitions/ (User-Agent: human)
+
+AI version:     46.3 KB (~11,854 tokens)
+  Source: https://karafka.io/docs/Pro-Virtual-Partitions/ (User-Agent: AI)
+
+------------------------------------------------------------
+Reduction:      81.1 KB (64%)
+Token savings:  20,766 tokens (64%)
+Factor:         2.8x smaller
+============================================================
+```
+
 ### Transform Your Documentation
 
 ```bash

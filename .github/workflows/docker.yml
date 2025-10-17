@@ -4,30 +4,25 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Temporarily disabled - only runs on manual trigger
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
-
-# Automatic triggers disabled for now:
-#   push:
-#     branches:
-#       - master
-#     tags:
-#       - 'v*'
-#   pull_request:
-#     branches:
-#       - master
-#   schedule:
-#     # Rebuild weekly to get latest base image security updates
-#     - cron: '0 2 * * 0'
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   docker:
+    if: github.repository_owner == 'mensfeld'
     runs-on: ubuntu-latest
+    environment: deployment
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5

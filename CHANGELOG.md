@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.1 (2025-10-17)
+- [Enhancement] Ship the docker container.
+
 ## 0.8.0 (2025-10-14)
 - [Feature] **RAG Enhancement: Heading Normalization** - Transform headings to include hierarchical context for better RAG retrieval.
   - Adds parent context to H2-H6 headings (e.g., "Configuration / Consumer Settings / auto_offset_reset")
