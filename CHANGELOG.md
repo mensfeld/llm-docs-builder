@@ -3,9 +3,10 @@
 ## 0.9.1 (2025-10-17)
 - [Fix] Fixed HeadingTransformer incorrectly treating hash symbols in code blocks as headings.
   - Now properly tracks code block boundaries (fenced with ``` or ~~~)
+  - Fixed regex pattern from `/^```|^~~~/` to `/^(```|~~~)/` for correct operator precedence
   - Skips heading processing for lines inside code blocks
   - Prevents Ruby/Python/Shell comments from being interpreted as markdown headings
-  - Added comprehensive test coverage for code block handling
+  - Added 5 comprehensive test cases covering multiple scenarios to prevent regression
 
 ## 0.9.0 (2025-10-17)
 - [Feature] **No AI Version Detection** - The `compare` command now detects when websites don't serve AI-optimized versions.

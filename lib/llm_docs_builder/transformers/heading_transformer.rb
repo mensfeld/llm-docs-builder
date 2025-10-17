@@ -42,7 +42,7 @@ module LlmDocsBuilder
 
         transformed_lines = lines.map do |line|
           # Track code block boundaries (fenced code blocks with ``` or ~~~)
-          if line.match?(/^```|^~~~/)
+          if line.match?(/^(```|~~~)/)
             in_code_block = !in_code_block
             next line
           end
