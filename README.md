@@ -15,7 +15,7 @@ llm-docs-builder transforms markdown documentation to be AI-friendly and generat
 
 When LLMs fetch documentation, they typically get HTML pages designed for humans - complete with navigation bars, footers, JavaScript, CSS, and other overhead. This wastes 70-90% of your context window on content that doesn't help answer questions.
 
-**Real-world results from Karafka documentation (10 pages analyzed):**
+**Real-world results from [Karafka documentation](https://karafka.io/docs/) (10 pages analyzed):**
 
 <p align="center">
   <img src="misc/diff.png" alt="Karafka documentation optimization results">
