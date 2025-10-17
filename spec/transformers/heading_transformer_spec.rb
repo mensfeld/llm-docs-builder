@@ -168,6 +168,141 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
         expect(result).to include('# This is a Ruby comment')
         expect(result).to include('# Another comment')
       end
+
+      it 'ignores hash symbols in tilde-fenced code blocks' do
+        content = <<~MD
+          # API
+          ## Authentication
+
+          ~~~python
+          # Python comment
+          api_key = "secret"
+          # Another Python comment
+          ~~~
+
+          ### Keys
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# API')
+        expect(result).to include('## API / Authentication')
+        expect(result).to include('### API / Authentication / Keys')
+        expect(result).to include('# Python comment')
+        expect(result).to include('# Another Python comment')
+      end
+
+      it 'handles multiple code blocks with hash symbols' do
+        content = <<~MD
+          # Main
+          ## Section One
+
+          ```ruby
+          # First block comment
+          ```
+
+          ## Section Two
+
+          ```bash
+          # Shell comment
+          ```
+
+          ### Subsection
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# Main')
+        expect(result).to include('## Main / Section One')
+        expect(result).to include('## Main / Section Two')
+        expect(result).to include('### Main / Section Two / Subsection')
+        expect(result).to include('# First block comment')
+        expect(result).to include('# Shell comment')
+      end
+
+      it 'handles code blocks with language specifiers' do
+        content = <<~MD
+          # Guide
+          ## Setup
+
+          ```ruby
+          # Comment in Ruby
+          ```
+
+          ```python
+          # Comment in Python
+          ```
+
+          ```shell
+          # Comment in Shell
+          ```
+
+          ### Installation
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# Guide')
+        expect(result).to include('## Guide / Setup')
+        expect(result).to include('### Guide / Setup / Installation')
+        expect(result).to include('# Comment in Ruby')
+        expect(result).to include('# Comment in Python')
+        expect(result).to include('# Comment in Shell')
+      end
+
+      it 'handles nested headings after code blocks' do
+        content = <<~MD
+          # Top
+          ## Level 2
+
+          ```
+          # Code comment
+          ## Not a heading
+          ### Also not a heading
+          ```
+
+          ### Level 3
+          #### Level 4
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# Top')
+        expect(result).to include('## Top / Level 2')
+        expect(result).to include('### Top / Level 2 / Level 3')
+        expect(result).to include('#### Top / Level 2 / Level 3 / Level 4')
+        expect(result).to include('# Code comment')
+        expect(result).to include('## Not a heading')
+        expect(result).to include('### Also not a heading')
+      end
+
+      it 'handles code blocks at different indentation levels' do
+        content = <<~MD
+          # Main
+          ## Section
+
+          Some text
+
+          ```ruby
+          # Comment
+          def method
+            # Another comment
+          end
+          ```
+
+          More text
+
+          ### Subsection
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# Main')
+        expect(result).to include('## Main / Section')
+        expect(result).to include('### Main / Section / Subsection')
+        expect(result).to include('# Comment')
+        expect(result).to include('# Another comment')
+      end
     end
 
     context 'when content has no headings' do
