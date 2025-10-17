@@ -193,27 +193,6 @@ location ~ ^/docs/(.*)\.md$ {
 }
 ```
 
-## Real-World Results: Karafka Framework
-
-**Before:** 140+ lines of custom transformation code
-
-**After:** 6 lines of configuration
-```yaml
-docs: ./online/docs
-base_url: https://karafka.io/docs
-convert_urls: true
-remove_comments: true
-remove_badges: true
-remove_frontmatter: true
-normalize_whitespace: true
-suffix: ""  # In-place for build pipeline
-```
-
-**Results:**
-- 93% average token reduction
-- 20-36x smaller files
-- Automated via GitHub Actions
-
 ## Docker Usage
 
 ```bash
@@ -267,23 +246,6 @@ api = API.new
 ```
 
 **Token reduction:** ~40-60% depending on configuration
-
-## FAQ
-
-**Q: Do I need to use llms.txt?**
-No. The compare and transform commands work independently.
-
-**Q: Will this change how humans see my docs?**
-Not with default `suffix: .llm`. Separate files are served only to AI bots.
-
-**Q: Can I use this in my build pipeline?**
-Yes. Use `suffix: ""` for in-place transformation.
-
-**Q: How do I know if it's working?**
-Use `llm-docs-builder compare` to measure before and after.
-
-**Q: What about private documentation?**
-Use the `excludes` option to skip sensitive files.
 
 ## RAG Enhancement Features
 
@@ -371,39 +333,6 @@ All compression features can be used individually for fine-grained control:
 - `simplify_links: true` - Simplify verbose link text (e.g., "Click here to see the docs" → "docs")
 - `convert_urls: true` - Convert `.html`/`.htm` URLs to `.md` format
 - `normalize_whitespace: true` - Reduce excessive blank lines and remove trailing whitespace
-
-### Example Usage
-
-```ruby
-# Fine-grained control
-LlmDocsBuilder.transform_markdown(
-  'README.md',
-  remove_frontmatter: true,
-  remove_badges: true,
-  remove_images: true,
-  simplify_links: true,
-  generate_toc: true,
-  normalize_whitespace: true
-)
-```
-
-Or configure via YAML:
-
-```yaml
-# llm-docs-builder.yml
-docs: ./docs
-base_url: https://myproject.io
-suffix: .llm
-
-# Pick exactly what you need
-remove_frontmatter: true
-remove_comments: true
-remove_badges: true
-remove_images: true
-simplify_links: true
-generate_toc: true
-normalize_whitespace: true
-```
 
 ## License
 
