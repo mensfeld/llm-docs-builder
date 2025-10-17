@@ -38,8 +38,18 @@ module LlmDocsBuilder
         separator = options[:heading_separator] || ' / '
         heading_stack = []
         lines = content.lines
+        in_code_block = false
 
         transformed_lines = lines.map do |line|
+          # Track code block boundaries (fenced code blocks with ``` or ~~~)
+          if line.match?(/^```|^~~~/)
+            in_code_block = !in_code_block
+            next line
+          end
+
+          # Skip heading processing if inside code block
+          next line if in_code_block
+
           # Match markdown headings (1-6 hash symbols followed by space and text)
           heading_match = line.match(/^(#+)\s+(.+)$/)
 

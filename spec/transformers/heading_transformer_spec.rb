@@ -145,6 +145,29 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
         expect(result).to include('## API Reference / Authentication & Authorization')
         expect(result).to include('### API Reference / Authentication & Authorization / Using API Keys (OAuth2)')
       end
+
+      it 'ignores hash symbols in code blocks' do
+        content = <<~MD
+          # Configuration
+          ## Consumer Settings
+
+          ```ruby
+          # This is a Ruby comment
+          config.timeout = 30
+          # Another comment
+          ```
+
+          ### auto_offset_reset
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# Configuration')
+        expect(result).to include('## Configuration / Consumer Settings')
+        expect(result).to include('### Configuration / Consumer Settings / auto_offset_reset')
+        expect(result).to include('# This is a Ruby comment')
+        expect(result).to include('# Another comment')
+      end
     end
 
     context 'when content has no headings' do
