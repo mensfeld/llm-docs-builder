@@ -77,7 +77,8 @@ module LlmDocsBuilder
 
       Find.find(docs_path) do |path|
         # Skip hidden directories unless explicitly enabled
-        if File.directory?(path) && File.basename(path).start_with?('.') && !options[:include_hidden]
+        # Don't prune the root docs_path itself (even if it's ".")
+        if File.directory?(path) && path != docs_path && File.basename(path).start_with?('.') && !options[:include_hidden]
           Find.prune
           next
         end
