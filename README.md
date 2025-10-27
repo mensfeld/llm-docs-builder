@@ -109,6 +109,7 @@ docs: ./docs
 base_url: https://myproject.io
 title: My Project
 description: Brief description
+body: Optional body content between description and sections
 output: llms.txt
 suffix: .llm
 verbose: false
@@ -289,9 +290,9 @@ Generate enriched llms.txt files with token counts, timestamps, and priority lab
 
 **Enhanced llms.txt (with metadata enabled):**
 ```markdown
-- [Getting Started](https://myproject.io/docs/Getting-Started.md) tokens:450 updated:2025-10-13 priority:high
-- [Configuration](https://myproject.io/docs/Configuration.md) tokens:2800 updated:2025-10-12 priority:high
-- [Advanced Topics](https://myproject.io/docs/Advanced.md) tokens:5200 updated:2025-09-15 priority:medium
+- [Getting Started](https://myproject.io/docs/Getting-Started.md): Quick start guide (tokens:450, updated:2025-10-13, priority:high)
+- [Configuration](https://myproject.io/docs/Configuration.md): Configuration options (tokens:2800, updated:2025-10-12, priority:high)
+- [Advanced Topics](https://myproject.io/docs/Advanced.md): Deep dive topics (tokens:5200, updated:2025-09-15, priority:medium)
 ```
 
 **Benefits:**
@@ -307,6 +308,68 @@ include_tokens: true        # Show token counts
 include_timestamps: true    # Show last modified dates
 include_priority: true      # Show priority labels (high/medium/low)
 calculate_compression: true # Show compression ratios (slower, requires transformation)
+```
+
+**Note:** Metadata is formatted according to the llms.txt specification, appearing within the description field using parentheses and comma separators for spec compliance.
+
+### Multi-Section Organization
+
+Documents are automatically organized into multiple sections based on priority, following the llms.txt specification:
+
+**Priority-based categorization:**
+- **Documentation** (priority 1-3): Essential docs like README, getting started guides, user guides
+- **Examples** (priority 4-5): Tutorials and example files
+- **Optional** (priority 6-7): Advanced topics and reference documentation
+
+**Example output:**
+```markdown
+# My Project
+
+> Project description
+
+## Documentation
+
+- [README](README.md): Main documentation
+- [Getting Started](getting-started.md): Quick start guide
+
+## Examples
+
+- [Basic Tutorial](tutorial.md): Step-by-step tutorial
+- [Code Examples](examples.md): Example code
+
+## Optional
+
+- [Advanced Topics](advanced.md): Deep dive into advanced features
+- [API Reference](reference.md): Complete API reference
+```
+
+Empty sections are automatically omitted. The "Optional" section aligns with the llms.txt spec for marking secondary content that can be skipped when context windows are limited.
+
+### Body Content
+
+Add custom body content between the description and documentation sections:
+
+```yaml
+# llm-docs-builder.yml
+title: My Project
+description: Brief description
+body: |
+  This framework is built on Ruby and focuses on performance.
+  Key concepts: streaming, batching, and parallel processing.
+docs: ./docs
+```
+
+This produces:
+```markdown
+# My Project
+
+> Brief description
+
+This framework is built on Ruby and focuses on performance.
+Key concepts: streaming, batching, and parallel processing.
+
+## Documentation
+...
 ```
 
 ## Advanced Compression Options

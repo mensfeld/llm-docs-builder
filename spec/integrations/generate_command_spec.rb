@@ -335,4 +335,120 @@ RSpec.describe 'generate command' do
     expect(tokens_with_transform).to be < tokens_no_transform
     expect(tokens_no_transform - tokens_with_transform).to be >= 20
   end
+
+  it 'formats metadata according to llms.txt spec with parentheses and commas' do
+    test_file = File.join(temp_dir, 'test.md')
+    File.write(test_file, <<~MD)
+      # Test Document
+
+      This is test documentation content.
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{test_file}
+      output: #{output_file}
+      include_metadata: true
+      include_tokens: true
+      include_timestamps: true
+      include_priority: true
+    YAML
+
+    run_cli('generate', '--config', config_file)
+    content = File.read(output_file)
+
+    # Verify spec-compliant format: - [title](url): description (metadata)
+    # Should match: (tokens:XX, updated:YYYY-MM-DD, priority:high)
+    expect(content).to match(/\[Test Document\]\([^)]+\):\s+[^(]+\(tokens:\d+, updated:\d{4}-\d{2}-\d{2}, priority:\w+\)/)
+
+    # Verify metadata is in parentheses with comma separators
+    expect(content).to include('tokens:')
+    expect(content).to include('updated:')
+    expect(content).to include('priority:')
+    expect(content).to match(/\([^)]*tokens:\d+[^)]*\)/) # tokens in parentheses
+  end
+
+  it 'organizes documents into multiple sections based on priority' do
+    # Create files with different priorities
+    File.write(File.join(temp_dir, 'README.md'), "# README\n\nMain doc")
+    File.write(File.join(temp_dir, 'getting-started.md'), "# Getting Started\n\nQuick start")
+    File.write(File.join(temp_dir, 'tutorial.md'), "# Tutorial\n\nStep by step")
+    File.write(File.join(temp_dir, 'reference.md'), "# Reference\n\nReference docs")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+      excludes:
+        - config.yml
+        - "*.txt"
+    YAML
+
+    run_cli('generate', '--config', config_file)
+    content = File.read(output_file)
+
+    # Verify multiple sections exist
+    expect(content).to include('## Documentation')
+    expect(content).to include('## Examples')
+    expect(content).to include('## Optional')
+
+    # Verify correct categorization
+    # Priority 1-2 (README, getting-started) should be in Documentation
+    doc_section_start = content.index('## Documentation')
+    examples_section_start = content.index('## Examples')
+    optional_section_start = content.index('## Optional')
+
+    expect(doc_section_start).to be < examples_section_start
+    expect(examples_section_start).to be < optional_section_start
+
+    doc_section = content[doc_section_start...examples_section_start]
+    examples_section = content[examples_section_start...optional_section_start]
+    optional_section = content[optional_section_start..]
+
+    expect(doc_section).to include('README')
+    expect(doc_section).to include('Getting Started')
+    expect(examples_section).to include('Tutorial')
+    expect(optional_section).to include('Reference')
+  end
+
+  it 'includes body content when specified in config' do
+    File.write(File.join(temp_dir, 'README.md'), "# Project\n\nMain doc")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+      title: My Project
+      description: A test project
+      body: |
+        This is custom body content that provides additional context.
+        It appears between the description and documentation sections.
+      excludes:
+        - config.yml
+        - "*.txt"
+    YAML
+
+    run_cli('generate', '--config', config_file)
+    content = File.read(output_file)
+
+    # Verify body content is present
+    expect(content).to include('This is custom body content that provides additional context.')
+    expect(content).to include('It appears between the description and documentation sections.')
+
+    # Verify order: title -> description -> body -> sections
+    title_index = content.index('# My Project')
+    desc_index = content.index('> A test project')
+    body_index = content.index('This is custom body content')
+    section_index = content.index('## Documentation')
+
+    expect(title_index).to be < desc_index
+    expect(desc_index).to be < body_index
+    expect(body_index).to be < section_index
+  end
 end

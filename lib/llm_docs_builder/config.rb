@@ -61,6 +61,7 @@ module LlmDocsBuilder
         base_url: options[:base_url] || self['base_url'],
         title: options[:title] || self['title'],
         description: options[:description] || self['description'],
+        body: options[:body] || self['body'],
         output: options[:output] || self['output'] || 'llms.txt',
         convert_urls: if options.key?(:convert_urls)
                         options[:convert_urls]
