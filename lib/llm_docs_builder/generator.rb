@@ -76,6 +76,12 @@ module LlmDocsBuilder
       files = []
 
       Find.find(docs_path) do |path|
+        # Skip hidden directories unless explicitly enabled
+        if File.directory?(path) && File.basename(path).start_with?('.') && !options[:include_hidden]
+          Find.prune
+          next
+        end
+
         next unless File.file?(path)
         next unless path.match?(/\.md$/i)
         next if File.basename(path).start_with?('.')
@@ -308,16 +314,38 @@ module LlmDocsBuilder
       return false if excludes.empty?
 
       # Get relative path from docs_path for matching
-      relative_path = if File.directory?(docs_path)
-                        Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
-                      else
-                        File.basename(file_path)
-                      end
+      relative_path = begin
+        if File.directory?(docs_path)
+          # Convert both to absolute paths first to avoid "different prefix" error
+          abs_file = File.expand_path(file_path)
+          abs_docs = File.expand_path(docs_path)
+          Pathname.new(abs_file).relative_path_from(Pathname.new(abs_docs)).to_s
+        else
+          File.basename(file_path)
+        end
+      rescue ArgumentError
+        # If paths can't be made relative (different roots), use basename
+        File.basename(file_path)
+      end
 
       excludes.any? do |pattern|
+        # Normalize pattern: ensure /** is followed by something
+        # fnmatch requires /** to be followed by at least one component
+        normalized_pattern = pattern.end_with?('/**') ? "#{pattern}/*" : pattern
+
         # Check both absolute and relative paths
-        File.fnmatch(pattern, file_path, File::FNM_PATHNAME | File::FNM_DOTMATCH) ||
-          File.fnmatch(pattern, relative_path, File::FNM_PATHNAME | File::FNM_DOTMATCH)
+        matches = File.fnmatch(normalized_pattern, file_path, File::FNM_PATHNAME | File::FNM_DOTMATCH) ||
+                  File.fnmatch(normalized_pattern, relative_path, File::FNM_PATHNAME | File::FNM_DOTMATCH)
+
+        # If pattern starts with **/, also try without it (for root-level matches)
+        # Since **/ in fnmatch doesn't match zero directories
+        if !matches && normalized_pattern.start_with?('**/')
+          pattern_without_prefix = normalized_pattern.sub(%r{^\*\*/}, '')
+          matches = File.fnmatch(pattern_without_prefix, file_path, File::FNM_PATHNAME | File::FNM_DOTMATCH) ||
+                    File.fnmatch(pattern_without_prefix, relative_path, File::FNM_PATHNAME | File::FNM_DOTMATCH)
+        end
+
+        matches
       end
     end
 

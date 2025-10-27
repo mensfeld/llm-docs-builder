@@ -189,6 +189,91 @@ RSpec.describe 'generate command' do
     expect(content).not_to include('Draft Notes')
   end
 
+  it 'excludes hidden directories by default' do
+    # Create hidden directories
+    lint_dir = File.join(temp_dir, '.lint')
+    gh_dir = File.join(temp_dir, '.gh')
+    FileUtils.mkdir_p([lint_dir, gh_dir])
+
+    File.write(File.join(temp_dir, 'README.md'), "# Project\n\nMain documentation")
+    File.write(File.join(temp_dir, 'guide.md'), "# Guide\n\nUser guide")
+    File.write(File.join(lint_dir, 'draft.md'), "# Draft\n\nDraft content")
+    File.write(File.join(gh_dir, 'workflow.md'), "# Workflow\n\nWorkflow")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+    YAML
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(output_file)
+    expect(content).to include('Project')
+    expect(content).to include('Guide')
+    expect(content).not_to include('Draft')
+    expect(content).not_to include('Workflow')
+  end
+
+  it 'includes hidden directories when include_hidden is true' do
+    lint_dir = File.join(temp_dir, '.lint')
+    FileUtils.mkdir_p(lint_dir)
+
+    File.write(File.join(temp_dir, 'README.md'), "# Project\n\nMain documentation")
+    File.write(File.join(lint_dir, 'draft.md'), "# Draft\n\nDraft content")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+      include_hidden: true
+    YAML
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(output_file)
+    expect(content).to include('Project')
+    expect(content).to include('Draft')
+  end
+
+  it 'excludes common hidden directories like .git, .github, .lint, .vscode' do
+    # Create common hidden directories
+    ['.git', '.github', '.lint', '.vscode'].each do |dir_name|
+      dir_path = File.join(temp_dir, dir_name)
+      FileUtils.mkdir_p(dir_path)
+      File.write(File.join(dir_path, 'file.md'), "# #{dir_name} File\n\nContent")
+    end
+
+    File.write(File.join(temp_dir, 'README.md'), "# Project\n\nMain documentation")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+    YAML
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(output_file)
+    expect(content).to include('Project')
+    expect(content).not_to include('.git File')
+    expect(content).not_to include('.github File')
+    expect(content).not_to include('.lint File')
+    expect(content).not_to include('.vscode File')
+  end
+
   it 'calculates token count from transformed content when transformations are enabled' do
     # Create single file with lots of comments that will be removed
     test_file = File.join(temp_dir, 'test.md')

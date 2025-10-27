@@ -461,6 +461,86 @@ RSpec.describe LlmDocsBuilder::Generator do
       end
     end
 
+    describe 'hidden directory exclusion' do
+      it 'excludes hidden directories by default' do
+        lint_dir = File.join(temp_dir, '.lint')
+        gh_dir = File.join(temp_dir, '.gh')
+        FileUtils.mkdir_p([lint_dir, gh_dir])
+
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(lint_dir, 'draft.md'), "# Draft\n\nDraft content")
+        File.write(File.join(gh_dir, 'workflow.md'), "# Workflow\n\nWorkflow content")
+
+        gen = described_class.new(temp_dir)
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).not_to include('Draft')
+        expect(content).not_to include('Workflow')
+      end
+
+      it 'includes hidden directories when include_hidden is true' do
+        lint_dir = File.join(temp_dir, '.lint')
+        FileUtils.mkdir_p(lint_dir)
+
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(lint_dir, 'draft.md'), "# Draft\n\nDraft content")
+
+        gen = described_class.new(temp_dir, include_hidden: true)
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).to include('Draft')
+      end
+
+      it 'excludes nested hidden directories' do
+        docs_dir = File.join(temp_dir, 'docs')
+        lint_dir = File.join(docs_dir, '.lint')
+        FileUtils.mkdir_p(lint_dir)
+
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(docs_dir, 'guide.md'), "# Guide\n\nGuide content")
+        File.write(File.join(lint_dir, 'draft.md'), "# Draft\n\nDraft content")
+
+        gen = described_class.new(temp_dir)
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).to include('Guide')
+        expect(content).not_to include('Draft')
+      end
+
+      it 'still excludes hidden files even in non-hidden directories' do
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(temp_dir, '.hidden.md'), "# Hidden\n\nHidden content")
+
+        gen = described_class.new(temp_dir)
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).not_to include('Hidden')
+      end
+
+      it 'excludes common hidden directories like .git, .github, .lint' do
+        ['.git', '.github', '.lint', '.vscode'].each do |dir_name|
+          dir_path = File.join(temp_dir, dir_name)
+          FileUtils.mkdir_p(dir_path)
+          File.write(File.join(dir_path, 'file.md'), "# #{dir_name}\n\nContent")
+        end
+
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+
+        gen = described_class.new(temp_dir)
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).not_to include('.git')
+        expect(content).not_to include('.github')
+        expect(content).not_to include('.lint')
+        expect(content).not_to include('.vscode')
+      end
+    end
+
     describe 'token counting with transformations' do
       it 'uses raw content for token count when no transformations are enabled' do
         file_path = File.join(temp_dir, 'test.md')

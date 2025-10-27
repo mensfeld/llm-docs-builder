@@ -100,6 +100,7 @@ module LlmDocsBuilder
         suffix: options[:suffix] || self['suffix'] || '.llm',
         excludes: options[:excludes] || self['excludes'] || [],
         bulk: options.key?(:bulk) ? options[:bulk] : (self['bulk'] || false),
+        include_hidden: options.key?(:include_hidden) ? options[:include_hidden] : (self['include_hidden'] || false),
         # New compression options
         remove_code_examples: if options.key?(:remove_code_examples)
                                 options[:remove_code_examples]

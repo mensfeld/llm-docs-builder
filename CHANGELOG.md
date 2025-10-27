@@ -1,11 +1,19 @@
 # Changelog
 
-## 0.9.3 (2025-10-27)
+## 0.9.4 (2025-10-27)
+- [Feature] **Auto-Exclude Hidden Directories** - Hidden directories (starting with `.`) are now automatically excluded by default to prevent noise from `.git`, `.lint`, `.github`, etc.
+  - Adds `include_hidden: false` as default behavior
+  - Set `include_hidden: true` in config to include hidden directories if needed
+  - Uses `Find.prune` for efficient directory tree traversal
+  - Prevents scanning of common directories like `.lint`, `.gh`, `.git`, `node_modules` (if hidden)
 - [Fix] **Generate Command Excludes Support** - The `generate` command now properly respects the `excludes` configuration option to filter out files from llms.txt generation.
   - Added `should_exclude?` method to Generator class that matches files against glob patterns
   - Supports both simple patterns (e.g., `draft.md`) and glob patterns (e.g., `**/private/**`, `draft-*.md`)
+  - Fixed fnmatch pattern handling: `**/.dir/**` patterns now correctly match root-level directories
+  - Normalized patterns ending with `/**` to `/**/*` for proper fnmatch behavior
+  - Handles `**/ ` prefix matching for zero-directory cases
   - Uses `File.fnmatch` with `FNM_PATHNAME` and `FNM_DOTMATCH` flags for proper pattern matching
-  - Checks patterns against both absolute and relative paths from docs_path
+  - Checks patterns against both absolute and relative paths from docs_path with proper error handling
   - Excludes configuration works consistently with bulk-transform command
 - [Fix] **Token Count from Transformed Content** - Token counts in metadata now accurately reflect the actual content after applying transformations.
   - Token count is now calculated from transformed content when any transformation options are enabled
@@ -17,8 +25,11 @@
   - Fixed the `|| true` pattern that was incorrectly treating `false` config values as falsy
   - Now correctly uses `!self['option'].nil?` check before falling back to defaults
   - Applies to all boolean transformation options: `remove_comments`, `normalize_whitespace`, `remove_badges`, `remove_frontmatter`
-- [Test] Added comprehensive unit tests for excludes functionality in Generator
-- [Test] Added integration tests for generate command with excludes and token counting
+- [Test] Added comprehensive unit tests for excludes functionality in Generator (7 tests)
+- [Test] Added integration tests for generate command with excludes and token counting (4 tests)
+- [Test] Added unit tests for hidden directory exclusion feature (5 tests)
+- [Test] Added integration tests for hidden directory behavior (3 tests)
+- [Test] Total: 339 tests passing (8 new tests added in this release)
 
 ## 0.9.2 (2025-10-17)
 - [Fix] Tackle one more block boundaries tracking edge-case.
