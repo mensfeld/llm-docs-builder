@@ -366,5 +366,129 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(metadata[:path]).to eq('single.md')
       end
     end
+
+    describe '#should_exclude?' do
+      it 'returns false when no excludes are specified' do
+        gen = described_class.new(temp_dir)
+        expect(gen.send(:should_exclude?, 'README.md')).to be false
+      end
+
+      it 'returns false when excludes is empty array' do
+        gen = described_class.new(temp_dir, excludes: [])
+        expect(gen.send(:should_exclude?, 'README.md')).to be false
+      end
+
+      it 'excludes files matching simple pattern' do
+        gen = described_class.new(temp_dir, excludes: ['draft.md'])
+        file_path = File.join(temp_dir, 'draft.md')
+        expect(gen.send(:should_exclude?, file_path)).to be true
+      end
+
+      it 'excludes files matching glob pattern' do
+        gen = described_class.new(temp_dir, excludes: ['**/private/**'])
+        file_path = File.join(temp_dir, 'private', 'secret.md')
+        expect(gen.send(:should_exclude?, file_path)).to be true
+      end
+
+      it 'excludes files matching wildcard pattern' do
+        gen = described_class.new(temp_dir, excludes: ['draft-*.md'])
+        file_path = File.join(temp_dir, 'draft-proposal.md')
+        expect(gen.send(:should_exclude?, file_path)).to be true
+      end
+
+      it 'does not exclude files that do not match pattern' do
+        gen = described_class.new(temp_dir, excludes: ['draft.md'])
+        file_path = File.join(temp_dir, 'README.md')
+        expect(gen.send(:should_exclude?, file_path)).to be false
+      end
+
+      it 'handles multiple exclude patterns' do
+        gen = described_class.new(temp_dir, excludes: ['draft.md', 'private/**', '*.tmp.md'])
+        expect(gen.send(:should_exclude?, File.join(temp_dir, 'draft.md'))).to be true
+        expect(gen.send(:should_exclude?, File.join(temp_dir, 'private/secret.md'))).to be true
+        expect(gen.send(:should_exclude?, File.join(temp_dir, 'test.tmp.md'))).to be true
+        expect(gen.send(:should_exclude?, File.join(temp_dir, 'README.md'))).to be false
+      end
+    end
+
+    describe '#has_transformations?' do
+      it 'returns false when no transformation options are set' do
+        gen = described_class.new(temp_dir)
+        expect(gen.send(:has_transformations?)).to be false
+      end
+
+      it 'returns true when remove_comments is enabled' do
+        gen = described_class.new(temp_dir, remove_comments: true)
+        expect(gen.send(:has_transformations?)).to be true
+      end
+
+      it 'returns true when remove_badges is enabled' do
+        gen = described_class.new(temp_dir, remove_badges: true)
+        expect(gen.send(:has_transformations?)).to be true
+      end
+
+      it 'returns true when any transformation option is enabled' do
+        gen = described_class.new(temp_dir, remove_stopwords: true)
+        expect(gen.send(:has_transformations?)).to be true
+      end
+    end
+
+    describe 'excludes integration' do
+      it 'filters out excluded files during generation' do
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(temp_dir, 'draft.md'), "# Draft\n\nDraft content")
+        File.write(File.join(temp_dir, 'guide.md'), "# Guide\n\nGuide content")
+
+        gen = described_class.new(temp_dir, excludes: ['**/draft.md'])
+        content = gen.generate
+
+        expect(content).to include('README')
+        expect(content).to include('Guide')
+        expect(content).not_to include('Draft')
+      end
+
+      it 'filters out files in excluded directories' do
+        private_dir = File.join(temp_dir, 'private')
+        FileUtils.mkdir_p(private_dir)
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(private_dir, 'secret.md'), "# Secret\n\nSecret content")
+
+        gen = described_class.new(temp_dir, excludes: ['**/private/**'])
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).not_to include('Secret')
+      end
+    end
+
+    describe 'token counting with transformations' do
+      it 'uses raw content for token count when no transformations are enabled' do
+        file_path = File.join(temp_dir, 'test.md')
+        File.write(file_path, "# Test\n\n<!-- Comment -->\n\nContent")
+
+        gen = described_class.new(temp_dir, include_metadata: true, include_tokens: true)
+        metadata = gen.send(:analyze_file, file_path)
+
+        # Raw content should include the comment
+        expect(metadata[:tokens]).to be > 5
+      end
+
+      it 'uses transformed content for token count when transformations are enabled' do
+        file_path = File.join(temp_dir, 'test.md')
+        File.write(file_path, "# Test\n\n<!-- This is a long comment that adds many tokens -->\n\nContent")
+
+        gen_without = described_class.new(temp_dir, include_metadata: true, include_tokens: true)
+        metadata_without = gen_without.send(:analyze_file, file_path)
+
+        gen_with = described_class.new(temp_dir,
+                                        include_metadata: true,
+                                        include_tokens: true,
+                                        remove_comments: true)
+        metadata_with = gen_with.send(:analyze_file, file_path)
+
+        # Token count should be lower when comments are removed
+        expect(metadata_with[:tokens]).to be < metadata_without[:tokens]
+      end
+    end
   end
 end

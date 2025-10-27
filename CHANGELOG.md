@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.9.3 (2025-10-27)
+- [Fix] **Generate Command Excludes Support** - The `generate` command now properly respects the `excludes` configuration option to filter out files from llms.txt generation.
+  - Added `should_exclude?` method to Generator class that matches files against glob patterns
+  - Supports both simple patterns (e.g., `draft.md`) and glob patterns (e.g., `**/private/**`, `draft-*.md`)
+  - Uses `File.fnmatch` with `FNM_PATHNAME` and `FNM_DOTMATCH` flags for proper pattern matching
+  - Checks patterns against both absolute and relative paths from docs_path
+  - Excludes configuration works consistently with bulk-transform command
+- [Fix] **Token Count from Transformed Content** - Token counts in metadata now accurately reflect the actual content after applying transformations.
+  - Token count is now calculated from transformed content when any transformation options are enabled
+  - Adds `has_transformations?` helper method to detect if transformations are active
+  - Ensures token metadata represents the actual size of processed content, not raw files
+  - Falls back to raw content token count when no transformations are enabled
+- [Fix] **Boolean Config Options** - Fixed config merging bug where explicitly setting transformation options to `false` in YAML was being overridden to `true`.
+  - Updated `Config#merge_with_options` to properly handle `false` values for boolean options
+  - Fixed the `|| true` pattern that was incorrectly treating `false` config values as falsy
+  - Now correctly uses `!self['option'].nil?` check before falling back to defaults
+  - Applies to all boolean transformation options: `remove_comments`, `normalize_whitespace`, `remove_badges`, `remove_frontmatter`
+- [Test] Added comprehensive unit tests for excludes functionality in Generator
+- [Test] Added integration tests for generate command with excludes and token counting
+
 ## 0.9.2 (2025-10-17)
 - [Fix] Tackle one more block boundaries tracking edge-case.
 

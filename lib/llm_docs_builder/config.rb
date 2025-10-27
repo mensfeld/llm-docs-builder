@@ -69,23 +69,31 @@ module LlmDocsBuilder
                       end,
         remove_comments: if options.key?(:remove_comments)
                            options[:remove_comments]
+                         elsif !self['remove_comments'].nil?
+                           self['remove_comments']
                          else
-                           self['remove_comments'] || true
+                           true
                          end,
         normalize_whitespace: if options.key?(:normalize_whitespace)
                                 options[:normalize_whitespace]
+                              elsif !self['normalize_whitespace'].nil?
+                                self['normalize_whitespace']
                               else
-                                self['normalize_whitespace'] || true
+                                true
                               end,
         remove_badges: if options.key?(:remove_badges)
                          options[:remove_badges]
+                       elsif !self['remove_badges'].nil?
+                         self['remove_badges']
                        else
-                         self['remove_badges'] || true
+                         true
                        end,
         remove_frontmatter: if options.key?(:remove_frontmatter)
                               options[:remove_frontmatter]
+                            elsif !self['remove_frontmatter'].nil?
+                              self['remove_frontmatter']
                             else
-                              self['remove_frontmatter'] || true
+                              true
                             end,
         verbose: options.key?(:verbose) ? options[:verbose] : (self['verbose'] || false),
         # Bulk transformation options

@@ -79,6 +79,7 @@ module LlmDocsBuilder
         next unless File.file?(path)
         next unless path.match?(/\.md$/i)
         next if File.basename(path).start_with?('.')
+        next if should_exclude?(path)
 
         files << analyze_file(path)
       end
@@ -111,7 +112,12 @@ module LlmDocsBuilder
 
       # Add optional enhanced metadata
       if options[:include_metadata]
-        metadata[:tokens] = TokenEstimator.estimate(content) if options[:include_tokens]
+        # Calculate token count from transformed content if any transformations are enabled
+        if options[:include_tokens]
+          token_content = has_transformations? ? apply_transformations(content, file_path) : content
+          metadata[:tokens] = TokenEstimator.estimate(token_content)
+        end
+
         metadata[:updated] = File.mtime(file_path).strftime('%Y-%m-%d') if options[:include_timestamps]
 
         # Calculate compression ratio if transformation is enabled
@@ -288,6 +294,49 @@ module LlmDocsBuilder
       when 6..7
         'priority:low'
       end
+    end
+
+    # Tests if file matches any exclusion pattern from options
+    #
+    # Uses File.fnmatch with pathname and dotmatch flags.
+    # Checks against both absolute path and relative path from docs_path.
+    #
+    # @param file_path [String] path to check
+    # @return [Boolean] true if file should be excluded
+    def should_exclude?(file_path)
+      excludes = Array(options[:excludes])
+      return false if excludes.empty?
+
+      # Get relative path from docs_path for matching
+      relative_path = if File.directory?(docs_path)
+                        Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
+                      else
+                        File.basename(file_path)
+                      end
+
+      excludes.any? do |pattern|
+        # Check both absolute and relative paths
+        File.fnmatch(pattern, file_path, File::FNM_PATHNAME | File::FNM_DOTMATCH) ||
+          File.fnmatch(pattern, relative_path, File::FNM_PATHNAME | File::FNM_DOTMATCH)
+      end
+    end
+
+    # Checks if any transformation options are enabled
+    #
+    # @return [Boolean] true if any transformation option is enabled
+    def has_transformations?
+      [
+        :remove_comments,
+        :normalize_whitespace,
+        :remove_badges,
+        :remove_frontmatter,
+        :remove_code_examples,
+        :remove_images,
+        :simplify_links,
+        :remove_blockquotes,
+        :remove_stopwords,
+        :remove_duplicates
+      ].any? { |opt| options[opt] }
     end
   end
 end
