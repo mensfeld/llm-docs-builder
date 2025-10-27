@@ -51,6 +51,34 @@ RSpec.describe LlmDocsBuilder::Config do
     end
   end
 
+  describe '#merge_with_options' do
+    it 'includes body parameter from config file' do
+      config_file = Tempfile.new(['config', '.yml'])
+      config_file.write(YAML.dump({ 'body' => 'Custom body content from config' }))
+      config_file.close
+
+      config = described_class.new(config_file.path)
+      merged = config.merge_with_options({})
+
+      expect(merged[:body]).to eq('Custom body content from config')
+
+      config_file.unlink
+    end
+
+    it 'allows CLI options to override body parameter' do
+      config_file = Tempfile.new(['config', '.yml'])
+      config_file.write(YAML.dump({ 'body' => 'Config body' }))
+      config_file.close
+
+      config = described_class.new(config_file.path)
+      merged = config.merge_with_options({ body: 'CLI body override' })
+
+      expect(merged[:body]).to eq('CLI body override')
+
+      config_file.unlink
+    end
+  end
+
   describe 'error handling' do
     it 'raises GenerationError for invalid YAML syntax' do
       config_file = Tempfile.new(['config', '.yml'])

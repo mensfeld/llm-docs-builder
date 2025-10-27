@@ -210,7 +210,11 @@ module LlmDocsBuilder
 
     # Constructs llms.txt content from analyzed documentation files
     #
-    # Combines title, description, and documentation links into formatted output
+    # Combines title, description, body content, and documentation links into formatted output.
+    # Organizes documents into sections based on priority:
+    # - Priority 1-3: Documentation (essential docs like README, getting started)
+    # - Priority 4-5: Examples (tutorials, example files)
+    # - Priority 6-7: Optional (advanced topics, reference docs)
     #
     # @param docs [Array<Hash>] analyzed file metadata
     # @return [String] formatted llms.txt content
@@ -224,31 +228,60 @@ module LlmDocsBuilder
       content << "> #{description}" if description
       content << ''
 
-      if docs.any?
-        content << '## Documentation'
+      # Add optional body content
+      if options[:body] && !options[:body].empty?
+        content << options[:body]
         content << ''
+      end
 
-        docs.each do |doc|
-          url = build_url(doc[:path])
-          line = if doc[:description] && !doc[:description].empty?
-                   "- [#{doc[:title]}](#{url}): #{doc[:description]}"
-                 else
-                   "- [#{doc[:title]}](#{url})"
-                 end
+      if docs.any?
+        # Categorize docs by priority into sections
+        sections = {
+          'Documentation' => docs.select { |d| d[:priority] <= 3 },
+          'Examples' => docs.select { |d| d[:priority] >= 4 && d[:priority] <= 5 },
+          'Optional' => docs.select { |d| d[:priority] >= 6 }
+        }
 
-          # Append metadata if enabled
-          if options[:include_metadata]
-            metadata_parts = []
-            metadata_parts << "tokens:#{doc[:tokens]}" if doc[:tokens]
-            metadata_parts << "compression:#{doc[:compression]}" if doc[:compression]
-            metadata_parts << "updated:#{doc[:updated]}" if doc[:updated]
-            metadata_parts << priority_label(doc[:priority]) if options[:include_priority]
+        # Build each section (skip empty ones)
+        sections.each do |section_name, section_docs|
+          next if section_docs.empty?
 
-            line += " #{metadata_parts.join(' ')}" unless metadata_parts.empty?
+          content << "## #{section_name}"
+          content << ''
+
+          section_docs.each do |doc|
+            url = build_url(doc[:path])
+
+            # Build metadata string if enabled
+            metadata_str = nil
+            if options[:include_metadata]
+              metadata_parts = []
+              metadata_parts << "tokens:#{doc[:tokens]}" if doc[:tokens]
+              metadata_parts << "compression:#{doc[:compression]}" if doc[:compression]
+              metadata_parts << "updated:#{doc[:updated]}" if doc[:updated]
+              metadata_parts << priority_label(doc[:priority]) if options[:include_priority]
+
+              metadata_str = "(#{metadata_parts.join(', ')})" unless metadata_parts.empty?
+            end
+
+            # Build line according to spec: - [title](url): description (metadata)
+            line = if doc[:description] && !doc[:description].empty?
+                     base = "- [#{doc[:title]}](#{url}): #{doc[:description]}"
+                     metadata_str ? "#{base} #{metadata_str}" : base
+                   else
+                     # No description: - [title](url) (metadata)
+                     base = "- [#{doc[:title]}](#{url})"
+                     metadata_str ? "#{base}: #{metadata_str}" : base
+                   end
+
+            content << line
           end
 
-          content << line
+          content << ''
         end
+
+        # Remove trailing empty line
+        content.pop if content.last == ''
       end
 
       "#{content.join("\n")}\n"

@@ -306,6 +306,114 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(content).to include('# llm-docs-builder')
         expect(content.lines.count).to be < 10
       end
+
+      it 'formats metadata with parentheses and commas' do
+        docs = [
+          { path: 'guide.md', title: 'Guide', description: 'A guide', priority: 3,
+            tokens: 450, updated: '2025-10-13' }
+        ]
+
+        gen = described_class.new(temp_dir, include_metadata: true, include_tokens: true, include_timestamps: true)
+        content = gen.send(:build_llms_txt, docs)
+
+        expect(content).to include('- [Guide](guide.md): A guide (tokens:450, updated:2025-10-13)')
+      end
+
+      it 'formats metadata without description using colon' do
+        docs = [
+          { path: 'api.md', title: 'API', description: '', priority: 5,
+            tokens: 1200, updated: '2025-10-12' }
+        ]
+
+        gen = described_class.new(temp_dir, include_metadata: true, include_tokens: true, include_timestamps: true)
+        content = gen.send(:build_llms_txt, docs)
+
+        expect(content).to include('- [API](api.md): (tokens:1200, updated:2025-10-12)')
+      end
+
+      it 'separates docs into Documentation, Examples, and Optional sections' do
+        docs = [
+          { path: 'README.md', title: 'README', description: 'Main doc', priority: 1 },
+          { path: 'getting-started.md', title: 'Getting Started', description: 'Get started', priority: 2 },
+          { path: 'guide.md', title: 'User Guide', description: 'Guide', priority: 3 },
+          { path: 'tutorial.md', title: 'Tutorial', description: 'Tutorial', priority: 4 },
+          { path: 'examples.md', title: 'Examples', description: 'Examples', priority: 5 },
+          { path: 'advanced.md', title: 'Advanced', description: 'Advanced topics', priority: 6 },
+          { path: 'reference.md', title: 'Reference', description: 'API reference', priority: 7 }
+        ]
+
+        content = generator.send(:build_llms_txt, docs)
+
+        expect(content).to include('## Documentation')
+        expect(content).to include('## Examples')
+        expect(content).to include('## Optional')
+
+        # Check order: Documentation section appears first
+        doc_index = content.index('## Documentation')
+        examples_index = content.index('## Examples')
+        optional_index = content.index('## Optional')
+
+        expect(doc_index).to be < examples_index
+        expect(examples_index).to be < optional_index
+
+        # Verify correct categorization
+        doc_section = content[doc_index...examples_index]
+        expect(doc_section).to include('README')
+        expect(doc_section).to include('Getting Started')
+        expect(doc_section).to include('User Guide')
+
+        examples_section = content[examples_index...optional_index]
+        expect(examples_section).to include('Tutorial')
+        expect(examples_section).to include('Examples')
+
+        optional_section = content[optional_index..]
+        expect(optional_section).to include('Advanced')
+        expect(optional_section).to include('Reference')
+      end
+
+      it 'skips empty sections when categorizing' do
+        docs = [
+          { path: 'README.md', title: 'README', description: 'Main doc', priority: 1 },
+          { path: 'advanced.md', title: 'Advanced', description: 'Advanced topics', priority: 6 }
+        ]
+
+        content = generator.send(:build_llms_txt, docs)
+
+        expect(content).to include('## Documentation')
+        expect(content).not_to include('## Examples')
+        expect(content).to include('## Optional')
+      end
+
+      it 'includes body content between description and sections' do
+        docs = [
+          { path: 'guide.md', title: 'Guide', description: 'A guide', priority: 3 }
+        ]
+
+        gen = described_class.new(temp_dir, body: 'This is additional context for LLMs.')
+        content = gen.send(:build_llms_txt, docs)
+
+        expect(content).to include('This is additional context for LLMs.')
+
+        # Verify order: body comes after description but before sections
+        desc_index = content.index('>')
+        body_index = content.index('This is additional context')
+        section_index = content.index('## Documentation')
+
+        expect(desc_index).to be < body_index if desc_index
+        expect(body_index).to be < section_index
+      end
+
+      it 'omits body content when not provided' do
+        docs = [
+          { path: 'guide.md', title: 'Guide', description: 'A guide', priority: 3 }
+        ]
+
+        content = generator.send(:build_llms_txt, docs)
+
+        # Should not contain the word 'additional' or 'context' from body
+        expect(content).not_to include('additional')
+        expect(content).not_to include('context for LLMs')
+      end
     end
 
     describe '#find_markdown_files_in_directory' do

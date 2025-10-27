@@ -85,7 +85,7 @@ module LlmDocsBuilder
 
     # Extracts markdown links from section content into structured format
     #
-    # Scans for markdown list items with links and descriptions. Returns raw content
+    # Scans for markdown list items with links and optional descriptions. Returns raw content
     # if no links are found in the expected format.
     #
     # @param content [String] raw section content
@@ -93,11 +93,13 @@ module LlmDocsBuilder
     def parse_section_content(content)
       links = []
 
-      content.scan(/^[-*]\s*\[([^\]]+)\]\(([^)]+)\):\s*(.*)$/m) do |title, url, description|
+      # Updated regex: description is optional (non-capturing group with ?)
+      # Use [^\n]* instead of .* to avoid matching across lines
+      content.scan(/^[-*]\s*\[([^\]]+)\]\(([^)]+)\)(?::\s*([^\n]*))?$/) do |title, url, description|
         links << {
           title: title,
           url: url,
-          description: description.strip
+          description: description&.strip || ''
         }
       end
 

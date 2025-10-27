@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0 (2025-10-27)
+- [Feature] **llms.txt Specification Compliance** - Updated output format to fully comply with the llms.txt specification from llmstxt.org.
+  - **Metadata Format**: Metadata now appears within the description field using parentheses and comma separators: `- [title](url): description (tokens:450, updated:2025-10-13, priority:high)`
+  - **Optional Descriptions**: Parser now correctly handles links without descriptions: `- [title](url)` per spec
+  - **Multi-Section Support**: Documents automatically organized into `Documentation`, `Examples`, and `Optional` sections based on priority
+  - **Body Content Support**: Added optional `body` config parameter for custom content between description and sections
+  - Priority-based categorization: 1-3 → Documentation, 4-5 → Examples, 6-7 → Optional
+  - Empty sections are automatically omitted from output
+  - Updated parser regex from `/^[-*]\s*\[([^\]]+)\]\(([^)]+)\):\s*(.*)$/m` to `/^[-*]\s*\[([^\]]+)\]\(([^)]+)\)(?::\s*([^\n]*))?$/` to make descriptions optional
+  - Fixed multiline regex greedy matching issue that was capturing only one link per section
+- [Test] Added comprehensive test suite for spec compliance (8 new parser tests, 7 new generator tests)
+- [Docs] Updated README with multi-section organization examples and body content usage
+- **Breaking Change**: Metadata format has changed from `tokens:450 updated:2025-10-13` to `(tokens:450, updated:2025-10-13)` for spec compliance
+
 ## 0.9.4 (2025-10-27)
 - [Feature] **Auto-Exclude Hidden Directories** - Hidden directories (starting with `.`) are now automatically excluded by default to prevent noise from `.git`, `.lint`, `.github`, etc.
   - Adds `include_hidden: false` as default behavior
