@@ -77,6 +77,20 @@ RSpec.describe LlmDocsBuilder::Config do
 
       config_file.unlink
     end
+
+    it 'preserves remote content, metadata, and nil docs overrides' do
+      config = described_class.new
+
+      merged = config.merge_with_options({
+        content: '# Remote content',
+        source_url: 'https://example.com/doc.md',
+        docs: nil
+      })
+
+      expect(merged[:content]).to eq('# Remote content')
+      expect(merged[:source_url]).to eq('https://example.com/doc.md')
+      expect(merged[:docs]).to be_nil
+    end
   end
 
   describe 'error handling' do

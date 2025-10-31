@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'net/http'
-require 'uri'
-
 module LlmDocsBuilder
   # Compares content sizes between human and AI versions
   #
@@ -30,7 +27,7 @@ module LlmDocsBuilder
     AI_USER_AGENT = 'Claude-Web/1.0 (Anthropic AI Assistant)'
 
     # Maximum number of redirects to follow before raising an error
-    MAX_REDIRECTS = 10
+    MAX_REDIRECTS = UrlFetcher::MAX_REDIRECTS
 
     # @return [String] URL to compare
     attr_reader :url
@@ -133,78 +130,11 @@ module LlmDocsBuilder
     # @return [String] response body
     # @raise [Errors::GenerationError] if fetch fails or too many redirects
     def fetch_url(url_string, user_agent, redirect_count = 0)
-      if redirect_count >= MAX_REDIRECTS
-        raise(
-          Errors::GenerationError,
-          "Too many redirects (#{MAX_REDIRECTS}) when fetching #{url_string}"
-        )
-      end
-
-      uri = validate_and_parse_url(url_string)
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = uri.scheme == 'https'
-      http.open_timeout = 10
-      http.read_timeout = 30
-
-      request = Net::HTTP::Get.new(uri.request_uri)
-      request['User-Agent'] = user_agent
-
-      response = http.request(request)
-
-      case response
-      when Net::HTTPSuccess
-        response.body
-      when Net::HTTPRedirection
-        # Follow redirect with incremented counter
-        redirect_url = response['location']
-        puts "  Redirecting to #{redirect_url}..." if options[:verbose] && redirect_count.positive?
-        fetch_url(redirect_url, user_agent, redirect_count + 1)
-      else
-        raise(
-          Errors::GenerationError,
-          "Failed to fetch #{url_string}: #{response.code} #{response.message}"
-        )
-      end
-    rescue Errors::GenerationError
-      raise
-    rescue StandardError => e
-      raise(
-        Errors::GenerationError,
-        "Error fetching #{url_string}: #{e.message}"
+      fetcher = UrlFetcher.new(
+        user_agent: user_agent,
+        verbose: options[:verbose]
       )
-    end
-
-    # Validates and parses URL to prevent malformed URLs
-    #
-    # @param url_string [String] URL to validate and parse
-    # @return [URI::HTTP, URI::HTTPS] parsed URI
-    # @raise [Errors::GenerationError] if URL is invalid or uses unsupported scheme
-    def validate_and_parse_url(url_string)
-      uri = URI.parse(url_string)
-
-      # Only allow HTTP and HTTPS schemes
-      unless %w[http https].include?(uri.scheme&.downcase)
-        raise(
-          Errors::GenerationError,
-          "Unsupported URL scheme: #{uri.scheme || 'none'} (only http/https allowed)"
-        )
-      end
-
-      # Ensure host is present
-      if uri.host.nil? || uri.host.empty?
-        raise(
-          Errors::GenerationError,
-          "Invalid URL: missing host in #{url_string}"
-        )
-      end
-
-      uri
-    rescue URI::InvalidURIError => e
-      raise(
-        Errors::GenerationError,
-        "Invalid URL format: #{e.message}"
-      )
+      fetcher.fetch(url_string, redirect_count)
     end
 
     # Calculate comparison statistics

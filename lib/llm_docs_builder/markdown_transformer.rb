@@ -55,7 +55,7 @@ module LlmDocsBuilder
     #
     # @return [String] transformed markdown content
     def transform
-      content = File.read(file_path)
+      content = load_content
 
       # Build and execute transformation pipeline
       content = cleanup_transformer.transform(content, options)
@@ -123,6 +123,17 @@ module LlmDocsBuilder
         remove_duplicates: options[:remove_duplicates]
       }
       compressor.compress(content, compression_methods)
+    end
+
+    # Load source content either from provided string or file path
+    #
+    # @return [String] markdown content to transform
+    def load_content
+      if options[:content]
+        options[:content].dup
+      else
+        File.read(file_path)
+      end
     end
   end
 end

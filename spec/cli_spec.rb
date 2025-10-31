@@ -184,6 +184,46 @@ RSpec.describe LlmDocsBuilder::CLI do
 
         expect(File.read(output_file.path)).to include('# Test')
       end
+
+      it 'transforms content fetched from URL' do
+        cli = described_class.new
+        fetcher = instance_double(LlmDocsBuilder::UrlFetcher)
+
+        allow(LlmDocsBuilder::UrlFetcher).to receive(:new).and_return(fetcher)
+        allow(fetcher).to receive(:fetch).with('https://example.com/doc.md', any_args).and_return("# Test\n\nRemote content")
+        allow(LlmDocsBuilder).to receive(:transform_markdown)
+          .with(nil, hash_including(content: "# Test\n\nRemote content", source_url: 'https://example.com/doc.md'))
+          .and_return('Transformed remote content')
+
+        expect do
+          cli.run(['transform', '--url', 'https://example.com/doc.md'])
+        end.to output(/Transformed remote content/).to_stdout
+      end
+
+      it 'prevents using both --docs and --url flags' do
+        cli = described_class.new
+
+        expect do
+          cli.run(['transform', '--docs', temp_file.path, '--url', 'https://example.com/doc.md'])
+        end.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
+      end
+
+      it 'writes fetched content to output file when requested' do
+        cli = described_class.new
+        fetcher = instance_double(LlmDocsBuilder::UrlFetcher)
+
+        allow(LlmDocsBuilder::UrlFetcher).to receive(:new).and_return(fetcher)
+        allow(fetcher).to receive(:fetch).and_return("# Remote\n\nContent")
+        allow(LlmDocsBuilder).to receive(:transform_markdown).and_return('Transformed remote content')
+
+        expect do
+          cli.run(['transform', '--url', 'https://example.com/doc.md', '--output', output_file.path])
+        end.to output(/Transformed content saved to/).to_stdout
+
+        expect(File.read(output_file.path)).to eq('Transformed remote content')
+      end
     end
 
     context 'bulk-transform command' do

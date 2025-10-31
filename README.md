@@ -61,6 +61,9 @@ Factor:         2.8x smaller
 # Single file
 llm-docs-builder transform --docs README.md
 
+# Fetch and transform a remote page
+llm-docs-builder transform --url https://yoursite.com/docs/page.html
+
 # Bulk transform with config
 llm-docs-builder bulk-transform --config llm-docs-builder.yml
 ```
