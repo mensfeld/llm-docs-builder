@@ -73,6 +73,25 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("- Parent\n  - Child")
     end
 
+    it 'indents all nested list items' do
+      html = <<~HTML
+        <ul>
+          <li>
+            Parent
+            <ul>
+              <li>Child 1</li>
+              <li>Child 2</li>
+              <li>Child 3</li>
+            </ul>
+          </li>
+        </ul>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include("- Parent\n  - Child 1\n  - Child 2\n  - Child 3")
+    end
+
     it 'preserves manual line breaks created with <br>' do
       html = '<p>Line 1<br>Line 2<br><br>Line 4</p>'
 
