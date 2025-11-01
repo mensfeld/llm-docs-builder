@@ -177,7 +177,8 @@ module LlmDocsBuilder
     end
 
     def ordered_list_start_index(attrs)
-      parse_list_counter(attrs['start']) || 1
+      value = parse_list_counter(attrs['start'])
+      value.nil? ? 1 : value
     end
 
     def process_end_tag(raw, stack, list_stack, output)
@@ -418,9 +419,11 @@ module LlmDocsBuilder
 
       bullet_prefix =
         if list_info && list_info[:type] == :ordered
-          list_info[:index] = parse_list_counter(attrs['value']) || list_info[:index]
+          override = parse_list_counter(attrs['value'])
+          list_info[:index] = override unless override.nil?
+          list_info[:index] ||= 1
           index = list_info[:index]
-          list_info[:index] += 1
+          list_info[:index] = index + 1
           "#{indent}#{index}. "
         else
           "#{indent}- "

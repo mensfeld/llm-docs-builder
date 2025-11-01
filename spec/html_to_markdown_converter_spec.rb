@@ -220,6 +220,24 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("8. Then eight")
     end
 
+    it 'allows ordered lists to start at zero and preserves zero value overrides' do
+      html = <<~HTML
+        <ol start="0">
+          <li>Zero</li>
+          <li>One</li>
+          <li value="0">Reset to zero</li>
+          <li>Back to one</li>
+        </ol>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include("0. Zero")
+      expect(markdown).to include("1. One")
+      expect(markdown).to include("0. Reset to zero")
+      expect(markdown).to include("1. Back to one")
+    end
+
     it 'drops whitespace-only nodes between block elements' do
       html = '<h1>Title</h1> <p>Text</p>'
 
