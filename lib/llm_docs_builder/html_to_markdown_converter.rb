@@ -118,9 +118,13 @@ module LlmDocsBuilder
       end
 
       list_stack << { type: :unordered, index: nil } if tag_name == 'ul'
-      list_stack << { type: :ordered, index: 1 } if tag_name == 'ol'
+      list_stack << { type: :ordered, index: ordered_list_start_index(attrs) } if tag_name == 'ol'
 
       stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'', skip: false)
+    end
+
+    def ordered_list_start_index(attrs)
+      parse_list_counter(attrs['start']) || 1
     end
 
     def process_end_tag(raw, stack, list_stack, output)
@@ -240,7 +244,7 @@ module LlmDocsBuilder
       when 'hr'
         "\n\n---\n\n"
       when 'li'
-        list_item(content, list_stack)
+        list_item(content, list_stack, node.attrs)
       when 'ul', 'ol'
         "#{content.rstrip}\n"
       when 'dl'
@@ -298,7 +302,7 @@ module LlmDocsBuilder
       "```\n#{text}\n```\n\n"
     end
 
-    def list_item(content, list_stack)
+    def list_item(content, list_stack, attrs = {})
       lines = normalize_list_item_lines(content)
       return '' if lines.empty?
 
@@ -308,6 +312,7 @@ module LlmDocsBuilder
 
       bullet_prefix =
         if list_info && list_info[:type] == :ordered
+          list_info[:index] = parse_list_counter(attrs['value']) || list_info[:index]
           index = list_info[:index]
           list_info[:index] += 1
           "#{indent}#{index}. "
@@ -399,6 +404,16 @@ module LlmDocsBuilder
       return false unless line
 
       line.start_with?('  ') && line.lstrip.match?(/\A([-+*]|\d+\.)\s/)
+    end
+
+    def parse_list_counter(raw)
+      return nil if raw.nil?
+
+      normalized = raw.strip
+      return nil if normalized.empty?
+      return nil unless normalized.match?(/\A[+-]?\d+\z/)
+
+      normalized.to_i
     end
 
     def collapse_whitespace(content)

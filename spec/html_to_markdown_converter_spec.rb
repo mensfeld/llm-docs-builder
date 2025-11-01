@@ -56,5 +56,21 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       expect(markdown).to eq("```\nputs 'hi'\n```")
     end
+
+    it 'respects ordered list offsets and li value overrides' do
+      html = <<~HTML
+        <ol start="3">
+          <li>Starts at three</li>
+          <li value="7">Jumps to seven</li>
+          <li>Then eight</li>
+        </ol>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include("3. Starts at three")
+      expect(markdown).to include("7. Jumps to seven")
+      expect(markdown).to include("8. Then eight")
+    end
   end
 end
