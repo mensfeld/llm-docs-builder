@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 (TBD)
+- [Feature] **Transform from URL** — The `transform` command now accepts a remote URL via `--url` and processes fetched content through the standard transformer pipeline.
+  - Example: `llm-docs-builder transform --url https://example.com/docs/page.html`
+  - Applies all configured transformations and output options identically to local files
+  - By @Eric-Guo and @codex in PR #28.
+
 ## 0.10.0 (2025-10-27)
 - [Feature] **llms.txt Specification Compliance** - Updated output format to fully comply with the llms.txt specification from llmstxt.org.
   - **Metadata Format**: Metadata now appears within the description field using parentheses and comma separators: `- [title](url): description (tokens:450, updated:2025-10-13, priority:high)`
