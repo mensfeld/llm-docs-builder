@@ -108,6 +108,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("**Line 1\nLine 2**")
     end
 
+    it 'preserves inline nodes that are implicitly closed by ancestor tags' do
+      html = '<p><strong>Bold</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('**Bold**')
+    end
+
     it 'adds a blank line between lists and following paragraphs' do
       html = '<ul><li>Item</li></ul><p>Next</p>'
 

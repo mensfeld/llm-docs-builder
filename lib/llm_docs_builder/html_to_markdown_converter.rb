@@ -166,8 +166,15 @@ module LlmDocsBuilder
       node = nil
 
       while (current = stack.pop)
-        node = current
-        break if node.tag == tag_name
+        if current.tag == tag_name
+          node = current
+          break
+        end
+
+        parent_tag = stack.last&.tag
+        rendered = render_node(current, list_stack, parent_tag)
+        list_stack.pop if LIST_TAGS.include?(current.tag)
+        append_to_parent(stack, output, rendered, current.tag, metadata: current.metadata)
       end
 
       return unless node
