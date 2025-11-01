@@ -554,8 +554,15 @@ module LlmDocsBuilder
     def clean_output(output)
       cleaned = output.gsub(/\r\n?/, "\n")
       cleaned = cleaned.gsub(/[ \t]+\n/, "\n")
-      cleaned = cleaned.gsub(/\n{3,}/, "\n\n")
+      cleaned = collapse_newlines_outside_code_fences(cleaned)
       cleaned.strip
+    end
+
+    def collapse_newlines_outside_code_fences(text)
+      segments = text.split(/(```.*?```)/m)
+      segments.map.with_index do |segment, index|
+        index.odd? ? segment : segment.gsub(/\n{3,}/, "\n\n")
+      end.join
     end
   end
 end

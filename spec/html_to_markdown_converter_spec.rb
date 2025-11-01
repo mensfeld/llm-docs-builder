@@ -172,6 +172,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("```\nputs 'hi'\n```")
     end
 
+    it 'preserves intentional blank lines inside fenced code blocks' do
+      html = "<pre><code>line1\n\n\nline2</code></pre>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("```\nline1\n\n\nline2\n```")
+    end
+
     it 'respects ordered list offsets and li value overrides' do
       html = <<~HTML
         <ol start="3">
