@@ -108,6 +108,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("**Line 1\nLine 2**")
     end
 
+    it 'preserves escaped angle brackets while decoding ampersands' do
+      html = '<p>Use &lt;script&gt; &amp; friends.</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('Use &lt;script&gt; & friends.')
+    end
+
     it 'preserves inline nodes that are implicitly closed by ancestor tags' do
       html = '<p><strong>Bold</p>'
 

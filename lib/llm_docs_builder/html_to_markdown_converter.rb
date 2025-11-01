@@ -33,6 +33,7 @@ module LlmDocsBuilder
     INLINE_EM_TAGS = %w[em i].freeze
     IGNORED_TAGS = %w[script style head noscript iframe svg canvas].freeze
     SELF_CLOSING_TAGS = %w[br hr img].freeze
+    VERBATIM_TAGS = %w[code pre].freeze
     BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr] + HEADING_LEVEL.keys).freeze
 
     def convert(html)
@@ -107,7 +108,18 @@ module LlmDocsBuilder
       target = stack.last ? stack.last.buffer : output
       return if ignorable_whitespace?(decoded, target, stack.last)
 
-      target << decoded
+      normalized = inside_verbatim?(stack) ? decoded : preserve_angle_brackets(decoded)
+      target << normalized
+    end
+
+    def inside_verbatim?(stack)
+      stack.any? { |node| VERBATIM_TAGS.include?(node.tag) }
+    end
+
+    def preserve_angle_brackets(text)
+      return text unless text.include?('<') || text.include?('>')
+
+      text.gsub('<', '&lt;').gsub('>', '&gt;')
     end
 
     def ignorable_whitespace?(decoded, target, current_node)
