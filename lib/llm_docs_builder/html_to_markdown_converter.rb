@@ -106,9 +106,18 @@ module LlmDocsBuilder
       return if decoded.empty?
 
       target = stack.last ? stack.last.buffer : output
-      return if ignorable_whitespace?(decoded, target, stack.last)
+      current_node = stack.last
 
-      normalized = inside_verbatim?(stack) ? decoded : preserve_angle_brackets(decoded)
+      if inside_verbatim?(stack)
+        target << decoded
+        return
+      end
+
+      whitespace_only = decoded.strip.empty?
+      return if whitespace_only && ignorable_whitespace?(decoded, target, current_node)
+
+      normalized = preserve_angle_brackets(decoded)
+      normalized = normalize_soft_whitespace(normalized, target) if whitespace_only
       target << normalized
     end
 
@@ -124,7 +133,7 @@ module LlmDocsBuilder
 
     def ignorable_whitespace?(decoded, target, current_node)
       return false unless decoded.strip.empty?
-      return true if decoded.include?("\n")
+      return true if decoded.include?("\n") && boundary_whitespace?(target, current_node)
 
       boundary_whitespace?(target, current_node)
     end
@@ -495,6 +504,15 @@ module LlmDocsBuilder
 
     def block_level_tag?(tag_name)
       tag_name && BLOCK_BOUNDARY_TAGS.include?(tag_name)
+    end
+
+    def normalize_soft_whitespace(text, target)
+      return text unless text.include?("\n")
+
+      last_char = target&.[](-1)
+      return '' if last_char&.match?(/\s/)
+
+      ' '
     end
 
     def block_continuation_line?(line)

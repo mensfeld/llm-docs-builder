@@ -151,6 +151,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('This sentence continues on the next line.')
     end
 
+    it 'preserves spaces between inline elements separated by newline-only text nodes' do
+      html = "<p><span>Hello</span>\n<span>world</span></p>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('Hello world')
+    end
+
     it 'preserves paragraph breaks inside blockquotes' do
       html = <<~HTML
         <blockquote>
