@@ -327,7 +327,12 @@ module LlmDocsBuilder
       text = content.gsub(/\n+/, ' ').strip
       return '' if text.empty?
 
-      "`#{text}`"
+      max_backticks = text.scan(/`+/).map(&:length).max || 0
+      fence = '`' * (max_backticks + 1)
+      needs_padding = text.start_with?('`') || text.end_with?('`')
+      padding = needs_padding ? ' ' : ''
+
+      "#{fence}#{padding}#{text}#{padding}#{fence}"
     end
 
     def blockquote(content)

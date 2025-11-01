@@ -28,6 +28,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("Inline code like `puts 'hi'` works too.")
     end
 
+    it 'uses longer fences for inline code containing backticks' do
+      html = '<p>Inline code like <code>puts `foo`</code> works too.</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('Inline code like `` puts `foo` `` works too.')
+    end
+
     it 'returns empty string for blank input' do
       expect(converter.convert('')).to eq('')
     end
