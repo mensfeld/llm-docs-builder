@@ -57,7 +57,11 @@ module LlmDocsBuilder
     def merge_with_options(options)
       # CLI options override config file, config file provides defaults
       {
-        docs: options[:docs] || self['docs'] || '.',
+        docs: if options.key?(:docs)
+                options[:docs]
+              else
+                self['docs'] || '.'
+              end,
         base_url: options[:base_url] || self['base_url'],
         title: options[:title] || self['title'],
         description: options[:description] || self['description'],
@@ -171,7 +175,10 @@ module LlmDocsBuilder
                                else
                                  self['calculate_compression'] || false
                                end
-      }
+      }.tap do |merged|
+        merged[:content] = options[:content] if options.key?(:content)
+        merged[:source_url] = options[:source_url] if options.key?(:source_url)
+      end
     end
 
     # Check if a config file was found and exists

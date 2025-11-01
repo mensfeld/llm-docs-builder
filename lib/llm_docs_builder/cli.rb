@@ -100,7 +100,7 @@ module LlmDocsBuilder
           options[:output] = path
         end
 
-        opts.on('-u', '--url URL', 'URL to fetch for comparison') do |url|
+        opts.on('-u', '--url URL', 'URL to fetch for transform or comparison') do |url|
           options[:url] = url
         end
 
@@ -185,21 +185,42 @@ module LlmDocsBuilder
       config = LlmDocsBuilder::Config.new(options[:config])
       merged_options = config.merge_with_options(options)
 
-      file_path = merged_options[:docs]
+      url = options[:url]
+      cli_file_path = options[:docs]
+      config_file_path = config['docs']
+      file_path = url ? cli_file_path : (cli_file_path || config_file_path)
+
+      if url && cli_file_path
+        puts 'Cannot use both --docs and --url for transform command'
+        exit 1
+      end
 
       unless file_path
-        puts 'File path required for transform command (use -d/--docs)'
-        exit 1
+        unless url
+          puts 'File path required for transform command (use -d/--docs)'
+          exit 1
+        end
       end
 
-      unless File.exist?(file_path)
-        puts "File not found: #{file_path}"
-        exit 1
-      end
+      content =
+        if url
+          puts "Fetching #{url}..." if merged_options[:verbose]
+          fetcher = LlmDocsBuilder::UrlFetcher.new(verbose: merged_options[:verbose])
+          remote_content = fetcher.fetch(url)
+          puts "Transforming content from #{url}..." if merged_options[:verbose]
+          transform_options = merged_options.merge(content: remote_content, docs: nil, source_url: url)
+          LlmDocsBuilder.transform_markdown(nil, transform_options)
+        else
+          unless File.exist?(file_path)
+            puts "File not found: #{file_path}"
+            exit 1
+          end
 
-      puts "Transforming #{file_path}..." if merged_options[:verbose]
+          puts "Transforming #{file_path}..." if merged_options[:verbose]
 
-      content = LlmDocsBuilder.transform_markdown(file_path, merged_options)
+          merged_options[:docs] = file_path
+          LlmDocsBuilder.transform_markdown(file_path, merged_options)
+        end
 
       if merged_options[:output] && merged_options[:output] != 'llms.txt'
         File.write(merged_options[:output], content)

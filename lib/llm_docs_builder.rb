@@ -25,6 +25,7 @@ module LlmDocsBuilder
     # @option options [Boolean] :convert_urls convert HTML URLs to markdown format (overrides
     #   config)
     # @option options [Boolean] :verbose enable verbose output (overrides config)
+    # @option options [String] :content raw markdown content (used for remote sources)
     # @return [String] generated llms.txt content
     #
     # @example Generate from docs directory
