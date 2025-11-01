@@ -317,7 +317,8 @@ module LlmDocsBuilder
       when 'dl'
         "#{content}\n"
       when 'dt'
-        content.strip
+        stripped = content.strip
+        stripped.empty? ? '' : "#{stripped}\n"
       when 'dd'
         ": #{content.strip}\n"
       when *HEADING_LEVEL.keys
