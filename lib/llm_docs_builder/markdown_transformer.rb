@@ -146,8 +146,17 @@ module LlmDocsBuilder
     def html_content?(content)
       return false unless content
 
-      snippet = content.lstrip[0, 500]
+      snippet = content.lstrip
       return false unless snippet
+
+      comment_prefix = /\A<!--.*?-->\s*/m
+      # Remote docs often include build metadata comments; skip them before tag detection.
+      while snippet.sub!(comment_prefix, '')
+        break if snippet.empty?
+      end
+
+      snippet = snippet.lstrip[0, 500]
+      return false unless snippet && !snippet.empty?
 
       snippet.match?(%r{<\s*(?:!DOCTYPE\s+html|html\b|body\b|article\b|section\b|main\b|p\b|div\b|h[1-6]\b)}i)
     end
