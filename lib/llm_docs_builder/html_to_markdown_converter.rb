@@ -390,7 +390,8 @@ module LlmDocsBuilder
       return '' if lines.empty?
 
       list_info = list_stack.last
-      indent = '  ' * (list_stack.size - 1)
+      indent_size = list_stack.empty? ? 0 : list_stack.size - 1
+      indent = '  ' * indent_size
       continuation_indent = "#{indent}  "
 
       bullet_prefix =
