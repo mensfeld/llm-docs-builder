@@ -68,8 +68,9 @@ module LlmDocsBuilder
     # @param argv [Array<String>] command-line arguments
     # @return [Hash] parsed options including :command, :config, :docs, :output, :verbose
     def parse_options(argv)
+      command_token = argv.first
       options = {
-        command: argv.first&.match?(/^[a-z-]+$/) ? argv.shift : nil
+        command: command_token&.match?(/\A[a-z](?:[a-z-]*[a-z])?\z/) ? argv.shift : nil
       }
 
       OptionParser.new do |opts|
