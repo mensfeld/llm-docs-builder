@@ -63,9 +63,7 @@ module LlmDocsBuilder
       content = heading_transformer.transform(content, options)
       content = compress_content(content) if should_compress?
       content = enhancement_transformer.transform(content, options)
-      content = whitespace_transformer.transform(content, options)
-
-      content
+      whitespace_transformer.transform(content, options)
     end
 
     private
@@ -130,10 +128,33 @@ module LlmDocsBuilder
     # @return [String] markdown content to transform
     def load_content
       if options[:content]
-        options[:content].dup
+        content = options[:content].dup
+        return html_to_markdown_converter.convert(content) if html_content?(content)
+
+        content
       else
         File.read(file_path)
       end
+    end
+
+    # Detect if loaded content is HTML instead of markdown
+    #
+    # @param content [String] raw content
+    # @return [Boolean]
+    def html_content?(content)
+      return false unless content
+
+      snippet = content.lstrip[0, 500]
+      return false unless snippet
+
+      snippet.match?(/<\s*(?:!DOCTYPE\s+html|html\b|body\b|article\b|section\b|main\b|p\b|div\b|h[1-6]\b)/i)
+    end
+
+    # Memoized HTML to markdown converter
+    #
+    # @return [HtmlToMarkdownConverter]
+    def html_to_markdown_converter
+      @html_to_markdown_converter ||= HtmlToMarkdownConverter.new
     end
   end
 end
