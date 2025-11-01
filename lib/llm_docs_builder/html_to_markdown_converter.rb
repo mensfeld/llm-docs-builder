@@ -31,6 +31,7 @@ module LlmDocsBuilder
     INLINE_EM_TAGS = %w[em i].freeze
     IGNORED_TAGS = %w[script style head noscript iframe svg canvas].freeze
     SELF_CLOSING_TAGS = %w[br hr img].freeze
+    BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr] + HEADING_LEVEL.keys).freeze
 
     def convert(html)
       return '' if html.nil? || html.strip.empty?
@@ -56,7 +57,7 @@ module LlmDocsBuilder
       until stack.empty?
         node = stack.pop
         rendered = render_node(node, list_stack)
-        append_to_parent(stack, output, rendered)
+        append_to_parent(stack, output, rendered, node.tag)
       end
 
       clean_output(output)
@@ -93,6 +94,9 @@ module LlmDocsBuilder
       return if text.nil? || text.empty?
 
       decoded = CGI.unescapeHTML(text)
+      return if decoded.empty?
+      return if decoded.strip.empty? && decoded.include?("\n")
+
       target = stack.last ? stack.last.buffer : output
       target << decoded
     end
@@ -109,7 +113,7 @@ module LlmDocsBuilder
 
       if self_closing
         rendered = render_self_closing(tag_name, attrs, list_stack)
-        append_to_parent(stack, output, rendered)
+        append_to_parent(stack, output, rendered, tag_name)
         return
       end
 
@@ -135,14 +139,16 @@ module LlmDocsBuilder
       rendered = render_node(node, list_stack)
       list_stack.pop if LIST_TAGS.include?(tag_name)
 
-      append_to_parent(stack, output, rendered)
+      append_to_parent(stack, output, rendered, node.tag)
     end
 
-    def append_to_parent(stack, output, rendered)
+    def append_to_parent(stack, output, rendered, tag_name = nil)
       return if rendered.nil? || rendered.empty?
 
       if stack.last
-        stack.last.buffer << rendered
+        buffer = stack.last.buffer
+        buffer << "\n" if needs_block_separator?(buffer, rendered, tag_name)
+        buffer << rendered
       else
         output << rendered
       end
@@ -292,19 +298,47 @@ module LlmDocsBuilder
     end
 
     def list_item(content, list_stack)
-      text = collapse_whitespace(content)
-      return '' if text.empty?
+      lines = normalize_list_item_lines(content)
+      return '' if lines.empty?
 
       list_info = list_stack.last
       indent = '  ' * (list_stack.size - 1)
+      continuation_indent = "#{indent}  "
 
-      if list_info && list_info[:type] == :ordered
-        index = list_info[:index]
-        list_info[:index] += 1
-        "#{indent}#{index}. #{text}\n"
-      else
-        "#{indent}- #{text}\n"
+      bullet_prefix =
+        if list_info && list_info[:type] == :ordered
+          index = list_info[:index]
+          list_info[:index] += 1
+          "#{indent}#{index}. "
+        else
+          "#{indent}- "
+        end
+
+      formatted =
+        if nested_list_block?(lines.first)
+          +"#{bullet_prefix.rstrip}\n"
+        else
+          first_line = lines.shift
+          +"#{bullet_prefix}#{first_line.strip}\n"
+        end
+
+      lines.each_with_index do |line, index|
+        if line.empty?
+          next_line = lines[index + 1..]&.find { |candidate| !candidate.empty? }
+          next if next_line.nil? || block_continuation_line?(next_line)
+
+          formatted << "#{continuation_indent}\n"
+          next
+        end
+
+        if line.start_with?('  ')
+          formatted << "#{line}\n"
+        else
+          formatted << "#{continuation_indent}#{line}\n"
+        end
       end
+
+      formatted
     end
 
     def link(content, attrs)
@@ -315,6 +349,55 @@ module LlmDocsBuilder
       return text unless href && !href.empty?
 
       "[#{text}](#{href})"
+    end
+
+    def normalize_list_item_lines(content)
+      text = content.to_s.gsub(/\r\n?/, "\n")
+      text = text.gsub(/(?<!\s)([ \t]{2,}(?:[-+*]|\d+\.)\s)/, "\n\\1")
+      text = text.gsub(/(?<!\s)([ \t]{2,}>)/, "\n\\1")
+
+      lines = text.lines.map(&:rstrip)
+      lines.shift while lines.first&.empty?
+      lines.pop while lines.last&.empty?
+      non_empty = lines.reject(&:empty?)
+      base_candidates = non_empty.reject { |line| block_continuation_line?(line) }
+      base_indent = base_candidates.map { |line| line[/\A[ \t]*/].size }.min
+
+      if base_indent && base_indent.positive?
+        lines.map! do |line|
+          next line if block_continuation_line?(line)
+
+          line.sub(/\A[ \t]{0,#{base_indent}}/, '')
+        end
+      end
+      lines
+    end
+
+    def needs_block_separator?(buffer, rendered, tag_name)
+      return false if buffer.empty?
+      return false if buffer.end_with?("\n")
+
+      block_level_tag?(tag_name)
+    end
+
+    def block_level_tag?(tag_name)
+      tag_name && BLOCK_BOUNDARY_TAGS.include?(tag_name)
+    end
+
+    def block_continuation_line?(line)
+      stripped = line.lstrip
+      return false if stripped.empty?
+
+      stripped.start_with?('- ', '* ', '+ ') ||
+        stripped.match?(/\A\d+\.\s/) ||
+        stripped.start_with?('> ') ||
+        stripped.start_with?('```')
+    end
+
+    def nested_list_block?(line)
+      return false unless line
+
+      line.start_with?('  ') && line.lstrip.match?(/\A([-+*]|\d+\.)\s/)
     end
 
     def collapse_whitespace(content)

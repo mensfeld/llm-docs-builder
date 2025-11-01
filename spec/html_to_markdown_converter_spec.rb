@@ -31,6 +31,22 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
     it 'returns empty string for blank input' do
       expect(converter.convert('')).to eq('')
     end
+
+    it 'preserves nested list formatting' do
+      html = <<~HTML
+        <ul>
+          <li>
+            Parent
+            <ul>
+              <li>Child</li>
+            </ul>
+          </li>
+        </ul>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include("- Parent\n  - Child")
+    end
   end
 end
-
