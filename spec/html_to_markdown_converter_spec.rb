@@ -84,6 +84,19 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('This sentence continues on the next line.')
     end
 
+    it 'preserves paragraph breaks inside blockquotes' do
+      html = <<~HTML
+        <blockquote>
+          <p>First paragraph</p>
+          <p>Second paragraph</p>
+        </blockquote>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("> First paragraph\n>\n> Second paragraph")
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 

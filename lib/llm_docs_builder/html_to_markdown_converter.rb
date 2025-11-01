@@ -304,8 +304,14 @@ module LlmDocsBuilder
     end
 
     def blockquote(content)
-      lines = collapse_whitespace(content).split(/\n+/)
-      formatted = lines.map { |line| "> #{line.strip}" }.join("\n")
+      text = collapse_whitespace(content, preserve_newlines: true)
+      return '' if text.empty?
+
+      lines = text.split("\n")
+      formatted = lines.map do |line|
+        stripped = line.strip
+        stripped.empty? ? '>' : "> #{stripped}"
+      end.join("\n")
       "#{formatted}\n\n"
     end
 
