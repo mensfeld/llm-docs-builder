@@ -34,7 +34,10 @@ module LlmDocsBuilder
     IGNORED_TAGS = %w[script style head noscript iframe svg canvas].freeze
     SELF_CLOSING_TAGS = %w[br hr img].freeze
     VERBATIM_TAGS = %w[code pre].freeze
-    BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr] + HEADING_LEVEL.keys).freeze
+    TABLE_TAGS = %w[table thead tbody tfoot tr th td caption colgroup col].freeze
+    TABLE_CELL_TAGS = %w[th td].freeze
+    SELF_CLOSING_TABLE_TAGS = %w[col].freeze
+    BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr table] + HEADING_LEVEL.keys).freeze
 
     def convert(html)
       return '' if html.nil? || html.strip.empty?
@@ -324,6 +327,8 @@ module LlmDocsBuilder
         ": #{content.strip}\n"
       when *HEADING_LEVEL.keys
         heading(tag_name, content)
+      when *TABLE_TAGS
+        render_table_node(tag_name, node)
       else
         content
       end
@@ -597,6 +602,38 @@ module LlmDocsBuilder
       segments.map.with_index do |segment, index|
         index.odd? ? segment : segment.gsub(/\n{3,}/, "\n\n")
       end.join
+    end
+
+    def render_table_node(tag_name, node)
+      attrs = node.attrs
+      if SELF_CLOSING_TABLE_TAGS.include?(tag_name)
+        build_html_element(tag_name, attrs, self_closing: true)
+      else
+        content = node.buffer.to_s
+        content = content.rstrip if TABLE_CELL_TAGS.include?(tag_name)
+        html = build_html_element(tag_name, attrs, content: content)
+        tag_name == 'table' ? "#{html}\n\n" : html
+      end
+    end
+
+    def build_html_element(tag_name, attrs, content: '', self_closing: false)
+      attributes = serialize_attributes(attrs)
+      if self_closing
+        "<#{tag_name}#{attributes} />"
+      else
+        "<#{tag_name}#{attributes}>#{content}</#{tag_name}>"
+      end
+    end
+
+    def serialize_attributes(attrs)
+      return '' unless attrs&.any?
+
+      serialized = attrs.map do |name, value|
+        next name if value.nil? || value.empty?
+
+        %(#{name}="#{CGI.escapeHTML(value)}")
+      end.join(' ')
+      serialized.empty? ? '' : " #{serialized}"
     end
   end
 end

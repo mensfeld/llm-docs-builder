@@ -188,6 +188,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("A\n\nB")
     end
 
+    it 'preserves table markup without collapsing structure' do
+      html = '<p>Before</p><table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table><p>After</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("Before\n\n<table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table>\n\nAfter")
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 
