@@ -97,10 +97,29 @@ module LlmDocsBuilder
 
       decoded = CGI.unescapeHTML(text)
       return if decoded.empty?
-      return if decoded.strip.empty? && decoded.include?("\n")
 
       target = stack.last ? stack.last.buffer : output
+      return if ignorable_whitespace?(decoded, target, stack.last)
+
       target << decoded
+    end
+
+    def ignorable_whitespace?(decoded, target, current_node)
+      return false unless decoded.strip.empty?
+      return true if decoded.include?("\n")
+
+      boundary_whitespace?(target, current_node)
+    end
+
+    def boundary_whitespace?(target, current_node)
+      return true if target.nil? || target.empty?
+
+      last_char = target[-1]
+      return true if last_char == "\n"
+
+      return false unless current_node&.tag
+
+      BLOCK_BOUNDARY_TAGS.include?(current_node.tag) && target.rstrip.empty?
     end
 
     def process_start_tag(raw, stack, list_stack, output)

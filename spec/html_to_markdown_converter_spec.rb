@@ -128,5 +128,13 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("7. Jumps to seven")
       expect(markdown).to include("8. Then eight")
     end
+
+    it 'drops whitespace-only nodes between block elements' do
+      html = '<h1>Title</h1> <p>Text</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("# Title\n\nText")
+    end
   end
 end
