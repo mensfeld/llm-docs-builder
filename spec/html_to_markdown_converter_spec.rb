@@ -49,6 +49,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("- Parent\n  - Child")
     end
 
+    it 'preserves manual line breaks created with <br>' do
+      html = '<p>Line 1<br>Line 2<br><br>Line 4</p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("Line 1\nLine 2\n\nLine 4")
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 

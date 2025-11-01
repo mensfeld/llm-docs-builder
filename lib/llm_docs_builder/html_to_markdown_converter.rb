@@ -261,7 +261,14 @@ module LlmDocsBuilder
     end
 
     def paragraph(content)
-      text = collapse_whitespace(content)
+      string = content.to_s
+
+      text =
+        if string.include?("\n")
+          collapse_whitespace(string, preserve_newlines: true)
+        else
+          collapse_whitespace(string)
+        end
       return '' if text.empty?
 
       "#{text}\n\n"
@@ -416,8 +423,18 @@ module LlmDocsBuilder
       normalized.to_i
     end
 
-    def collapse_whitespace(content)
-      content.to_s.gsub(/\s+/, ' ').strip
+    def collapse_whitespace(content, preserve_newlines: false)
+      text = content.to_s
+      return '' if text.empty?
+
+      if preserve_newlines
+        normalized = text.gsub(/[ \t\f\v]+/, ' ')
+        normalized = normalized.gsub(/[ \t\f\v]*\n/, "\n")
+        normalized = normalized.gsub(/\n[ \t\f\v]*/, "\n")
+        normalized.strip
+      else
+        text.gsub(/\s+/, ' ').strip
+      end
     end
 
     def clean_output(output)
