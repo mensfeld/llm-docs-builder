@@ -59,7 +59,7 @@ module LlmDocsBuilder
       until stack.empty?
         node = stack.pop
         rendered = render_node(node, list_stack, stack.last&.tag)
-        append_to_parent(stack, output, rendered, node.tag)
+        append_to_parent(stack, output, rendered, node.tag, metadata: node.metadata)
       end
 
       clean_output(output)
@@ -176,10 +176,10 @@ module LlmDocsBuilder
       rendered = render_node(node, list_stack, parent_tag)
       list_stack.pop if LIST_TAGS.include?(tag_name)
 
-      append_to_parent(stack, output, rendered, node.tag)
+      append_to_parent(stack, output, rendered, node.tag, metadata: node.metadata)
     end
 
-    def append_to_parent(stack, output, rendered, tag_name = nil)
+    def append_to_parent(stack, output, rendered, tag_name = nil, metadata: nil)
       return if rendered.nil? || rendered.empty?
 
       if stack.last
@@ -187,8 +187,10 @@ module LlmDocsBuilder
         buffer = parent.buffer
         break_index = buffer.length if tag_name == 'br'
         buffer << "\n" if needs_block_separator?(buffer, rendered, tag_name)
+        base_length = buffer.length
         buffer << rendered
         parent.metadata[:line_break_indices] << break_index if tag_name == 'br' && break_index
+        propagate_inline_line_breaks(parent, metadata, base_length)
       else
         output << rendered
       end
@@ -271,9 +273,9 @@ module LlmDocsBuilder
       when 'a'
         link(content, node.attrs)
       when *INLINE_STRONG_TAGS
-        emphasis(content, '**')
+        emphasis(node, '**')
       when *INLINE_EM_TAGS
-        emphasis(content, '*')
+        emphasis(node, '*')
       when 'u'
         content
       when 'br'
@@ -324,9 +326,23 @@ module LlmDocsBuilder
       "#{'#' * level} #{text}\n\n"
     end
 
-    def emphasis(content, marker)
-      text = collapse_whitespace(content)
+    def emphasis(node, marker)
+      content = node.buffer.to_s
+      line_break_indices = node.metadata[:line_break_indices]
+
+      text =
+        if line_break_indices&.any?
+          collapse_paragraph_text(content, line_break_indices)
+        else
+          collapse_whitespace(content)
+        end
       return '' if text.empty?
+
+      preserved = []
+      text.each_char.with_index do |char, index|
+        preserved << (marker.length + index) if char == "\n"
+      end
+      node.metadata[:preserve_line_break_indices] = preserved
 
       "#{marker}#{text}#{marker}"
     end
@@ -444,6 +460,17 @@ module LlmDocsBuilder
       return false if buffer.end_with?("\n")
 
       block_level_tag?(tag_name)
+    end
+
+    def propagate_inline_line_breaks(parent, metadata, base_length)
+      return unless metadata
+
+      preserved = metadata[:preserve_line_break_indices]
+      return unless preserved&.any?
+
+      preserved.each do |index|
+        parent.metadata[:line_break_indices] << (base_length + index)
+      end
     end
 
     def block_level_tag?(tag_name)

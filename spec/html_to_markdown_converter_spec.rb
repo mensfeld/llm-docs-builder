@@ -100,6 +100,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("Line 1\nLine 2\n\nLine 4")
     end
 
+    it 'preserves manual line breaks inside inline emphasis' do
+      html = '<p><strong>Line 1<br>Line 2</strong></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("**Line 1\nLine 2**")
+    end
+
     it 'adds a blank line between lists and following paragraphs' do
       html = '<ul><li>Item</li></ul><p>Next</p>'
 
