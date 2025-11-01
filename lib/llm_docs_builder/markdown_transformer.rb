@@ -129,14 +129,15 @@ module LlmDocsBuilder
     #
     # @return [String] markdown content to transform
     def load_content
-      if options[:content]
-        content = options[:content].dup
-        return html_to_markdown_converter.convert(content) if html_content?(content)
+      return File.read(file_path) unless options[:content]
 
-        content
-      else
-        File.read(file_path)
-      end
+      content = options[:content].dup
+      snippet = detection_snippet(content)
+
+      return content if table_fragment?(snippet)
+      return html_to_markdown_converter.convert(content) if html_content_snippet?(snippet)
+
+      content
     end
 
     # Detect if loaded content is HTML instead of markdown
@@ -144,21 +145,8 @@ module LlmDocsBuilder
     # @param content [String] raw content
     # @return [Boolean]
     def html_content?(content)
-      return false unless content
-
-      snippet = content.lstrip
-      return false unless snippet
-
-      comment_prefix = /\A<!--.*?-->\s*/m
-      # Remote docs often include build metadata comments; skip them before tag detection.
-      while snippet.sub!(comment_prefix, '')
-        break if snippet.empty?
-      end
-
-      snippet = snippet.lstrip[0, 500]
-      return false unless snippet && !snippet.empty?
-
-      snippet.match?(%r{<\s*(?:!DOCTYPE\s+html|html\b|body\b|article\b|section\b|main\b|p\b|div\b|h[1-6]\b)}i)
+      snippet = detection_snippet(content)
+      html_content_snippet?(snippet)
     end
 
     # Memoized HTML to markdown converter
@@ -166,6 +154,46 @@ module LlmDocsBuilder
     # @return [HtmlToMarkdownConverter]
     def html_to_markdown_converter
       @html_to_markdown_converter ||= HtmlToMarkdownConverter.new
+    end
+
+    # Prepare a snippet of content for HTML detection by removing leading whitespace
+    # and build metadata comments.
+    #
+    # @param content [String]
+    # @return [String, nil]
+    def detection_snippet(content)
+      return unless content
+
+      snippet = content.lstrip
+      return unless snippet
+
+      comment_prefix = /\A<!--.*?-->\s*/m
+      # Remote docs often include build metadata comments; skip them before tag detection.
+      while snippet.sub!(comment_prefix, '')
+        return '' if snippet.empty?
+      end
+
+      snippet.lstrip[0, 500]
+    end
+
+    # Determine whether a snippet should be treated as HTML.
+    #
+    # @param snippet [String, nil]
+    # @return [Boolean]
+    def html_content_snippet?(snippet)
+      return false unless snippet && !snippet.empty?
+
+      snippet.match?(%r{<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)}i)
+    end
+
+    # Detect whether the snippet represents a table fragment we should preserve.
+    #
+    # @param snippet [String, nil]
+    # @return [Boolean]
+    def table_fragment?(snippet)
+      return false unless snippet && !snippet.empty?
+
+      snippet.match?(%r{\A<\s*(?:table|thead|tbody|tr|td|th)\b}i)
     end
   end
 end
