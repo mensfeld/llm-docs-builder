@@ -76,16 +76,22 @@ module LlmDocsBuilder
           tokens << Token.new(type: :comment, value: scanner.matched)
         elsif scanner.scan(/<!DOCTYPE.*?>/mi)
           tokens << Token.new(type: :doctype, value: scanner.matched)
-        elsif scanner.scan(/<\/?[A-Za-z0-9:-]+\b(?:[^<>"']|"[^"]*"|'[^']*')*>/m)
+        elsif scanner.scan(%r{</?[A-Za-z0-9:-]+\b(?:[^<>"']|"[^"]*"|'[^']*')*>}m)
           raw = scanner.matched
-          if raw.start_with?('</')
-            tokens << Token.new(type: :end_tag, value: raw)
-          else
-            tokens << Token.new(type: :start_tag, value: raw)
-          end
+          tokens << if raw.start_with?('</')
+                      Token.new(type: :end_tag, value: raw)
+                    else
+                      Token.new(type: :start_tag, value: raw)
+                    end
         else
           text = scanner.scan(/[^<]+/m)
-          tokens << Token.new(type: :text, value: text) if text
+          if text
+            tokens << Token.new(type: :text, value: text)
+          else
+            # Fallback: consume a single character (e.g., a stray '<') to ensure progress
+            char = scanner.getch
+            tokens << Token.new(type: :text, value: char)
+          end
         end
       end
 
@@ -127,8 +133,10 @@ module LlmDocsBuilder
       return unless tag_name
 
       if IGNORED_TAGS.include?(tag_name)
-        stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'',
-                          skip: true, metadata: default_metadata)
+        stack << Node.new(
+          tag: tag_name, attrs: attrs, buffer: +'',
+          skip: true, metadata: default_metadata
+        )
         return
       end
 
@@ -141,8 +149,10 @@ module LlmDocsBuilder
       list_stack << { type: :unordered, index: nil } if tag_name == 'ul'
       list_stack << { type: :ordered, index: ordered_list_start_index(attrs) } if tag_name == 'ol'
 
-      stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'', skip: false,
-                        metadata: default_metadata)
+      stack << Node.new(
+        tag: tag_name, attrs: attrs, buffer: +'', skip: false,
+        metadata: default_metadata
+      )
     end
 
     def ordered_list_start_index(attrs)
@@ -150,7 +160,7 @@ module LlmDocsBuilder
     end
 
     def process_end_tag(raw, stack, list_stack, output)
-      tag_name = raw[/<\/\s*([A-Za-z0-9:-]+)/, 1]&.downcase
+      tag_name = raw[%r{</\s*([A-Za-z0-9:-]+)}, 1]&.downcase
       return unless tag_name
 
       node = nil
@@ -178,9 +188,7 @@ module LlmDocsBuilder
         break_index = buffer.length if tag_name == 'br'
         buffer << "\n" if needs_block_separator?(buffer, rendered, tag_name)
         buffer << rendered
-        if tag_name == 'br' && break_index
-          parent.metadata[:line_break_indices] << break_index
-        end
+        parent.metadata[:line_break_indices] << break_index if tag_name == 'br' && break_index
       else
         output << rendered
       end
@@ -195,7 +203,7 @@ module LlmDocsBuilder
       tag_name = tag_name.downcase
       attrs = {}
 
-      until scanner.match?(/\s*\/?\s*>/)
+      until scanner.match?(%r{\s*/?\s*>})
         name = scanner.scan(/\s*[A-Za-z0-9:-]+/)
         break unless name
 
@@ -204,7 +212,7 @@ module LlmDocsBuilder
 
         if scanner.scan(/\s*=\s*/)
           quote = scanner.getch
-          if quote == '"' || quote == "'"
+          if ['"', "'"].include?(quote)
             value = scanner.scan_until(/#{quote}/)
             value&.chop!
           else
@@ -216,7 +224,7 @@ module LlmDocsBuilder
         attrs[name] = CGI.unescapeHTML(value || '')
       end
 
-      self_closing = scanner.match?(/\s*\/\s*>/)
+      self_closing = scanner.match?(%r{\s*/\s*>})
       [tag_name, attrs, self_closing || SELF_CLOSING_TAGS.include?(tag_name)]
     end
 
@@ -374,10 +382,10 @@ module LlmDocsBuilder
 
       formatted =
         if nested_list_block?(lines.first)
-          +"#{bullet_prefix.rstrip}\n"
+          "#{bullet_prefix.rstrip}\n"
         else
           first_line = lines.shift
-          +"#{bullet_prefix}#{first_line.strip}\n"
+          "#{bullet_prefix}#{first_line.strip}\n"
         end
 
       lines.each_with_index do |line, index|
@@ -389,11 +397,11 @@ module LlmDocsBuilder
           next
         end
 
-        if line.start_with?('  ')
-          formatted << "#{line}\n"
-        else
-          formatted << "#{continuation_indent}#{line}\n"
-        end
+        formatted << if line.start_with?('  ')
+                       "#{line}\n"
+                     else
+                       "#{continuation_indent}#{line}\n"
+                     end
       end
 
       formatted
@@ -489,15 +497,15 @@ module LlmDocsBuilder
 
       normalized = +''
       content.each_char.with_index do |char, index|
-        if char == "\n"
-          if break_lookup[index]
-            normalized << placeholder
-          else
-            normalized << ' '
-          end
-        else
-          normalized << char
-        end
+        normalized << if char == "\n"
+                        if break_lookup[index]
+                          placeholder
+                        else
+                          ' '
+                        end
+                      else
+                        char
+                      end
       end
 
       collapsed = collapse_whitespace(normalized)
