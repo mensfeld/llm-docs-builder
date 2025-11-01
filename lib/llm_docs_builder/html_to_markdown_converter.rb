@@ -76,7 +76,7 @@ module LlmDocsBuilder
           tokens << Token.new(type: :comment, value: scanner.matched)
         elsif scanner.scan(/<!DOCTYPE.*?>/mi)
           tokens << Token.new(type: :doctype, value: scanner.matched)
-        elsif scanner.scan(/<\/?[A-Za-z0-9:-]+\b[^>]*>/m)
+        elsif scanner.scan(/<\/?[A-Za-z0-9:-]+\b(?:[^<>"']|"[^"]*"|'[^']*')*>/m)
           raw = scanner.matched
           if raw.start_with?('</')
             tokens << Token.new(type: :end_tag, value: raw)

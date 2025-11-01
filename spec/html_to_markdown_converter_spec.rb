@@ -28,6 +28,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("Inline code like `puts 'hi'` works too.")
     end
 
+    it 'tokenizes tags with quoted attributes containing greater-than characters' do
+      html = '<p><a href="https://example.com" title="1 > 2">Link</a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('[Link](https://example.com)')
+    end
+
     it 'uses longer fences for inline code containing backticks' do
       html = '<p>Inline code like <code>puts `foo`</code> works too.</p>'
 
