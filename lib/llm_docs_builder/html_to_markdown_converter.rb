@@ -14,7 +14,7 @@ module LlmDocsBuilder
   # containers.
   class HtmlToMarkdownConverter
     Token = Struct.new(:type, :value, keyword_init: true)
-    Node = Struct.new(:tag, :attrs, :buffer, :skip, keyword_init: true)
+    Node = Struct.new(:tag, :attrs, :buffer, :skip, :metadata, keyword_init: true)
 
     HEADING_LEVEL = {
       'h1' => 1,
@@ -107,7 +107,7 @@ module LlmDocsBuilder
 
       if IGNORED_TAGS.include?(tag_name)
         stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'',
-                          skip: true)
+                          skip: true, metadata: default_metadata)
         return
       end
 
@@ -120,7 +120,8 @@ module LlmDocsBuilder
       list_stack << { type: :unordered, index: nil } if tag_name == 'ul'
       list_stack << { type: :ordered, index: ordered_list_start_index(attrs) } if tag_name == 'ol'
 
-      stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'', skip: false)
+      stack << Node.new(tag: tag_name, attrs: attrs, buffer: +'', skip: false,
+                        metadata: default_metadata)
     end
 
     def ordered_list_start_index(attrs)
@@ -151,9 +152,14 @@ module LlmDocsBuilder
       return if rendered.nil? || rendered.empty?
 
       if stack.last
-        buffer = stack.last.buffer
+        parent = stack.last
+        buffer = parent.buffer
+        break_index = buffer.length if tag_name == 'br'
         buffer << "\n" if needs_block_separator?(buffer, rendered, tag_name)
         buffer << rendered
+        if tag_name == 'br' && break_index
+          parent.metadata[:line_break_indices] << break_index
+        end
       else
         output << rendered
       end
@@ -222,7 +228,7 @@ module LlmDocsBuilder
       when 'body', 'html', 'article', 'section', 'main', 'header', 'footer', 'nav'
         content
       when *BLOCK_TAGS
-        paragraph(content)
+        paragraph(node)
       when 'blockquote'
         blockquote(content)
       when 'pre'
@@ -260,14 +266,15 @@ module LlmDocsBuilder
       end
     end
 
-    def paragraph(content)
-      string = content.to_s
+    def paragraph(node)
+      content = node.buffer.to_s
+      line_break_indices = node.metadata[:line_break_indices]
 
       text =
-        if string.include?("\n")
-          collapse_whitespace(string, preserve_newlines: true)
+        if line_break_indices&.any?
+          collapse_paragraph_text(content, line_break_indices)
         else
-          collapse_whitespace(string)
+          collapse_whitespace(content)
         end
       return '' if text.empty?
 
@@ -428,13 +435,39 @@ module LlmDocsBuilder
       return '' if text.empty?
 
       if preserve_newlines
-        normalized = text.gsub(/[ \t\f\v]+/, ' ')
+        normalized = text.gsub(/[ \t\r\f\v]+/, ' ')
         normalized = normalized.gsub(/[ \t\f\v]*\n/, "\n")
         normalized = normalized.gsub(/\n[ \t\f\v]*/, "\n")
         normalized.strip
       else
-        text.gsub(/\s+/, ' ').strip
+        text.gsub(/[ \t\r\n\f\v]+/, ' ').strip
       end
+    end
+
+    def collapse_paragraph_text(content, line_break_indices)
+      placeholder = '__LLM_DOCS_BR__'
+      break_lookup = {}
+      line_break_indices.each { |index| break_lookup[index] = true }
+
+      normalized = +''
+      content.each_char.with_index do |char, index|
+        if char == "\n"
+          if break_lookup[index]
+            normalized << placeholder
+          else
+            normalized << ' '
+          end
+        else
+          normalized << char
+        end
+      end
+
+      collapsed = collapse_whitespace(normalized)
+      collapsed.gsub(placeholder, "\n")
+    end
+
+    def default_metadata
+      { line_break_indices: [] }
     end
 
     def clean_output(output)

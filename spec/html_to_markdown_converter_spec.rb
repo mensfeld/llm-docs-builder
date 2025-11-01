@@ -57,6 +57,25 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("Line 1\nLine 2\n\nLine 4")
     end
 
+    it 'collapses formatting newlines inside paragraphs into spaces' do
+      html = <<~HTML
+        <p>This sentence
+          continues on the next line.</p>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('This sentence continues on the next line.')
+    end
+
+    it 'collapses inline paragraph newlines without indentation' do
+      html = "<p>This sentence\ncontinues on the next line.</p>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('This sentence continues on the next line.')
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 
