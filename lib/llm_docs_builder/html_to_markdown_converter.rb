@@ -56,7 +56,7 @@ module LlmDocsBuilder
       # Flush any remaining nodes in case of malformed markup
       until stack.empty?
         node = stack.pop
-        rendered = render_node(node, list_stack)
+        rendered = render_node(node, list_stack, stack.last&.tag)
         append_to_parent(stack, output, rendered, node.tag)
       end
 
@@ -136,7 +136,8 @@ module LlmDocsBuilder
 
       return unless node
 
-      rendered = render_node(node, list_stack)
+      parent_tag = stack.last&.tag
+      rendered = render_node(node, list_stack, parent_tag)
       list_stack.pop if LIST_TAGS.include?(tag_name)
 
       append_to_parent(stack, output, rendered, node.tag)
@@ -207,7 +208,7 @@ module LlmDocsBuilder
       end
     end
 
-    def render_node(node, list_stack)
+    def render_node(node, list_stack, parent_tag = nil)
       return '' if node.skip
 
       tag_name = node.tag
@@ -223,7 +224,7 @@ module LlmDocsBuilder
       when 'pre'
         fenced_code(content)
       when 'code'
-        inline_code(content)
+        parent_tag == 'pre' ? content : inline_code(content)
       when 'span'
         content
       when 'a'

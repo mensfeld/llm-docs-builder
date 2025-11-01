@@ -48,5 +48,13 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       expect(markdown).to include("- Parent\n  - Child")
     end
+
+    it 'renders pre/code blocks without inline backticks' do
+      html = "<pre><code>puts 'hi'</code></pre>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("```\nputs 'hi'\n```")
+    end
   end
 end
