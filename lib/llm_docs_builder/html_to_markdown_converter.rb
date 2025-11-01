@@ -25,7 +25,9 @@ module LlmDocsBuilder
       'h6' => 6
     }.freeze
 
-    BLOCK_TAGS = %w[p div aside figure figcaption].freeze
+    BLOCK_CONTAINER_TAGS = %w[div aside figure].freeze
+    PARAGRAPH_TAGS = %w[p figcaption].freeze
+    BLOCK_TAGS = (BLOCK_CONTAINER_TAGS + PARAGRAPH_TAGS).freeze
     LIST_TAGS = %w[ul ol].freeze
     INLINE_STRONG_TAGS = %w[strong b].freeze
     INLINE_EM_TAGS = %w[em i].freeze
@@ -227,7 +229,9 @@ module LlmDocsBuilder
       case tag_name
       when 'body', 'html', 'article', 'section', 'main', 'header', 'footer', 'nav'
         content
-      when *BLOCK_TAGS
+      when *BLOCK_CONTAINER_TAGS
+        block_container(node)
+      when *PARAGRAPH_TAGS
         paragraph(node)
       when 'blockquote'
         blockquote(content)
@@ -264,6 +268,10 @@ module LlmDocsBuilder
       else
         content
       end
+    end
+
+    def block_container(node)
+      node.buffer.to_s
     end
 
     def paragraph(node)

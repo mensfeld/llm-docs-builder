@@ -97,6 +97,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("> First paragraph\n>\n> Second paragraph")
     end
 
+    it 'preserves block-level structure for div containers' do
+      html = '<div><p>A</p><p>B</p></div>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("A\n\nB")
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 
