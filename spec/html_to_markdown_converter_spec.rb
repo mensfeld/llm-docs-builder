@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
+  subject(:converter) { described_class.new }
+
+  describe '#convert' do
+    it 'converts common HTML elements into markdown' do
+      html = <<~HTML
+        <html>
+          <body>
+            <h1>Sample Title</h1>
+            <p>The first paragraph with <strong>bold</strong> text and a <a href="https://example.com">link</a>.</p>
+            <ol>
+              <li>First item</li>
+              <li>Second item</li>
+            </ol>
+            <p>Inline code like <code>puts 'hi'</code> works too.</p>
+          </body>
+        </html>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include("# Sample Title\n")
+      expect(markdown).to include("The first paragraph with **bold** text and a [link](https://example.com).")
+      expect(markdown).to include("1. First item")
+      expect(markdown).to include("2. Second item")
+      expect(markdown).to include("Inline code like `puts 'hi'` works too.")
+    end
+
+    it 'returns empty string for blank input' do
+      expect(converter.convert('')).to eq('')
+    end
+  end
+end
+
