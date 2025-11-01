@@ -252,7 +252,7 @@ module LlmDocsBuilder
       when 'li'
         list_item(content, list_stack, node.attrs)
       when 'ul', 'ol'
-        "#{content.rstrip}\n"
+        "#{content.rstrip}\n\n"
       when 'dl'
         "#{content}\n"
       when 'dt'
