@@ -186,6 +186,8 @@ module LlmDocsBuilder
         else
           collapse_inline_preserving_newlines(render_inline_string(node))
         end
+      return '' if inner.strip.empty?
+
       lines = inner.split("\n")
       lines.map { |line| line.strip.empty? ? '>' : "> #{line}" }.join("\n")
     end

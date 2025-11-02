@@ -343,5 +343,23 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       expect(markdown).to eq("# Title\n\nText")
     end
+
+    it 'handles paragraphs with only whitespace' do
+      html = "<p>   \n\t  </p>"
+
+      markdown = converter.convert(html)
+
+      # Whitespace-only paragraphs render empty output
+      expect(markdown).to eq('')
+    end
+
+    it 'handles blockquote with only whitespace' do
+      html = "<blockquote>   \n\t  </blockquote>"
+
+      markdown = converter.convert(html)
+
+      # Whitespace-only blockquote renders empty output
+      expect(markdown).to eq('')
+    end
   end
 end
