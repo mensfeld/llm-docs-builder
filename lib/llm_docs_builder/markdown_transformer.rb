@@ -127,9 +127,7 @@ module LlmDocsBuilder
     #
     # @return [String] markdown content to transform
     def load_content
-      return File.read(file_path) unless options[:content]
-
-      content = options[:content].dup
+      content = options[:content] ? options[:content].dup : File.read(file_path)
       snippet = detection_snippet(content)
 
       return content if table_fragment?(snippet)
