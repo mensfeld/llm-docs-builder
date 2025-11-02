@@ -72,6 +72,10 @@ module LlmDocsBuilder
         render_blockquote(element)
       when 'pre'
         render_fenced_code(element)
+      when 'img'
+        # Allow images to be emitted as their own block when they appear
+        # directly under block containers (e.g., inside <figure>).
+        render_image(element)
       when 'ul'
         render_list(element, ordered: false, depth: depth)
       when 'ol'

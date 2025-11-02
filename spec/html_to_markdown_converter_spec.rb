@@ -353,6 +353,20 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('')
     end
 
+    it 'handles figure elements as block containers' do
+      html = <<~HTML
+        <figure>
+          <img src="/image.png" alt="Figure image" />
+          <figcaption>Caption text</figcaption>
+        </figure>
+      HTML
+
+      markdown = converter.convert(html)
+
+      # Figure renders image and caption as separate blocks
+      expect(markdown).to eq("![Figure image](/image.png)\n\nCaption text")
+    end
+
     it 'handles blockquote with only whitespace' do
       html = "<blockquote>   \n\t  </blockquote>"
 
