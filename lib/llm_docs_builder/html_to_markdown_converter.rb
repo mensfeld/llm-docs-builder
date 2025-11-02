@@ -347,7 +347,11 @@ module LlmDocsBuilder
     end
 
     def block_container(node)
-      node.buffer.to_s
+      content = node.buffer.to_s
+      stripped = content.rstrip
+      return '' if stripped.empty?
+
+      "#{stripped}\n\n"
     end
 
     def paragraph(node)
