@@ -148,6 +148,18 @@ module LlmDocsBuilder
       s
     end
 
+    def render_inline_nodes(nodes)
+      return '' if nodes.nil? || nodes.empty?
+
+      parts = []
+      nodes.each do |node|
+        s, = render_inline(node)
+        parts << s unless s.nil? || s.empty?
+      end
+
+      parts.join
+    end
+
     def render_link(node)
       href = (node['href'] || '').to_s
       label_str, label_has_md = render_inline_children(node)
@@ -211,48 +223,132 @@ module LlmDocsBuilder
       list_node.element_children.each do |child|
         next unless child.name.downcase == 'li'
 
-        # Inline content for bullet text (exclude nested lists)
-        inline_text = collapse_inline_preserving_newlines(
-          render_inline_string_excluding_lists(child)
-        )
+        override = ordered ? parse_integer(child['value']) : nil
+        index = override unless override.nil?
 
-        if ordered
-          override = parse_integer(child['value'])
-          index = override unless override.nil?
-          prefix = "#{indent}#{index}. "
-          index = (index || 0) + 1
-        else
-          prefix = "#{indent}- "
+        prefix =
+          if ordered
+            "#{indent}#{index}. "
+          else
+            "#{indent}- "
+          end
+
+        index = (index || 0) + 1 if ordered
+
+        segments = build_list_item_segments(child)
+        inline_text, segments = extract_leading_inline_text(segments, depth: depth)
+        inline_text = collapse_inline_preserving_newlines(inline_text)
+
+        bullet_line = inline_text.empty? ? prefix.rstrip : "#{prefix}#{inline_text}"
+        item_lines = [bullet_line]
+
+        previous_type = nil
+        segments.each do |segment|
+          segment_lines = render_list_item_segment(segment, depth: depth)
+          next if segment_lines.empty?
+
+          insert_blank_line =
+            case segment.first
+            when :nested_list
+              %i[block inline].include?(previous_type)
+            else
+              true
+            end
+
+          item_lines << '' if insert_blank_line && !item_lines.last.to_s.empty?
+          item_lines.concat(segment_lines)
+          previous_type = segment.first
         end
 
-        lines << (inline_text.empty? ? prefix.rstrip : "#{prefix}#{inline_text}")
-
-        # Nested lists inside this li
-        child.element_children.each do |grandchild|
-          next unless LIST_TAGS.include?(grandchild.name.downcase)
-
-          nested = render_list(
-            grandchild,
-            ordered: grandchild.name.downcase == 'ol',
-            depth: depth + 1,
-            start: parse_integer(grandchild['start'])
-          )
-          lines << nested unless nested.empty?
-        end
+        lines << item_lines.join("\n")
       end
 
       lines.join("\n")
     end
 
-    def render_inline_string_excluding_lists(node)
-      parts = []
-      node.children.each do |child|
-        next if child.element? && LIST_TAGS.include?(child.name.downcase)
+    def build_list_item_segments(list_item)
+      segments = []
+      inline_buffer = []
 
-        s, = render_inline(child)
-        parts << s unless s.nil? || s.empty?
+      list_item.children.each do |child|
+        if child.element? && LIST_TAGS.include?(child.name.downcase)
+          segments << [:inline, inline_buffer] unless inline_buffer.empty?
+          inline_buffer = []
+          segments << [:nested_list, child]
+        elsif block_like?(child)
+          segments << [:inline, inline_buffer] unless inline_buffer.empty?
+          inline_buffer = []
+          segments << [:block, child]
+        else
+          inline_buffer << child
+        end
       end
-      parts.join
+
+      segments << [:inline, inline_buffer] unless inline_buffer.empty?
+      segments
+    end
+
+    def extract_leading_inline_text(segments, depth:)
+      loop do
+        return ['', segments] if segments.empty?
+
+        type, value = segments.first
+
+        case type
+        when :inline
+          segments.shift
+          candidate = collapse_inline_preserving_newlines(render_inline_nodes(value))
+          next if candidate.empty?
+
+          return [candidate, segments]
+        when :block
+          rendered = render_element_block(value, depth: depth + 1)
+          if rendered && !rendered.include?("\n")
+            segments.shift
+            return [collapse_inline_preserving_newlines(rendered), segments]
+          end
+
+          return ['', segments]
+        else
+          return ['', segments]
+        end
+      end
+    end
+
+    def render_list_item_segment(segment, depth:)
+      type, value = segment
+
+      case type
+      when :block
+        rendered = render_element_block(value, depth: depth + 1)
+        return [] if rendered.nil? || rendered.strip.empty?
+
+        indent_list_block_lines(rendered, depth + 1)
+      when :inline
+        rendered = collapse_inline_preserving_newlines(render_inline_nodes(value))
+        return [] if rendered.empty?
+
+        indent_list_block_lines(rendered, depth + 1)
+      when :nested_list
+        ordered = value.name.downcase == 'ol'
+        nested = render_list(
+          value,
+          ordered: ordered,
+          depth: depth + 1,
+          start: ordered ? parse_integer(value['start']) : nil
+        )
+        nested.empty? ? [] : nested.split("\n")
+      else
+        []
+      end
+    end
+
+    def indent_list_block_lines(text, depth)
+      indent = '  ' * depth
+
+      text.split("\n").map do |line|
+        line.strip.empty? ? '' : "#{indent}#{line}"
+      end
     end
 
     def render_definition_list(dl_node)

@@ -92,6 +92,30 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to include("- Parent\n  - Child 1\n  - Child 2\n  - Child 3")
     end
 
+    it 'preserves block-level descendants within list items' do
+      html = <<~HTML
+        <ul>
+          <li>
+            <p>Intro</p>
+            <pre><code>puts "hi"</code></pre>
+            <blockquote><p>Note</p></blockquote>
+          </li>
+        </ul>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        - Intro
+
+          ```
+          puts "hi"
+          ```
+
+          > Note
+      MARKDOWN
+    end
+
     it 'preserves manual line breaks created with <br>' do
       html = '<p>Line 1<br>Line 2<br><br>Line 4</p>'
 
