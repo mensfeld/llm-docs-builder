@@ -49,7 +49,7 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       markdown = converter.convert(html)
 
-      expect(markdown).to include('Inline code like `` puts `foo` `` works too.')
+      expect(markdown).to include('Inline code like ``puts `foo``` works too.')
     end
 
     it 'returns empty string for blank input' do

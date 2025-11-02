@@ -169,11 +169,9 @@ module LlmDocsBuilder
       text = node.text.to_s.gsub(/\r\n?/, "\n").gsub(/\n+/, ' ').strip
       return '' if text.empty?
 
-      max_ticks = (text.scan(/`+/).map(&:length).max || 0) + 1
-      fence = '`' * max_ticks
-      needs_padding = text.start_with?('`') || text.end_with?('`')
-      padding = needs_padding ? ' ' : ''
-      "#{fence}#{padding}#{text}#{padding}#{fence}"
+      fence_len = (text.scan(/`+/).map(&:length).max || 0) + 1
+      fence = '`' * fence_len
+      "#{fence}#{text}#{fence}"
     end
 
     def render_blockquote(node)
