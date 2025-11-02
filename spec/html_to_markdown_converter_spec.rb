@@ -215,6 +215,21 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("Before\n\n<table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table>\n\nAfter")
     end
 
+    it 'keeps table descendants in HTML so inline formatting continues to render' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <td><a href="https://example.com"><strong>Details</strong></a></td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('<td><a href="https://example.com"><strong>Details</strong></a></td>')
+      expect(markdown).not_to include('[Details](https://example.com)')
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 

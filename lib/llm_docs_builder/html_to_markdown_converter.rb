@@ -156,16 +156,23 @@ module LlmDocsBuilder
       tag_name, attrs, self_closing = parse_start_tag(raw)
       return unless tag_name
 
+      current_table_context = table_context?(stack, tag_name)
+
       if IGNORED_TAGS.include?(tag_name)
         stack << Node.new(
           tag: tag_name, attrs: attrs, buffer: +'',
-          skip: true, metadata: default_metadata
+          skip: true, metadata: default_metadata(table_context: current_table_context)
         )
         return
       end
 
       if self_closing
-        rendered = render_self_closing(tag_name, attrs, list_stack)
+        rendered =
+          if current_table_context
+            build_html_element(tag_name, attrs, self_closing: true)
+          else
+            render_self_closing(tag_name, attrs, list_stack)
+          end
         append_to_parent(stack, output, rendered, tag_name)
         return
       end
@@ -175,7 +182,7 @@ module LlmDocsBuilder
 
       stack << Node.new(
         tag: tag_name, attrs: attrs, buffer: +'', skip: false,
-        metadata: default_metadata
+        metadata: default_metadata(table_context: current_table_context)
       )
     end
 
@@ -286,6 +293,11 @@ module LlmDocsBuilder
 
       tag_name = node.tag
       content = node.buffer
+      table_context = node.metadata[:table_context]
+
+      if table_context && !TABLE_TAGS.include?(tag_name)
+        return render_html_node(node)
+      end
 
       case tag_name
       when 'body', 'html', 'article', 'section', 'main', 'header', 'footer', 'nav'
@@ -525,6 +537,12 @@ module LlmDocsBuilder
       tag_name && BLOCK_BOUNDARY_TAGS.include?(tag_name)
     end
 
+    def table_context?(stack, tag_name = nil)
+      return true if tag_name && TABLE_TAGS.include?(tag_name)
+
+      stack.any? { |node| node.metadata[:table_context] }
+    end
+
     def normalize_soft_whitespace(text, target)
       return text unless text.include?("\n")
 
@@ -611,8 +629,20 @@ module LlmDocsBuilder
       collapsed.gsub(placeholder, "\n")
     end
 
-    def default_metadata
-      { line_break_indices: [] }
+    def render_html_node(node)
+      tag_name = node.tag
+      attrs = node.attrs
+      content = node.buffer.to_s
+
+      if SELF_CLOSING_TAGS.include?(tag_name)
+        build_html_element(tag_name, attrs, self_closing: true)
+      else
+        build_html_element(tag_name, attrs, content: content)
+      end
+    end
+
+    def default_metadata(table_context: false)
+      { line_break_indices: [], table_context: table_context }
     end
 
     def clean_output(output)
