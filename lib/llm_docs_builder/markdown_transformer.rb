@@ -193,7 +193,7 @@ module LlmDocsBuilder
     end
 
     # Check if the full document should be treated as HTML by parsing it and
-    # ensuring we do not observe unwrapped markdown constructs like bullet lists.
+    # ensuring we do not observe unwrapped markdown constructs like plain text or lists.
     #
     # @param content [String]
     # @return [Boolean]
@@ -206,28 +206,13 @@ module LlmDocsBuilder
 
       body.xpath('./text()').each do |node|
         text = node.text
-        next if text.strip.empty?
+        next unless meaningful_text?(text)
 
-        return false if markdown_list_text?(text)
+        return false
       end
 
       true
     rescue Nokogiri::XML::SyntaxError
-      false
-    end
-
-    # Detect whether text contains markdown list syntax at the start of any line.
-    #
-    # @param text [String]
-    # @return [Boolean]
-    def markdown_list_text?(text)
-      text.each_line do |line|
-        stripped = line.lstrip
-        next if stripped.empty?
-
-        return true if stripped.match?(/\A(?:[-+*]\s+|\d+[.)]\s+)/)
-      end
-
       false
     end
 

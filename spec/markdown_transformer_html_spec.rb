@@ -113,6 +113,22 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       expect(result).to include("- Item 1\n- Item 2")
     end
 
+    it 'preserves paragraphs that follow an HTML block in markdown content' do
+      markdown = <<~MARKDOWN
+        <p>Intro</p>
+
+        This is paragraph one.
+
+        Second paragraph.
+      MARKDOWN
+
+      transformer = described_class.new(nil, content: markdown)
+      result = transformer.transform
+
+      expect(result).to include('<p>Intro</p>')
+      expect(result).to include("This is paragraph one.\n\nSecond paragraph.")
+    end
+
     it 'normalises HTML fragments that begin with head metadata' do
       html = <<~HTML
         <head>
