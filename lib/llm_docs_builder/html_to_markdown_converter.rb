@@ -377,17 +377,34 @@ module LlmDocsBuilder
     def render_definition_list(dl_node)
       out = []
       pending_term = nil
+      pending_definitions = []
+
+      flush_pending = lambda do
+        return if pending_term.nil? || pending_definitions.empty?
+
+        entry = "#{pending_term}\n: #{pending_definitions.first}"
+        pending_definitions.drop(1).each do |definition|
+          entry << "\n: #{definition}"
+        end
+
+        out << entry
+        pending_term = nil
+        pending_definitions = []
+      end
 
       dl_node.element_children.each do |child|
         case child.name.downcase
         when 'dt'
+          flush_pending.call
           pending_term = collapse_inline_preserving_newlines(render_inline_string(child))
+          pending_definitions = []
         when 'dd'
           defn = collapse_inline_preserving_newlines(render_inline_string(child))
-          out << "#{pending_term}\n: #{defn}" if pending_term
-          pending_term = nil
+          pending_definitions << defn if pending_term
         end
       end
+
+      flush_pending.call
 
       out.join("\n\n")
     end

@@ -132,6 +132,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("Term\n: Definition")
     end
 
+    it 'renders multiple definitions for a single term in definition lists' do
+      html = '<dl><dt>API</dt><dd>v1</dd><dd>v2</dd></dl>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("API\n: v1\n: v2")
+    end
+
     it 'preserves manual line breaks inside inline emphasis' do
       html = '<p><strong>Line 1<br>Line 2</strong></p>'
 
