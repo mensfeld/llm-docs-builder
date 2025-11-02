@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'nokogiri'
+
 module LlmDocsBuilder
   # Transforms markdown files to be AI-friendly
   #
@@ -131,7 +133,7 @@ module LlmDocsBuilder
       snippet = detection_snippet(content)
 
       return content if table_fragment?(snippet)
-      return html_to_markdown_converter.convert(content) if html_content_snippet?(snippet)
+      return html_to_markdown_converter.convert(content) if html_content?(content, snippet)
 
       content
     end
@@ -140,9 +142,10 @@ module LlmDocsBuilder
     #
     # @param content [String] raw content
     # @return [Boolean]
-    def html_content?(content)
-      snippet = detection_snippet(content)
-      html_content_snippet?(snippet)
+    def html_content?(content, snippet = detection_snippet(content))
+      return false unless html_content_snippet?(snippet)
+
+      full_html_document?(content)
     end
 
     # Memoized HTML to markdown converter
@@ -178,7 +181,61 @@ module LlmDocsBuilder
       return false unless snippet && !snippet.empty?
       return false if markdown_heading_snippet?(snippet)
 
+      html_candidate_snippet?(snippet)
+    end
+
+    # Determine whether a snippet appears to start with HTML markup.
+    #
+    # @param snippet [String]
+    # @return [Boolean]
+    def html_candidate_snippet?(snippet)
       snippet.match?(/\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)/i)
+    end
+
+    # Check if the full document should be treated as HTML by parsing it and
+    # ensuring we do not observe unwrapped markdown constructs like bullet lists.
+    #
+    # @param content [String]
+    # @return [Boolean]
+    def full_html_document?(content)
+      document = Nokogiri::HTML::Document.parse(content)
+      body = document.at('body')
+
+      return false unless body
+      return false if document.xpath('/text()').any? { |node| meaningful_text?(node.text) }
+
+      body.xpath('./text()').each do |node|
+        text = node.text
+        next if text.strip.empty?
+
+        return false if markdown_list_text?(text)
+      end
+
+      true
+    rescue Nokogiri::XML::SyntaxError
+      false
+    end
+
+    # Detect whether text contains markdown list syntax at the start of any line.
+    #
+    # @param text [String]
+    # @return [Boolean]
+    def markdown_list_text?(text)
+      text.each_line do |line|
+        stripped = line.lstrip
+        next if stripped.empty?
+
+        return true if stripped.match?(/\A(?:[-+*]\s+|\d+[.)]\s+)/)
+      end
+
+      false
+    end
+
+    def meaningful_text?(text)
+      return false if text.nil?
+
+      stripped = text.strip
+      stripped.match?(/\S/)
     end
 
     # Detect whether the snippet represents a table fragment we should preserve.

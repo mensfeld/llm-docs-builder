@@ -99,6 +99,20 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       expect(result).to include("# Heading\nBody")
     end
 
+    it 'leaves markdown lists untouched when preceded by an HTML block' do
+      markdown = <<~MARKDOWN
+        <p>Intro</p>
+        - Item 1
+        - Item 2
+      MARKDOWN
+
+      transformer = described_class.new(nil, content: markdown)
+      result = transformer.transform
+
+      expect(result).to include('<p>Intro</p>')
+      expect(result).to include("- Item 1\n- Item 2")
+    end
+
     it 'normalises HTML fragments that begin with head metadata' do
       html = <<~HTML
         <head>
