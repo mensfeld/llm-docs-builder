@@ -183,7 +183,7 @@ module LlmDocsBuilder
     def html_content_snippet?(snippet)
       return false unless snippet && !snippet.empty?
 
-      snippet.match?(%r{<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)}i)
+      snippet.match?(%r{\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)}i)
     end
 
     # Detect whether the snippet represents a table fragment we should preserve.

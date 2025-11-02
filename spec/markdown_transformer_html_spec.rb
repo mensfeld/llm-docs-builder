@@ -76,6 +76,15 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       expect(result).to include('<td>Active</td>')
     end
 
+    it 'leaves inline HTML mentions in markdown untouched' do
+      markdown = "Use <p> tags for paragraphs.\n"
+
+      transformer = described_class.new(nil, content: markdown)
+      result = transformer.transform
+
+      expect(result).to include('Use <p> tags for paragraphs.')
+    end
+
     it 'normalises HTML fragments that begin with head metadata' do
       html = <<~HTML
         <head>
