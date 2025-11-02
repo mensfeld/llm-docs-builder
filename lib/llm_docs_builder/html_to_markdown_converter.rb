@@ -68,9 +68,6 @@ module LlmDocsBuilder
         return '' if text.empty?
 
         "#{'#' * HEADING_LEVEL[tag]} #{text}"
-      when 'p', 'figcaption'
-        collapse_inline_preserving_newlines(render_inline_string(element))
-
       when 'blockquote'
         render_blockquote(element)
       when 'pre'
@@ -122,8 +119,6 @@ module LlmDocsBuilder
         ["*#{content}*", true]
       when 'code'
         [render_inline_code(node), true]
-      when 'u', 'span'
-        render_inline_children(node)
       else
         render_inline_children(node)
       end
@@ -182,17 +177,24 @@ module LlmDocsBuilder
     end
 
     def render_blockquote(node)
-      inner = render_blocks(node.children, depth: 0)
+      # Render blockquote differently based on whether it contains block-level elements.
+      # If it only has inline/text content, preserve the inline sequence instead of
+      # attempting block rendering (which would drop surrounding text nodes).
+      has_block_children = node.element_children.any? { |child| block_like?(child) }
+
+      inner =
+        if has_block_children
+          render_blocks(node.children, depth: 0)
+        else
+          collapse_inline_preserving_newlines(render_inline_string(node))
+        end
       lines = inner.split("\n")
       lines.map { |line| line.strip.empty? ? '>' : "> #{line}" }.join("\n")
     end
 
     def render_fenced_code(node)
-      code = if (inner = node.at_css('code'))
-               inner.text.to_s
-             else
-               node.text.to_s
-             end
+      inner_code = node.at_css('code')
+      code = inner_code ? inner_code.text.to_s : node.text.to_s
       code = code.gsub(/\r\n?/, "\n").rstrip
       "```\n#{code}\n```"
     end
@@ -219,11 +221,7 @@ module LlmDocsBuilder
           prefix = "#{indent}- "
         end
 
-        lines << if inline_text.empty?
-                   prefix.rstrip
-                 else
-                   "#{prefix}#{inline_text}"
-                 end
+        lines << (inline_text.empty? ? prefix.rstrip : "#{prefix}#{inline_text}")
 
         # Nested lists inside this li
         child.element_children.each do |grandchild|
@@ -286,7 +284,7 @@ module LlmDocsBuilder
       return '' if text.nil? || text.empty?
 
       placeholder = '__LLM_BR__'
-      marked = text.gsub("\r\n", "\n").gsub("\r", "\n").gsub("\n", placeholder)
+      marked = text.gsub("\r\n", "\n").tr("\r", "\n").gsub("\n", placeholder)
       collapsed = marked.gsub(/[ \t\r\n\f\v]+/, ' ').strip
       collapsed.gsub(placeholder, "\n")
     end
@@ -309,6 +307,17 @@ module LlmDocsBuilder
       cleaned = cleaned.gsub(/[ \t]+\n/, "\n")
       cleaned = collapse_newlines_outside_code_fences(cleaned)
       cleaned.strip
+    end
+
+    def block_like?(node)
+      return false unless node.element?
+
+      tag = node.name.downcase
+      return true if HEADING_LEVEL.key?(tag)
+      return true if BLOCK_CONTAINERS.include?(tag)
+      return true if %w[p pre ul ol dl table blockquote hr].include?(tag)
+
+      false
     end
 
     def serialize_html_compact(node)

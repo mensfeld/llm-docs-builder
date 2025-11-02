@@ -220,6 +220,22 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("> First paragraph\n>\n> Second paragraph")
     end
 
+    it 'renders inline-only blockquote content' do
+      html = '<blockquote>Note</blockquote>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('> Note')
+    end
+
+    it 'renders inline sequence inside blockquote' do
+      html = '<blockquote>Note <em>this</em> thing</blockquote>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('> Note *this* thing')
+    end
+
     it 'preserves indentation within code fences inside blockquotes' do
       html = <<~HTML
         <blockquote>
