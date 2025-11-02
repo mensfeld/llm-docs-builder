@@ -37,6 +37,7 @@ module LlmDocsBuilder
     TABLE_CELL_TAGS = %w[th td].freeze
     SELF_CLOSING_TABLE_TAGS = %w[col].freeze
     BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr table] + HEADING_LEVEL.keys).freeze
+    MARKDOWN_LABEL_ESCAPE_PATTERN = /[\\\[\]\(\)\*\_\`\!]/.freeze
 
     def convert(html)
       return '' if html.nil? || html.strip.empty?
@@ -209,9 +210,10 @@ module LlmDocsBuilder
         return '' unless src && !src.empty?
 
         alt = attrs['alt'] || ''
+        escaped_alt = escape_markdown_label(alt)
         title = attrs['title']
         title_part = title && !title.empty? ? %( "#{title}") : ''
-        "![#{alt}](#{src}#{title_part})"
+        "![#{escaped_alt}](#{src}#{title_part})"
       else
         ''
       end
@@ -423,7 +425,7 @@ module LlmDocsBuilder
 
       return text unless href && !href.empty?
 
-      "[#{text}](#{href})"
+      "[#{escape_markdown_label(text)}](#{href})"
     end
 
     def normalize_list_item_lines(content)
@@ -576,6 +578,10 @@ module LlmDocsBuilder
 
     def default_metadata(table_context: false)
       { line_break_indices: [], table_context: table_context }
+    end
+
+    def escape_markdown_label(text)
+      text.to_s.gsub(MARKDOWN_LABEL_ESCAPE_PATTERN) { |char| "\\#{char}" }
     end
 
     def clean_output(output)
