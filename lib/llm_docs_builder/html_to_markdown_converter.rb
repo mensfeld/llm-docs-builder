@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'cgi'
-require 'strscan'
+require 'nokogiri'
 
 module LlmDocsBuilder
   # Converts HTML fragments into basic markdown.
@@ -13,7 +13,6 @@ module LlmDocsBuilder
   # images, blockquotes, etc.). Unrecognised tags are treated as transparent
   # containers.
   class HtmlToMarkdownConverter
-    Token = Struct.new(:type, :value, keyword_init: true)
     Node = Struct.new(:tag, :attrs, :buffer, :skip, :metadata, keyword_init: true)
 
     HEADING_LEVEL = {
@@ -42,22 +41,12 @@ module LlmDocsBuilder
     def convert(html)
       return '' if html.nil? || html.strip.empty?
 
+      fragment = Nokogiri::HTML::DocumentFragment.parse(html)
       output = +''
       stack = []
       list_stack = []
 
-      tokenize(html).each do |token|
-        case token.type
-        when :text
-          append_text(token.value, stack, output)
-        when :start_tag
-          process_start_tag(token.value, stack, list_stack, output)
-        when :end_tag
-          process_end_tag(token.value, stack, list_stack, output)
-        else
-          # do nothing for comments/doctype
-        end
-      end
+      traverse_dom_nodes(fragment.children, stack, list_stack, output)
 
       # Flush any remaining nodes in case of malformed markup
       until stack.empty?
@@ -71,35 +60,70 @@ module LlmDocsBuilder
 
     private
 
-    def tokenize(html)
-      scanner = StringScanner.new(html)
-      tokens = []
-
-      until scanner.eos?
-        if scanner.scan(/<!--.*?-->/m)
-          tokens << Token.new(type: :comment, value: scanner.matched)
-        elsif scanner.scan(/<!DOCTYPE.*?>/mi)
-          tokens << Token.new(type: :doctype, value: scanner.matched)
-        elsif scanner.scan(%r{</?[A-Za-z0-9:-]+\b(?:[^<>"']|"[^"]*"|'[^']*')*>}m)
-          raw = scanner.matched
-          tokens << if raw.start_with?('</')
-                      Token.new(type: :end_tag, value: raw)
-                    else
-                      Token.new(type: :start_tag, value: raw)
-                    end
+    def traverse_dom_nodes(nodes, stack, list_stack, output)
+      nodes.each do |node|
+        case node.type
+        when Nokogiri::XML::Node::ELEMENT_NODE
+          process_element_node(node, stack, list_stack, output)
+        when Nokogiri::XML::Node::TEXT_NODE, Nokogiri::XML::Node::CDATA_SECTION_NODE
+          append_text(node.text, stack, output)
+        when Nokogiri::XML::Node::ENTITY_REF_NODE
+          append_text(node.to_s, stack, output)
+        when Nokogiri::XML::Node::DOCUMENT_NODE, Nokogiri::XML::Node::DOCUMENT_FRAG_NODE
+          traverse_dom_nodes(node.children, stack, list_stack, output)
         else
-          text = scanner.scan(/[^<]+/m)
-          if text
-            tokens << Token.new(type: :text, value: text)
-          else
-            # Fallback: consume a single character (e.g., a stray '<') to ensure progress
-            char = scanner.getch
-            tokens << Token.new(type: :text, value: char)
-          end
+          # ignore comments, processing instructions, etc.
         end
       end
+    end
 
-      tokens
+    def process_element_node(element, stack, list_stack, output)
+      tag_name = element.name.downcase
+      attrs = extract_attributes(element)
+
+      return if IGNORED_TAGS.include?(tag_name)
+
+      current_table_context = table_context?(stack, tag_name)
+
+      if self_closing_element?(element, tag_name)
+        rendered =
+          if current_table_context
+            build_html_element(tag_name, attrs, self_closing: true)
+          else
+            render_self_closing(tag_name, attrs, list_stack)
+          end
+        append_to_parent(stack, output, rendered, tag_name)
+        return
+      end
+
+      list_stack << { type: :unordered, index: nil } if tag_name == 'ul'
+      list_stack << { type: :ordered, index: ordered_list_start_index(attrs) } if tag_name == 'ol'
+
+      node = Node.new(
+        tag: tag_name, attrs: attrs, buffer: +'',
+        skip: false, metadata: default_metadata(table_context: current_table_context)
+      )
+
+      stack << node
+      traverse_dom_nodes(element.children, stack, list_stack, output)
+      stack.pop
+
+      parent_tag = stack.last&.tag
+      rendered = render_node(node, list_stack, parent_tag)
+      list_stack.pop if LIST_TAGS.include?(tag_name)
+
+      append_to_parent(stack, output, rendered, tag_name, metadata: node.metadata)
+    end
+
+    def extract_attributes(element)
+      element.attribute_nodes.each_with_object({}) do |attr, attrs|
+        attrs[attr.name.downcase] = attr.value.to_s
+      end
+    end
+
+    def self_closing_element?(element, tag_name)
+      (SELF_CLOSING_TAGS.include?(tag_name) || SELF_CLOSING_TABLE_TAGS.include?(tag_name)) &&
+        element.children.empty?
     end
 
     def append_text(text, stack, output)
@@ -152,70 +176,9 @@ module LlmDocsBuilder
       BLOCK_BOUNDARY_TAGS.include?(current_node.tag) && target.rstrip.empty?
     end
 
-    def process_start_tag(raw, stack, list_stack, output)
-      tag_name, attrs, self_closing = parse_start_tag(raw)
-      return unless tag_name
-
-      current_table_context = table_context?(stack, tag_name)
-
-      if IGNORED_TAGS.include?(tag_name)
-        stack << Node.new(
-          tag: tag_name, attrs: attrs, buffer: +'',
-          skip: true, metadata: default_metadata(table_context: current_table_context)
-        )
-        return
-      end
-
-      if self_closing
-        rendered =
-          if current_table_context
-            build_html_element(tag_name, attrs, self_closing: true)
-          else
-            render_self_closing(tag_name, attrs, list_stack)
-          end
-        append_to_parent(stack, output, rendered, tag_name)
-        return
-      end
-
-      list_stack << { type: :unordered, index: nil } if tag_name == 'ul'
-      list_stack << { type: :ordered, index: ordered_list_start_index(attrs) } if tag_name == 'ol'
-
-      stack << Node.new(
-        tag: tag_name, attrs: attrs, buffer: +'', skip: false,
-        metadata: default_metadata(table_context: current_table_context)
-      )
-    end
-
     def ordered_list_start_index(attrs)
       value = parse_list_counter(attrs['start'])
       value.nil? ? 1 : value
-    end
-
-    def process_end_tag(raw, stack, list_stack, output)
-      tag_name = raw[%r{</\s*([A-Za-z0-9:-]+)}, 1]&.downcase
-      return unless tag_name
-
-      node = nil
-
-      while (current = stack.pop)
-        if current.tag == tag_name
-          node = current
-          break
-        end
-
-        parent_tag = stack.last&.tag
-        rendered = render_node(current, list_stack, parent_tag)
-        list_stack.pop if LIST_TAGS.include?(current.tag)
-        append_to_parent(stack, output, rendered, current.tag, metadata: current.metadata)
-      end
-
-      return unless node
-
-      parent_tag = stack.last&.tag
-      rendered = render_node(node, list_stack, parent_tag)
-      list_stack.pop if LIST_TAGS.include?(tag_name)
-
-      append_to_parent(stack, output, rendered, node.tag, metadata: node.metadata)
     end
 
     def append_to_parent(stack, output, rendered, tag_name = nil, metadata: nil)
@@ -233,40 +196,6 @@ module LlmDocsBuilder
       else
         output << rendered
       end
-    end
-
-    def parse_start_tag(raw)
-      scanner = StringScanner.new(raw)
-      scanner.scan(/<\s*/)
-      tag_name = scanner.scan(/[A-Za-z0-9:-]+/)
-      return unless tag_name
-
-      tag_name = tag_name.downcase
-      attrs = {}
-
-      until scanner.match?(%r{\s*/?\s*>})
-        name = scanner.scan(/\s*[A-Za-z0-9:-]+/)
-        break unless name
-
-        name = name.strip.downcase
-        value = nil
-
-        if scanner.scan(/\s*=\s*/)
-          quote = scanner.getch
-          if ['"', "'"].include?(quote)
-            value = scanner.scan_until(/#{quote}/)
-            value&.chop!
-          else
-            scanner.ungetc(quote)
-            value = scanner.scan(/[^\s>]+/)
-          end
-        end
-
-        attrs[name] = CGI.unescapeHTML(value || '')
-      end
-
-      self_closing = scanner.match?(%r{\s*/\s*>})
-      [tag_name, attrs, self_closing || SELF_CLOSING_TAGS.include?(tag_name)]
     end
 
     def render_self_closing(tag_name, attrs, list_stack)

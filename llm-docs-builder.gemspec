@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Abin/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
+  spec.add_dependency 'nokogiri', '~> 1.17'
   spec.add_dependency 'zeitwerk', '~> 2.6'
 
   spec.add_development_dependency 'bundler', '~> 2.0'
