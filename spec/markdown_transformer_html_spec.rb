@@ -132,5 +132,21 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       expect(result).to include('Choose the option that fits best.')
       expect(result).not_to include('<meta')
     end
+
+    it 'normalises HTML fragments that begin with unordered lists' do
+      html = <<~HTML
+        <ul>
+          <li>One</li>
+          <li>Two</li>
+        </ul>
+      HTML
+
+      transformer = described_class.new(nil, content: html)
+      result = transformer.transform
+
+      expect(result).to include('- One')
+      expect(result).to include('- Two')
+      expect(result).not_to include('<ul>')
+    end
   end
 end

@@ -189,7 +189,7 @@ module LlmDocsBuilder
     # @param snippet [String]
     # @return [Boolean]
     def html_candidate_snippet?(snippet)
-      snippet.match?(/\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)/i)
+      snippet.match?(/\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b|ul\b|ol\b|li\b|blockquote\b)/i)
     end
 
     # Check if the full document should be treated as HTML by parsing it and
