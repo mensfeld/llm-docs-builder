@@ -20,7 +20,7 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       transformer = described_class.new(nil, content: html)
       result = transformer.transform
 
-      expect(result).to include("## Subscriptions")
+      expect(result).to include('## Subscriptions')
       expect(result).to include('Latest updates on plans.')
       expect(result).to include('- [First](https://example.com/a)')
     end
@@ -45,7 +45,7 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       transformer = described_class.new(nil, content: html)
       result = transformer.transform
 
-      expect(result).to include("## Subscriptions")
+      expect(result).to include('## Subscriptions')
       expect(result).to include('Latest updates on plans.')
       expect(result).to include('- [First](https://example.com/a)')
     end

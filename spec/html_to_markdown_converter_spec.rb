@@ -22,9 +22,9 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       markdown = converter.convert(html)
 
       expect(markdown).to include("# Sample Title\n")
-      expect(markdown).to include("The first paragraph with **bold** text and a [link](https://example.com).")
-      expect(markdown).to include("1. First item")
-      expect(markdown).to include("2. Second item")
+      expect(markdown).to include('The first paragraph with **bold** text and a [link](https://example.com).')
+      expect(markdown).to include('1. First item')
+      expect(markdown).to include('2. Second item')
       expect(markdown).to include("Inline code like `puts 'hi'` works too.")
     end
 
@@ -227,7 +227,7 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       HTML
       html = html.dup
       html << "    line2</code></pre>\n"
-      html << "        </blockquote>"
+      html << '        </blockquote>'
 
       markdown = converter.convert(html)
 
@@ -297,9 +297,9 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       markdown = converter.convert(html)
 
-      expect(markdown).to include("3. Starts at three")
-      expect(markdown).to include("7. Jumps to seven")
-      expect(markdown).to include("8. Then eight")
+      expect(markdown).to include('3. Starts at three')
+      expect(markdown).to include('7. Jumps to seven')
+      expect(markdown).to include('8. Then eight')
     end
 
     it 'allows ordered lists to start at zero and preserves zero value overrides' do
@@ -314,10 +314,10 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       markdown = converter.convert(html)
 
-      expect(markdown).to include("0. Zero")
-      expect(markdown).to include("1. One")
-      expect(markdown).to include("0. Reset to zero")
-      expect(markdown).to include("1. Back to one")
+      expect(markdown).to include('0. Zero')
+      expect(markdown).to include('1. One')
+      expect(markdown).to include('0. Reset to zero')
+      expect(markdown).to include('1. Back to one')
     end
 
     it 'drops whitespace-only nodes between block elements' do

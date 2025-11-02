@@ -37,7 +37,7 @@ module LlmDocsBuilder
     TABLE_CELL_TAGS = %w[th td].freeze
     SELF_CLOSING_TABLE_TAGS = %w[col].freeze
     BLOCK_BOUNDARY_TAGS = (BLOCK_TAGS + %w[blockquote pre ul ol dl hr table] + HEADING_LEVEL.keys).freeze
-    MARKDOWN_LABEL_ESCAPE_PATTERN = /[\\\[\]\(\)\*\_\`\!]/.freeze
+    MARKDOWN_LABEL_ESCAPE_PATTERN = /[\\\[\]()*_`!]/
 
     def convert(html)
       return '' if html.nil? || html.strip.empty?
@@ -201,7 +201,7 @@ module LlmDocsBuilder
       end
     end
 
-    def render_self_closing(tag_name, attrs, list_stack)
+    def render_self_closing(tag_name, attrs, _list_stack)
       case tag_name
       when 'br'
         "\n"
@@ -428,7 +428,7 @@ module LlmDocsBuilder
 
       lines.each_with_index do |line, index|
         if line.empty?
-          next_line = lines[index + 1..]&.find { |candidate| !candidate.empty? }
+          next_line = lines[(index + 1)..]&.find { |candidate| !candidate.empty? }
           next if next_line.nil? || block_continuation_line?(next_line)
 
           formatted << "#{continuation_indent}\n"
@@ -459,7 +459,7 @@ module LlmDocsBuilder
       end
 
       label ||= ''
-      if (href.nil? || href.empty?)
+      if href.nil? || href.empty?
         fragments =
           if normalized_fragments.empty?
             label.empty? ? [] : [{ type: :text, content: label }]
@@ -501,7 +501,7 @@ module LlmDocsBuilder
       base_candidates = non_empty.reject { |line| block_continuation_line?(line) }
       base_indent = base_candidates.map { |line| line[/\A[ \t]*/].size }.min
 
-      if base_indent && base_indent.positive?
+      if base_indent&.positive?
         lines.map! do |line|
           next line if block_continuation_line?(line)
 
@@ -511,7 +511,7 @@ module LlmDocsBuilder
       lines
     end
 
-    def needs_block_separator?(buffer, rendered, tag_name)
+    def needs_block_separator?(buffer, _rendered, tag_name)
       return false if buffer.empty?
       return false if buffer.end_with?("\n")
 

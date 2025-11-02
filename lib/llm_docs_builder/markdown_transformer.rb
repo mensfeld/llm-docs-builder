@@ -63,9 +63,7 @@ module LlmDocsBuilder
       content = heading_transformer.transform(content, options)
       content = compress_content(content) if should_compress?
       content = enhancement_transformer.transform(content, options)
-      content = whitespace_transformer.transform(content, options)
-
-      content
+      whitespace_transformer.transform(content, options)
     end
 
     private
@@ -169,9 +167,7 @@ module LlmDocsBuilder
 
       comment_prefix = /\A<!--.*?-->\s*/m
       # Remote docs often include build metadata comments; skip them before tag detection.
-      while snippet.sub!(comment_prefix, '')
-        return '' if snippet.empty?
-      end
+      return '' if snippet.empty? while snippet.sub!(comment_prefix, '')
 
       snippet.lstrip[0, 500]
     end
@@ -183,7 +179,7 @@ module LlmDocsBuilder
     def html_content_snippet?(snippet)
       return false unless snippet && !snippet.empty?
 
-      snippet.match?(%r{\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)}i)
+      snippet.match?(/\A<\s*(?:!DOCTYPE\s+html|html\b|body\b|head\b|article\b|section\b|main\b|p\b|div\b|table\b|thead\b|tbody\b|tr\b|td\b|th\b|meta\b|link\b|h[1-6]\b)/i)
     end
 
     # Detect whether the snippet represents a table fragment we should preserve.
@@ -193,7 +189,7 @@ module LlmDocsBuilder
     def table_fragment?(snippet)
       return false unless snippet && !snippet.empty?
 
-      snippet.match?(%r{\A<\s*(?:table|thead|tbody|tr|td|th)\b}i)
+      snippet.match?(/\A<\s*(?:table|thead|tbody|tr|td|th)\b/i)
     end
   end
 end
