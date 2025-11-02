@@ -395,13 +395,23 @@ module LlmDocsBuilder
     end
 
     def blockquote(content)
-      text = collapse_whitespace(content, preserve_newlines: true)
+      text = collapse_blockquote_content(content)
       return '' if text.empty?
 
+      inside_code_fence = false
       lines = text.split("\n")
       formatted = lines.map do |line|
-        stripped = line.strip
-        stripped.empty? ? '>' : "> #{stripped}"
+        is_code_fence = line.lstrip.start_with?('```')
+        if is_code_fence
+          inside_code_fence = !inside_code_fence
+          fence_line = line.lstrip
+          "> #{fence_line}"
+        elsif inside_code_fence
+          "> #{line}"
+        else
+          stripped = line.strip
+          stripped.empty? ? '>' : "> #{stripped}"
+        end
       end.join("\n")
       "#{formatted}\n\n"
     end
@@ -562,6 +572,21 @@ module LlmDocsBuilder
       else
         text.gsub(/[ \t\r\n\f\v]+/, ' ').strip
       end
+    end
+
+    def collapse_blockquote_content(content)
+      text = content.to_s
+      return '' if text.empty?
+
+      segments = text.split(/(```.*?```)/m)
+      collapsed = segments.map.with_index do |segment, index|
+        if index.odd?
+          segment
+        else
+          collapse_whitespace(segment, preserve_newlines: true)
+        end
+      end.join
+      collapsed.strip
     end
 
     def collapse_paragraph_text(content, line_break_indices)

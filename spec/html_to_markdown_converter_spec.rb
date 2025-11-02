@@ -180,6 +180,25 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("> First paragraph\n>\n> Second paragraph")
     end
 
+    it 'preserves indentation within code fences inside blockquotes' do
+      html = <<~HTML
+        <blockquote>
+          <pre><code>line1
+      HTML
+      html = html.dup
+      html << "    line2</code></pre>\n"
+      html << "        </blockquote>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        > ```
+        > line1
+        >     line2
+        > ```
+      MARKDOWN
+    end
+
     it 'preserves block-level structure for div containers' do
       html = '<div><p>A</p><p>B</p></div>'
 
