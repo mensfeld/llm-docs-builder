@@ -69,7 +69,6 @@ module LlmDocsBuilder
         else
           inline_buffer << node
         end
-
       end
 
       flush_inline.call
@@ -87,7 +86,7 @@ module LlmDocsBuilder
       when 'hr'
         '---'
       when *HEADING_LEVEL.keys
-        text = collapse_inline_preserving_newlines(render_inline_string(element))
+        text = collapsed_inline_for(element)
         return '' if text.empty?
 
         "#{'#' * HEADING_LEVEL[tag]} #{text}"
@@ -111,13 +110,13 @@ module LlmDocsBuilder
         # If the container only has inline/text content, render that inline instead.
         blocks = render_blocks(element.children, depth: depth)
         if blocks.strip.empty?
-          collapse_inline_preserving_newlines(render_inline_string(element))
+          collapsed_inline_for(element)
         else
           blocks
         end
       else
         # Fallback: inline container at block level
-        collapse_inline_preserving_newlines(render_inline_string(element))
+        collapsed_inline_for(element)
       end
     end
 
@@ -135,15 +134,9 @@ module LlmDocsBuilder
       when 'a'
         render_link(node)
       when *INLINE_STRONG_TAGS
-        content = collapse_inline_preserving_newlines(render_inline_string(node))
-        return ['', false] if content.empty?
-
-        ["**#{content}**", true]
+        render_wrapped_inline(node, '**')
       when *INLINE_EM_TAGS
-        content = collapse_inline_preserving_newlines(render_inline_string(node))
-        return ['', false] if content.empty?
-
-        ["*#{content}*", true]
+        render_wrapped_inline(node, '*')
       when 'code'
         [render_inline_code(node), true]
       else
@@ -169,6 +162,17 @@ module LlmDocsBuilder
     def render_inline_string(parent)
       s, = render_inline_children(parent)
       s
+    end
+
+    def collapsed_inline_for(parent)
+      collapse_inline_preserving_newlines(render_inline_string(parent))
+    end
+
+    def render_wrapped_inline(node, wrapper)
+      content = collapsed_inline_for(node)
+      return ['', false] if content.empty?
+
+      ["#{wrapper}#{content}#{wrapper}", true]
     end
 
     def render_inline_nodes(nodes)
@@ -223,7 +227,7 @@ module LlmDocsBuilder
         if has_block_children
           render_blocks(node.children, depth: 0)
         else
-          collapse_inline_preserving_newlines(render_inline_string(node))
+          collapsed_inline_for(node)
         end
       return '' if inner.strip.empty?
 
@@ -398,10 +402,10 @@ module LlmDocsBuilder
         case child.name.downcase
         when 'dt'
           flush_pending.call
-          pending_term = collapse_inline_preserving_newlines(render_inline_string(child))
+          pending_term = collapsed_inline_for(child)
           pending_definitions = []
         when 'dd'
-          defn = collapse_inline_preserving_newlines(render_inline_string(child))
+          defn = collapsed_inline_for(child)
           pending_definitions << defn if pending_term
         end
       end
@@ -412,6 +416,10 @@ module LlmDocsBuilder
     end
 
     # Helpers
+    def normalize_whitespace(text)
+      text.gsub(/[ \t\r\n\f\v]+/, ' ')
+    end
+
     def inline_text(text)
       return '' if text.nil? || text.empty?
 
@@ -419,7 +427,7 @@ module LlmDocsBuilder
       return '' if decoded.empty?
 
       safe = decoded.gsub('<', '&lt;').gsub('>', '&gt;')
-      safe.gsub(/[ \t\r\n\f\v]+/, ' ')
+      normalize_whitespace(safe)
     end
 
     def collapse_inline_preserving_newlines(text)
@@ -427,7 +435,7 @@ module LlmDocsBuilder
 
       placeholder = '__LLM_BR__'
       marked = text.gsub("\r\n", "\n").tr("\r", "\n").gsub("\n", placeholder)
-      collapsed = marked.gsub(/[ \t\r\n\f\v]+/, ' ').strip
+      collapsed = normalize_whitespace(marked).strip
       collapsed.gsub(placeholder, "\n")
     end
 
