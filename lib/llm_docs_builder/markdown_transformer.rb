@@ -208,7 +208,7 @@ module LlmDocsBuilder
         text = node.text
         next unless meaningful_text?(text)
 
-        return false
+        return false unless allow_inline_body_text?(content, text)
       end
 
       true
@@ -221,6 +221,37 @@ module LlmDocsBuilder
 
       stripped = text.strip
       stripped.match?(/\S/)
+    end
+
+    def markdown_like_text?(text)
+      return false if text.nil?
+      return true if markdown_heading_snippet?(text)
+
+      text.each_line do |line|
+        trimmed = line.lstrip
+        next if trimmed.empty?
+        next if trimmed.start_with?('<')
+
+        return true if trimmed.match?(/\A[*+-]\s+\S/)
+        return true if trimmed.match?(/\A\d+\.\s+\S/)
+        return true if trimmed.match?(/\A>\s+\S/)
+        return true if trimmed.start_with?('```', '~~~')
+        return true if trimmed.strip.match?(/\A(?:-{3,}|_{3,}|={3,})\z/)
+      end
+
+      false
+    end
+
+    def allow_inline_body_text?(content, text)
+      return false if markdown_like_text?(text)
+
+      html_with_body_wrapper?(content)
+    end
+
+    def html_with_body_wrapper?(content)
+      content.match?(/<\s*!DOCTYPE\s+html/i) ||
+        content.match?(/<\s*html\b/i) ||
+        content.match?(/<\s*body\b/i)
     end
 
     # Detect whether the snippet represents a table fragment we should preserve.

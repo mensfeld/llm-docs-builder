@@ -25,6 +25,25 @@ RSpec.describe LlmDocsBuilder::MarkdownTransformer do
       expect(result).to include('- [First](https://example.com/a)')
     end
 
+    it 'normalises HTML documents that include inline body text nodes' do
+      html = <<~HTML
+        <html>
+          <body>
+            Welcome to <strong>Docs</strong>
+            <p>Intro paragraph</p>
+          </body>
+        </html>
+      HTML
+
+      transformer = described_class.new(nil, content: html)
+      result = transformer.transform
+
+      expect(result).to include('Welcome to **Docs**')
+      expect(result).to include('Intro paragraph')
+      expect(result).not_to include('<html>')
+      expect(result).not_to include('<body>')
+    end
+
     it 'normalises remote HTML content even when leading comments are present' do
       html = <<~HTML
         <!-- build info -->
