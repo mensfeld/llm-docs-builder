@@ -204,6 +204,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("First\n\nSecond")
     end
 
+    it 'preserves text siblings mixed with inline elements inside block containers' do
+      html = '<div>Hello <strong>World</strong></div>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('Hello **World**')
+    end
+
     it 'collapses formatting newlines inside paragraphs into spaces' do
       html = <<~HTML
         <p>This sentence

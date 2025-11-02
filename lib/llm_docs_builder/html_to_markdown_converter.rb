@@ -41,15 +41,38 @@ module LlmDocsBuilder
     # Renders a sequence of block-level nodes, inserting a blank line between blocks
     def render_blocks(nodes, depth: 0)
       parts = []
+      inline_buffer = []
+
+      flush_inline = lambda do
+        unless inline_buffer.empty?
+          rendered_inline = collapse_inline_preserving_newlines(render_inline_nodes(inline_buffer))
+          inline_buffer.clear
+          parts << rendered_inline unless rendered_inline.empty?
+        end
+      end
 
       nodes.each do |node|
-        next unless node.element?
-        next if IGNORE_TAGS.include?(node.name.downcase)
+        if node.text?
+          inline_buffer << node
+          next
+        end
 
-        rendered = render_element_block(node, depth: depth)
-        parts << rendered unless rendered.nil? || rendered.strip.empty?
-        # Drop stray text nodes at block level (usually whitespace between elements)
+        next unless node.element?
+
+        tag = node.name.downcase
+        next if IGNORE_TAGS.include?(tag)
+
+        if block_like?(node)
+          flush_inline.call
+          rendered = render_element_block(node, depth: depth)
+          parts << rendered unless rendered.nil? || rendered.strip.empty?
+        else
+          inline_buffer << node
+        end
+
       end
+
+      flush_inline.call
 
       parts.join("\n\n")
     end
@@ -415,7 +438,7 @@ module LlmDocsBuilder
       tag = node.name.downcase
       return true if HEADING_LEVEL.key?(tag)
       return true if BLOCK_CONTAINERS.include?(tag)
-      return true if %w[p pre ul ol dl table blockquote hr].include?(tag)
+      return true if %w[p pre ul ol dl table blockquote hr figcaption].include?(tag)
 
       false
     end
