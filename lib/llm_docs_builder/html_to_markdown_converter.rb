@@ -147,6 +147,7 @@ module LlmDocsBuilder
       normalized = preserve_angle_brackets(decoded)
       normalized = normalize_soft_whitespace(normalized, target) if whitespace_only
       target << normalized
+      append_text_fragment(current_node&.metadata&.[](:fragments), normalized)
     end
 
     def inside_verbatim?(stack)
@@ -194,6 +195,7 @@ module LlmDocsBuilder
         buffer << rendered
         parent.metadata[:line_break_indices] << break_index if tag_name == 'br' && break_index
         propagate_inline_line_breaks(parent, metadata, base_length)
+        append_fragments_to_parent(parent, metadata, rendered, tag_name)
       else
         output << rendered
       end
@@ -227,54 +229,79 @@ module LlmDocsBuilder
       table_context = node.metadata[:table_context]
 
       if table_context && !TABLE_TAGS.include?(tag_name)
-        return render_html_node(node)
+        rendered = render_html_node(node)
+        node.metadata[:rendered_fragments] = markup_fragments(rendered)
+        return rendered
       end
 
-      case tag_name
-      when 'body', 'html', 'article', 'section', 'main', 'header', 'footer', 'nav'
-        content
-      when *BLOCK_CONTAINER_TAGS
-        block_container(node)
-      when *PARAGRAPH_TAGS
-        paragraph(node)
-      when 'blockquote'
-        blockquote(content)
-      when 'pre'
-        fenced_code(content)
-      when 'code'
-        parent_tag == 'pre' ? content : inline_code(content)
-      when 'span'
-        content
-      when 'a'
-        link(content, node.attrs)
-      when *INLINE_STRONG_TAGS
-        emphasis(node, '**')
-      when *INLINE_EM_TAGS
-        emphasis(node, '*')
-      when 'u'
-        content
-      when 'br'
-        "\n"
-      when 'hr'
-        "\n\n---\n\n"
-      when 'li'
-        list_item(content, list_stack, node.attrs)
-      when 'ul', 'ol'
-        "#{content.rstrip}\n\n"
-      when 'dl'
-        "#{content}\n"
-      when 'dt'
-        stripped = content.strip
-        stripped.empty? ? '' : "#{stripped}\n"
-      when 'dd'
-        ": #{content.strip}\n"
-      when *HEADING_LEVEL.keys
-        heading(tag_name, content)
-      when *TABLE_TAGS
-        render_table_node(tag_name, node)
-      else
-        content
-      end
+      rendered, fragments =
+        case tag_name
+        when 'body', 'html', 'article', 'section', 'main', 'header', 'footer', 'nav'
+          [content, duplicate_fragments(node.metadata[:fragments])]
+        when *BLOCK_CONTAINER_TAGS
+          rendered_block = block_container(node)
+          [rendered_block, markup_fragments(rendered_block)]
+        when *PARAGRAPH_TAGS
+          rendered_paragraph = paragraph(node)
+          [rendered_paragraph, markup_fragments(rendered_paragraph)]
+        when 'blockquote'
+          rendered_blockquote = blockquote(content)
+          [rendered_blockquote, markup_fragments(rendered_blockquote)]
+        when 'pre'
+          rendered_pre = fenced_code(content)
+          [rendered_pre, markup_fragments(rendered_pre)]
+        when 'code'
+          if parent_tag == 'pre'
+            [content, markup_fragments(content)]
+          else
+            inline = inline_code(content)
+            [inline, markup_fragments(inline)]
+          end
+        when 'span'
+          [content, duplicate_fragments(node.metadata[:fragments])]
+        when 'a'
+          link(node)
+        when *INLINE_STRONG_TAGS
+          emphasized = emphasis(node, '**')
+          [emphasized, markup_fragments(emphasized)]
+        when *INLINE_EM_TAGS
+          emphasized = emphasis(node, '*')
+          [emphasized, markup_fragments(emphasized)]
+        when 'u'
+          [content, duplicate_fragments(node.metadata[:fragments])]
+        when 'br'
+          ["\n", markup_fragments("\n")]
+        when 'hr'
+          ["\n\n---\n\n", markup_fragments("\n\n---\n\n")]
+        when 'li'
+          rendered_li = list_item(content, list_stack, node.attrs)
+          [rendered_li, markup_fragments(rendered_li)]
+        when 'ul', 'ol'
+          rendered_list = "#{content.rstrip}\n\n"
+          [rendered_list, markup_fragments(rendered_list)]
+        when 'dl'
+          rendered_dl = "#{content}\n"
+          [rendered_dl, markup_fragments(rendered_dl)]
+        when 'dt'
+          stripped = content.strip
+          rendered_dt = stripped.empty? ? '' : "#{stripped}\n"
+          [rendered_dt, markup_fragments(rendered_dt)]
+        when 'dd'
+          rendered_dd = ": #{content.strip}\n"
+          [rendered_dd, markup_fragments(rendered_dd)]
+        when *HEADING_LEVEL.keys
+          rendered_heading = heading(tag_name, content)
+          [rendered_heading, markup_fragments(rendered_heading)]
+        when *TABLE_TAGS
+          rendered_table = render_table_node(tag_name, node)
+          [rendered_table, markup_fragments(rendered_table)]
+        else
+          [content, duplicate_fragments(node.metadata[:fragments])]
+        end
+
+      fragments = [] if rendered.nil? || rendered.empty?
+      node.metadata[:rendered_fragments] = fragments || []
+      rendered
     end
 
     def block_container(node)
@@ -418,14 +445,48 @@ module LlmDocsBuilder
       formatted
     end
 
-    def link(content, attrs)
+    def link(node)
+      attrs = node.attrs
       href = attrs['href']
-      text = collapse_whitespace(content)
-      text = href if text.empty?
 
-      return text unless href && !href.empty?
+      raw_fragments = node.metadata[:fragments] || []
+      normalized_fragments = normalize_link_fragments(raw_fragments)
+      label = normalized_fragments.map { |fragment| fragment[:content] }.join
 
-      "[#{escape_markdown_label(text)}](#{href})"
+      if label.empty?
+        collapsed = collapse_whitespace(node.buffer)
+        label = collapsed unless collapsed.empty?
+      end
+
+      label ||= ''
+      if (href.nil? || href.empty?)
+        fragments =
+          if normalized_fragments.empty?
+            label.empty? ? [] : [{ type: :text, content: label }]
+          else
+            duplicate_fragments(normalized_fragments)
+          end
+        return [label, fragments]
+      end
+
+      effective_fragments =
+        if normalized_fragments.empty?
+          [{ type: :text, content: label.empty? ? href : label }]
+        else
+          normalized_fragments
+        end
+
+      escaped_fragments = effective_fragments.map do |fragment|
+        if fragment[:type] == :text
+          { type: :text, content: escape_markdown_label(fragment[:content]) }
+        else
+          fragment.dup
+        end
+      end
+
+      escaped_label = escaped_fragments.map { |fragment| fragment[:content] }.join
+      output = "[#{escaped_label}](#{href})"
+      [output, markup_fragments(output)]
     end
 
     def normalize_list_item_lines(content)
@@ -466,6 +527,95 @@ module LlmDocsBuilder
       preserved.each do |index|
         parent.metadata[:line_break_indices] << (base_length + index)
       end
+    end
+
+    def append_fragments_to_parent(parent, metadata, rendered, _tag_name)
+      return unless parent
+
+      fragments =
+        if metadata && metadata[:rendered_fragments]&.any?
+          duplicate_fragments(metadata[:rendered_fragments])
+        elsif rendered && !rendered.empty?
+          markup_fragments(rendered)
+        else
+          []
+        end
+      return if fragments.empty?
+
+      parent_fragments = parent.metadata[:fragments]
+      fragments.each do |fragment|
+        if fragment[:type] == :text
+          append_text_fragment(parent_fragments, fragment[:content])
+        else
+          parent_fragments << { type: fragment[:type], content: fragment[:content].dup }
+        end
+      end
+    end
+
+    def duplicate_fragments(fragments)
+      return [] unless fragments&.any?
+
+      fragments.map do |fragment|
+        { type: fragment[:type], content: fragment[:content].dup }
+      end
+    end
+
+    def markup_fragments(text)
+      return [] if text.nil? || text.empty?
+
+      [{ type: :markup, content: text.dup }]
+    end
+
+    def append_text_fragment(fragments, text)
+      return if fragments.nil?
+      return if text.nil? || text.empty?
+
+      fragment_text = text.dup
+      if fragments.any? && fragments.last[:type] == :text
+        fragments.last[:content] << fragment_text
+      else
+        fragments << { type: :text, content: fragment_text }
+      end
+    end
+
+    def normalize_link_fragments(fragments)
+      return [] unless fragments&.any?
+
+      normalized = []
+      pending_space = false
+      output_started = false
+
+      fragments.each do |fragment|
+        type = fragment[:type]
+        content = fragment[:content]
+        next if content.nil? || content.empty?
+
+        if type == :markup
+          if pending_space && output_started
+            append_text_fragment(normalized, ' ')
+            pending_space = false
+          end
+          normalized << { type: :markup, content: content.dup }
+          output_started = true
+          next
+        end
+
+        squashed = content.gsub(/[ \t\r\n\f\v]+/, ' ')
+        squashed.each_char do |char|
+          if char == ' '
+            pending_space = true if output_started
+          else
+            if pending_space && output_started
+              append_text_fragment(normalized, ' ')
+              pending_space = false
+            end
+            append_text_fragment(normalized, char)
+            output_started = true
+          end
+        end
+      end
+
+      normalized
     end
 
     def block_level_tag?(tag_name)
@@ -577,7 +727,12 @@ module LlmDocsBuilder
     end
 
     def default_metadata(table_context: false)
-      { line_break_indices: [], table_context: table_context }
+      {
+        line_break_indices: [],
+        table_context: table_context,
+        fragments: [],
+        rendered_fragments: nil
+      }
     end
 
     def escape_markdown_label(text)

@@ -132,6 +132,22 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('[C++ \\[beta\\]\\_release](https://example.com)')
     end
 
+    it 'preserves markdown emitted by child nodes inside link text' do
+      html = '<p><a href="https://example.com"><strong>Bold</strong></a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('[**Bold**](https://example.com)')
+    end
+
+    it 'preserves nested images inside link text' do
+      html = '<p><a href="https://example.com"><img src="/badge.svg" alt="Build status" /></a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('[![Build status](/badge.svg)](https://example.com)')
+    end
+
     it 'escapes markdown special characters in image alt text' do
       html = '<p><img src="/graph.png" alt="[beta] chart_*" /></p>'
 
