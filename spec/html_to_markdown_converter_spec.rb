@@ -334,6 +334,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("```\nputs 'hi'\n```")
     end
 
+    it 'lengthens fenced code blocks when content contains backticks' do
+      html = "<pre><code>```\nputs 'hi'\n```</code></pre>"
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq("````\n```\nputs 'hi'\n```\n````")
+    end
+
     it 'preserves intentional blank lines inside fenced code blocks' do
       html = "<pre><code>line1\n\n\nline2</code></pre>"
 

@@ -235,7 +235,9 @@ module LlmDocsBuilder
       inner_code = node.at_css('code')
       code = inner_code ? inner_code.text.to_s : node.text.to_s
       code = code.gsub(/\r\n?/, "\n").rstrip
-      "```\n#{code}\n```"
+      fence_length = [3, (code.scan(/`+/).map(&:length).max || 0) + 1].max
+      fence = '`' * fence_length
+      "#{fence}\n#{code}\n#{fence}"
     end
 
     def render_list(list_node, ordered:, depth:, start: nil)
