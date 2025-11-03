@@ -477,14 +477,58 @@ module LlmDocsBuilder
     end
 
     def collapse_newlines_outside_code_fences(text)
-      segments = text.split(/(```.*?```)/m)
-      segments.map.with_index do |seg, idx|
-        if idx.odd?
-          seg
+      return '' if text.nil? || text.empty?
+
+      # Split the text into segments that are either inside a fenced code block
+      # (with any backtick fence length >= 3, possibly indented) or outside.
+      # We then collapse 3+ consecutive newlines only in the outside segments.
+      lines = text.split("\n", -1)
+
+      segments = [] # [[:code|:text, string]]
+      text_buf = +''
+      code_buf = +''
+      inside_fence = false
+      fence_len = 0
+      fence_indent = ''
+
+      lines.each_with_index do |line, idx|
+        if inside_fence
+          code_buf << line
+          code_buf << "\n" if idx < lines.length - 1
+
+          # Closing fence must match the opening fence length and indentation exactly
+          if line.match?(/\A#{Regexp.escape(fence_indent)}`{#{fence_len}}\z/)
+            segments << [:code, code_buf]
+            code_buf = +''
+            inside_fence = false
+            fence_len = 0
+            fence_indent = ''
+          end
+        elsif (m = line.match(/\A(\s*)(`{3,})(?:[^`]*)\z/))
+          # Opening fence: allow indentation and any fence length >= 3.
+          # Accept optional info string on the opening line (e.g., ```ruby), though
+          # this converter does not currently emit one.
+          segments << [:text, text_buf] unless text_buf.empty?
+          text_buf = +''
+
+          fence_indent = m[1]
+          fence_len = m[2].length
+
+          code_buf << line
+          code_buf << "\n" if idx < lines.length - 1
+          inside_fence = true
+        # Flush pending outside-text buffer before starting a code segment
         else
-          seg.gsub(/\n{3,}/, "\n\n")
+          text_buf << line
+          text_buf << "\n" if idx < lines.length - 1
         end
-      end.join
+      end
+
+      # Flush any remaining buffer
+      segments << [:code, code_buf] unless code_buf.empty?
+      segments << [:text, text_buf] unless text_buf.empty?
+
+      segments.map { |type, seg| type == :code ? seg : seg.gsub(/\n{3,}/, "\n\n") }.join
     end
   end
 end
