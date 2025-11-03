@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.0 (TBD)
+## 0.11.0 (2025-11-03)
 - [Feature] **Transform from URL** — The `transform` command now accepts a remote URL via `--url` and processes fetched content through the standard transformer pipeline.
   - Example: `llm-docs-builder transform --url https://example.com/docs/page.html`
   - Applies all configured transformations and output options identically to local files
