@@ -195,7 +195,8 @@ module LlmDocsBuilder
       return [label, label_has_md] if href.empty?
 
       escaped = label_has_md ? label : escape_markdown_label(label)
-      ["[#{escaped}](#{href})", true]
+      destination = format_markdown_link_destination(href)
+      ["[#{escaped}](#{destination})", true]
     end
 
     def render_image(node)
@@ -441,6 +442,22 @@ module LlmDocsBuilder
 
     def escape_markdown_label(text)
       text.to_s.gsub(MARKDOWN_LABEL_ESCAPE_PATTERN) { |char| "\\#{char}" }
+    end
+
+    def format_markdown_link_destination(url)
+      return '' if url.nil?
+
+      str = url.to_s
+      return str if str.empty?
+
+      # Wrap in angle brackets when the URL contains characters that often
+      # confuse markdown link destination parsing (e.g., spaces or parentheses).
+      # CommonMark allows the form: [label](<url>)
+      if str.match?(/[\s()]/)
+        "<#{str}>"
+      else
+        str
+      end
     end
 
     def parse_integer(raw)

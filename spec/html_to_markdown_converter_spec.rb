@@ -180,6 +180,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('[![Build status](/badge.svg)](https://example.com)')
     end
 
+    it 'wraps link URLs containing parentheses in angle brackets' do
+      html = '<p><a href="https://example.com/foo(bar)">Link</a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('[Link](<https://example.com/foo(bar)>)')
+    end
+
     it 'escapes markdown special characters in image alt text' do
       html = '<p><img src="/graph.png" alt="[beta] chart_*" /></p>'
 
