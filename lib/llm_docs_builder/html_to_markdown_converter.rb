@@ -206,7 +206,8 @@ module LlmDocsBuilder
       alt = (node['alt'] || '').to_s
       title = (node['title'] || '').to_s
       title_part = title.empty? ? '' : %( "#{title}")
-      "![#{escape_markdown_label(alt)}](#{src}#{title_part})"
+      destination = format_markdown_link_destination(src)
+      "![#{escape_markdown_label(alt)}](#{destination}#{title_part})"
     end
 
     def render_inline_code(node)

@@ -196,6 +196,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('![\\[beta\\] chart\\_\\*](/graph.png)')
     end
 
+    it 'wraps image URLs containing parentheses in angle brackets' do
+      html = '<p><img src="https://example.com/foo(bar).png" alt="Pic" /></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('![Pic](<https://example.com/foo(bar).png>)')
+    end
+
     it 'preserves inline nodes that are implicitly closed by ancestor tags' do
       html = '<p><strong>Bold</p>'
 
