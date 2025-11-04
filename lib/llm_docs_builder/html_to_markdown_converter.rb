@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'cgi'
-require 'nokogiri'
-
 module LlmDocsBuilder
   # A lightweight HTML → Markdown converter using only Nokogiri's public API.
   #
