@@ -23,6 +23,7 @@ module LlmDocsBuilder
     LIST_TAGS = %w[ul ol].freeze
     IGNORE_TAGS = %w[script style head noscript iframe svg canvas].freeze
     MARKDOWN_LABEL_ESCAPE_PATTERN = /[\\\[\]()*_`!]/
+    SAFE_URI_SCHEMES = %w[http https mailto ftp tel].freeze
 
     # Entry point
     def convert(html)
@@ -146,7 +147,10 @@ module LlmDocsBuilder
       parts = []
 
       parent.children.each do |child|
-        s, marked = render_inline(child)
+        next if child.parent.nil?
+
+        s, marked, metadata = render_inline(child)
+        prune_trailing_unsafe_link_separator!(parts) if metadata == :unsafe_link_pruned
         next if s.nil? || s.empty?
 
         parts << s
@@ -189,10 +193,15 @@ module LlmDocsBuilder
       label_str, label_has_md = render_inline_children(node)
       label = collapse_inline_preserving_newlines(label_str)
 
-      return [label, label_has_md] if href.empty?
+      sanitized_href = href.strip
+      return [label, label_has_md] if sanitized_href.empty?
+      unless safe_link_destination?(sanitized_href)
+        prune_unsafe_link_separators(node)
+        return ['', false, :unsafe_link_pruned]
+      end
 
       escaped = label_has_md ? label : escape_markdown_label(label)
-      destination = format_markdown_link_destination(href)
+      destination = format_markdown_link_destination(sanitized_href)
       ["[#{escaped}](#{destination})", true]
     end
 
@@ -456,6 +465,64 @@ module LlmDocsBuilder
       else
         str
       end
+    end
+
+    def safe_link_destination?(href)
+      return false if href.nil?
+
+      sanitized = href.strip
+      return false if sanitized.empty?
+      return true if sanitized.start_with?('#', '/', './', '../')
+      return false if sanitized.match?(/\A(?:javascript|vbscript|data)\s*:/i)
+
+      if (match = sanitized.match(/\A([a-z][a-z0-9+\-.]*):/i))
+        SAFE_URI_SCHEMES.include?(match[1].downcase)
+      else
+        true
+      end
+    end
+
+    def prune_unsafe_link_separators(node)
+      return unless node
+
+      [node.previous_sibling, node.next_sibling].each do |sibling|
+        prune_separator_text_node(sibling)
+      end
+    end
+
+    def prune_trailing_unsafe_link_separator!(parts)
+      return if parts.empty?
+
+      loop do
+        break if parts.empty?
+
+        last = parts.last
+        new_last = last.sub(/[ \t]*\|\s*\z/, '')
+
+        if new_last != last
+          trimmed = new_last.rstrip
+          if trimmed.empty?
+            parts.pop
+          else
+            parts[-1] = trimmed
+          end
+          next
+        end
+
+        if last.strip.empty?
+          parts.pop
+          next
+        end
+
+        break
+      end
+    end
+
+    def prune_separator_text_node(sibling)
+      return unless sibling&.text?
+
+      stripped = sibling.text.strip
+      sibling.remove if stripped == '|'
     end
 
     def parse_integer(raw)

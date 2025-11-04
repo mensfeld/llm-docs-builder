@@ -188,6 +188,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('[Link](<https://example.com/foo(bar)>)')
     end
 
+    it 'removes dangling separators when dropping unsafe links' do
+      html = '<p>Foo | <a href="javascript:bad">Bad</a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('Foo')
+    end
+
     it 'escapes markdown special characters in image alt text' do
       html = '<p><img src="/graph.png" alt="[beta] chart_*" /></p>'
 
@@ -446,6 +454,28 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       # Whitespace-only blockquote renders empty output
       expect(markdown).to eq('')
+    end
+
+    it 'remove javascript links and keep the rest' do
+      html = <<~HTML
+           <p class="source-link">
+           Source:#{' '}
+
+        #{'  '}
+            <a id="l_method-c-new_source" href="javascript:toggleSource('method-c-new_source')">show</a>
+        #{'  '}
+
+           |#{' '}
+
+        #{'  '}
+            <a class="github_url" target="_blank" href="https://github.com/rails/rails/blob/1cdd190a25e483b65f1f25bbd0f13a25d696b461/actioncable/lib/action_cable/remote_connections.rb#L34">on GitHub</a>
+        #{'  '}
+        </p>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('Source: [on GitHub](https://github.com/rails/rails/blob/1cdd190a25e483b65f1f25bbd0f13a25d696b461/actioncable/lib/action_cable/remote_connections.rb#L34)')
     end
   end
 end
