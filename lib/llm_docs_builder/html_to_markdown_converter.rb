@@ -120,8 +120,11 @@ module LlmDocsBuilder
 
     # Inline rendering
     # Returns [string, has_markdown]
-    def render_inline(node)
-      return [inline_text(node.text), false] if node.text?
+    def render_inline(node, escape_for_label: false)
+      if node.text?
+        text = inline_text(node.text)
+        return [escape_for_label ? escape_markdown_label(text) : text, false]
+      end
 
       tag = node.name.downcase if node.element?
       case tag
@@ -132,24 +135,24 @@ module LlmDocsBuilder
       when 'a'
         render_link(node)
       when *INLINE_STRONG_TAGS
-        render_wrapped_inline(node, '**')
+        render_wrapped_inline(node, '**', escape_for_label: escape_for_label)
       when *INLINE_EM_TAGS
-        render_wrapped_inline(node, '*')
+        render_wrapped_inline(node, '*', escape_for_label: escape_for_label)
       when 'code'
         [render_inline_code(node), true]
       else
-        render_inline_children(node)
+        render_inline_children(node, escape_for_label: escape_for_label)
       end
     end
 
-    def render_inline_children(parent)
+    def render_inline_children(parent, escape_for_label: false)
       has_markdown = false
       parts = []
 
       parent.children.each do |child|
         next if child.parent.nil?
 
-        s, marked, metadata = render_inline(child)
+        s, marked, metadata = render_inline(child, escape_for_label: escape_for_label)
         prune_trailing_unsafe_link_separator!(parts) if metadata == :unsafe_link_pruned
         next if s.nil? || s.empty?
 
@@ -169,8 +172,13 @@ module LlmDocsBuilder
       collapse_inline_preserving_newlines(render_inline_string(parent))
     end
 
-    def render_wrapped_inline(node, wrapper)
-      content = collapsed_inline_for(node)
+    def render_wrapped_inline(node, wrapper, escape_for_label: false)
+      if escape_for_label
+        s, = render_inline_children(node, escape_for_label: true)
+        content = collapse_inline_preserving_newlines(s)
+      else
+        content = collapsed_inline_for(node)
+      end
       return ['', false] if content.empty?
 
       ["#{wrapper}#{content}#{wrapper}", true]
@@ -190,20 +198,23 @@ module LlmDocsBuilder
 
     def render_link(node)
       href = (node['href'] || '').to_s
-      label_str, label_has_md = render_inline_children(node)
-      label = collapse_inline_preserving_newlines(label_str)
-
       sanitized_href = href.strip
-      return [label, label_has_md] if sanitized_href.empty?
+
+      if sanitized_href.empty?
+        label_str, label_has_md = render_inline_children(node)
+        label = collapse_inline_preserving_newlines(label_str)
+        return [label, label_has_md]
+      end
 
       unless safe_link_destination?(sanitized_href)
         prune_unsafe_link_separators(node)
         return ['', false, :unsafe_link_pruned]
       end
 
-      escaped = label_has_md ? label : escape_markdown_label(label)
+      label_str, = render_inline_children(node, escape_for_label: true)
+      label = collapse_inline_preserving_newlines(label_str)
       destination = format_markdown_link_destination(sanitized_href)
-      ["[#{escaped}](#{destination})", true]
+      ["[#{label}](#{destination})", true]
     end
 
     def render_image(node)

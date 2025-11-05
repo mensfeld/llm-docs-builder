@@ -180,6 +180,14 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq('[![Build status](/badge.svg)](https://example.com)')
     end
 
+    it 'escapes raw text but preserves nested markdown inside link labels' do
+      html = '<p><a href="https://example.com">Check [status] <strong>now</strong></a></p>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq('[Check \\[status\\] **now**](https://example.com)')
+    end
+
     it 'wraps link URLs containing parentheses in angle brackets' do
       html = '<p><a href="https://example.com/foo(bar)">Link</a></p>'
 
