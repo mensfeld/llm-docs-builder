@@ -153,7 +153,7 @@ module LlmDocsBuilder
         next if child.parent.nil?
 
         s, marked, metadata = render_inline(child, escape_for_label: escape_for_label)
-        prune_trailing_unsafe_link_separator!(parts) if metadata == :unsafe_link_pruned
+        Helpers.prune_trailing_unsafe_link_separator!(parts) if metadata == :unsafe_link_pruned
         next if s.nil? || s.empty?
 
         parts << s
@@ -499,34 +499,6 @@ module LlmDocsBuilder
 
       [node.previous_sibling, node.next_sibling].each do |sibling|
         prune_separator_text_node(sibling)
-      end
-    end
-
-    def prune_trailing_unsafe_link_separator!(parts)
-      return if parts.empty?
-
-      loop do
-        break if parts.empty?
-
-        last = parts.last
-        new_last = last.sub(/[ \t]*\|\s*\z/, '')
-
-        if new_last != last
-          trimmed = new_last.rstrip
-          if trimmed.empty?
-            parts.pop
-          else
-            parts[-1] = trimmed
-          end
-          next
-        end
-
-        if last.strip.empty?
-          parts.pop
-          next
-        end
-
-        break
       end
     end
 
