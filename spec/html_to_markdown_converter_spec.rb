@@ -335,27 +335,294 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       expect(markdown).to eq("A\n\nB")
     end
 
-    it 'preserves table markup without collapsing structure' do
-      html = '<p>Before</p><table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table><p>After</p>'
+    it 'convert table markup into markdown' do
+      html = '<table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table>'
 
       markdown = converter.convert(html)
 
-      expect(markdown).to eq("Before\n\n<table><tr><th>Plan</th><th>Status</th></tr><tr><td>Starter</td><td>Active</td></tr></table>\n\nAfter")
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Plan | Status |
+        |------|--------|
+        | Starter | Active |
+      MARKDOWN
     end
 
-    it 'keeps table descendants in HTML so inline formatting continues to render' do
+    it 'renders table captions before the markdown table' do
       html = <<~HTML
         <table>
+          <caption>Plan summary</caption>
           <tr>
-            <td><a href="https://example.com"><strong>Details</strong></a></td>
+            <th>Plan</th>
+            <th>Status</th>
+          </tr>
+          <tr>
+            <td>Starter</td>
+            <td>Active</td>
           </tr>
         </table>
       HTML
 
       markdown = converter.convert(html)
 
-      expect(markdown).to include('<td><a href="https://example.com"><strong>Details</strong></a></td>')
-      expect(markdown).not_to include('[Details](https://example.com)')
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        Plan summary
+
+        | Plan | Status |
+        |------|--------|
+        | Starter | Active |
+      MARKDOWN
+    end
+
+    it 'promotes the first row to a header without duplicating it when thead is missing' do
+      html = '<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | A | B |
+        |---|---|
+        | C | D |
+      MARKDOWN
+    end
+
+    it 'escapes pipe characters inside table cell content' do
+      html = '<table><tr><th>Note</th></tr><tr><td>A | B</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Note |
+        |------|
+        | A \\| B |
+      MARKDOWN
+    end
+
+    it 'preserves line breaks in table cells without forcing <br> tags' do
+      html = '<table><tr><th>Note</th></tr><tr><td>Line 1<br>Line 2</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Note   |
+        |--------|
+        | Line 1 |
+        | Line 2 |
+      MARKDOWN
+    end
+
+    it 'renders list content inside table cells without flattening structure' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>Items</th>
+          </tr>
+          <tr>
+            <td>
+              <ul>
+                <li>First</li>
+                <li>Second</li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Items    |
+        |----------|
+        | - First  |
+        | - Second |
+      MARKDOWN
+    end
+
+    it 'will keep the raw code block inside a table cell' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>Snippet</th>
+          </tr>
+          <tr>
+            <td><pre><code>puts 'hi'</code></pre></td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Snippet   |
+        |-----------|
+        | ```       |
+        | puts 'hi' |
+        | ```       |
+      MARKDOWN
+    end
+
+    it 'falls back to raw HTML when a table contains nested tables' do
+      html = <<~HTML
+        <table>#{'        '}
+          <tr>
+            <td>
+              Outer cell
+              <table>
+                <tr>
+                  <td>Inner cell</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('<table>')
+      expect(markdown).to include('<td>Inner cell</td>')
+      expect(markdown).not_to include('| Outer cell |')
+    end
+
+    it 'preserves pipe characters inside inline code spans within table cells' do
+      html = '<table><tr><th>Example</th></tr><tr><td><code>foo|bar</code></td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Example |
+        |---------|
+        | `foo|bar` |
+      MARKDOWN
+    end
+
+    it 'retains pipe characters inside table cells without splitting columns' do
+      html = '<table><tr><th>Pure example</th></tr><tr><td>foo | bar</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Pure example |
+        |--------------|
+        | foo \\| bar |
+      MARKDOWN
+    end
+
+    it 'preserves colspan attributes by retaining the original HTML table' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>A</th>
+            <th>B</th>
+          </tr>
+          <tr>
+            <td colspan="2">Total row</td>
+          </tr>
+          <tr>
+            <td>C</td>
+            <td>D</td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | A | B |
+        |---|---|
+        | Total row |
+        | C | D |
+      MARKDOWN
+    end
+
+    it 'escapes pipes inside colspan rows' do
+      html = '<table><tr><th>H1</th><th>H2</th></tr><tr><td colspan="2">foo | bar</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 |
+        |----|----|
+        | foo \\| bar |
+      MARKDOWN
+    end
+
+    it 'preserves rowspan attributes by retaining the original HTML table' do
+      html = '<table><tr><th>H1</th><th>H2</th></tr><tr><td rowspan="3">A</td><td>B</td></tr><tr><td>C</td></tr><tr><td>D</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 |
+        |----|----|
+        | A | B |
+        |  | C |
+        |  | D |
+      MARKDOWN
+    end
+
+    it 'escapes pipes inside rowspan rows' do
+      html = '<table><tr><th>H1</th><th>H2</th></tr><tr><td rowspan="2">foo | bar</td><td>B</td></tr><tr><td>C</td></tr></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 |
+        |----|----|
+        | foo \\| bar | B |
+        |  | C |
+      MARKDOWN
+    end
+
+    it 'renders a separator row with the same column count for rowspan tables' do
+      html = '<table><thead><tr><th>H1</th><th>H2</th></tr></thead><tbody><tr><td>A</td><td rowspan="2">B</td></tr><tr><td>C</td></tr></tbody></table>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 |
+        |----|----|
+        | A | B |
+        | C |  |
+      MARKDOWN
+    end
+
+    it 'expands multiline rowspan cells into complete rows' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>Left</th>
+            <th>Right</th>
+          </tr>
+          <tr>
+            <td rowspan="2">
+              <ul>
+                <li>Item 1</li>
+                <li>Item 2</li>
+              </ul>
+            </td>
+            <td>Right 1</td>
+          </tr>
+          <tr>
+            <td>
+              <ul>
+                <li>First</li>
+                <li>Second</li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | Left | Right |
+        |------|-------|
+        | - Item 1 | Right 1 |
+        | - Item 2 |  |
+        |  | - First  |
+        |  | - Second |
+      MARKDOWN
     end
 
     it 'renders pre/code blocks without inline backticks' do
@@ -468,16 +735,9 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       html = <<~HTML
            <p class="source-link">
            Source:#{' '}
-
-        #{'  '}
             <a id="l_method-c-new_source" href="javascript:toggleSource('method-c-new_source')">show</a>
-        #{'  '}
-
            |#{' '}
-
-        #{'  '}
             <a class="github_url" target="_blank" href="https://github.com/rails/rails/blob/1cdd190a25e483b65f1f25bbd0f13a25d696b461/actioncable/lib/action_cable/remote_connections.rb#L34">on GitHub</a>
-        #{'  '}
         </p>
       HTML
 
