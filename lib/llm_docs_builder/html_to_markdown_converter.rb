@@ -102,15 +102,12 @@ module LlmDocsBuilder
         render_list(element, ordered: true, depth: depth, start: start_index)
       when 'dl'
         render_definition_list(element)
+      when 'figure'
+        render_figure(element, depth: depth)
       when *BLOCK_CONTAINERS
         # Transparent block container: render its children as blocks.
         # If the container only has inline/text content, render that inline instead.
-        blocks = render_blocks(element.children, depth: depth)
-        if blocks.strip.empty?
-          collapsed_inline_for(element)
-        else
-          blocks
-        end
+        render_transparent_container(element, depth: depth)
       else
         # Fallback: inline container at block level
         collapsed_inline_for(element)
@@ -142,6 +139,70 @@ module LlmDocsBuilder
       else
         render_inline_children(node, escape_for_label: escape_for_label)
       end
+    end
+
+    def render_transparent_container(element, depth:)
+      blocks = render_blocks(element.children, depth: depth)
+      if blocks.strip.empty?
+        collapsed_inline_for(element)
+      else
+        blocks
+      end
+    end
+
+    def render_figure(element, depth:)
+      renderer = HtmlToMarkdown::FigureCodeBlockRenderer.new(
+        element,
+        inline_collapser: method(:collapsed_inline_for),
+        fence_calculator: method(:compute_code_fence)
+      )
+      rendered = renderer.render
+      return render_transparent_container(element, depth: depth) if rendered.nil? || rendered.strip.empty?
+
+      render_figure_children_in_original_order(
+        element,
+        code_block_node: renderer.code_block_node,
+        rendered_code: rendered,
+        depth: depth
+      )
+    end
+
+    def render_figure_children_in_original_order(element, code_block_node:, rendered_code:, depth:)
+      direct_code_child = figure_direct_child_for(element, code_block_node)
+      parts = []
+      code_inserted = false
+
+      element.children.each do |child|
+        next if figcaption?(child)
+        next if child.text? && child.text.strip.empty?
+
+        if !direct_code_child.nil? && child.equal?(direct_code_child)
+          parts << rendered_code
+          code_inserted = true
+          next
+        end
+
+        rendered_child = render_blocks([child], depth: depth)
+        parts << rendered_child unless rendered_child.nil? || rendered_child.strip.empty?
+      end
+
+      parts.unshift(rendered_code) unless code_inserted
+      parts.join("\n\n")
+    end
+
+    def figure_direct_child_for(element, node)
+      return nil if node.nil?
+
+      current = node
+      current = current.parent until current.nil? || current.parent.nil? || current.parent.equal?(element)
+
+      return nil if current.nil? || !current.parent.equal?(element)
+
+      current
+    end
+
+    def figcaption?(node)
+      node.element? && node.name.casecmp('figcaption').zero?
     end
 
     def render_inline_children(parent, escape_for_label: false)
@@ -258,9 +319,15 @@ module LlmDocsBuilder
       inner_code = node.at_css('code')
       code = inner_code ? inner_code.text.to_s : node.text.to_s
       code = code.gsub(/\r\n?/, "\n").rstrip
-      fence_length = [3, (code.scan(/`+/).map(&:length).max || 0) + 1].max
-      fence = '`' * fence_length
+      fence = compute_code_fence(code)
       "#{fence}\n#{code}\n#{fence}"
+    end
+
+    def compute_code_fence(code)
+      text = code.to_s
+      longest_sequence = text.scan(/`+/).map(&:length).max || 0
+      fence_length = [3, longest_sequence + 1].max
+      '`' * fence_length
     end
 
     def render_list(list_node, ordered:, depth:, start: nil)

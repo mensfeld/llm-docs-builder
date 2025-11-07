@@ -745,5 +745,111 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
 
       expect(markdown).to eq('Source: [on GitHub](https://github.com/rails/rails/blob/1cdd190a25e483b65f1f25bbd0f13a25d696b461/actioncable/lib/action_cable/remote_connections.rb#L34)')
     end
+
+    it 'Special convert figure code into the markdown code' do
+      html = <<~HTML
+        <figure class="code">
+          <figcaption>Gemfile</figcaption>
+          <div class="highlight">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="line-numbers" aria-hidden="true">
+                    <pre>
+                      <div data-line="1" class="line-number"></div>
+                      <div data-line="2" class="line-number"></div>
+                    </pre>
+                  </td>
+                  <td class="main diff">
+                    <pre>
+                      <div class="line"><span></span><span class="gd">- gem 'capistrano-yarn'</span></div>
+                      <div class="line"><span class="gi">+ gem 'capistrano-pnpm'</span></div>
+                    </pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        ```diff Gemfile
+        - gem 'capistrano-yarn'
+        + gem 'capistrano-pnpm'
+        ```
+      MARKDOWN
+    end
+
+    it 'preserves additional figure content after rendering code blocks' do
+      html = <<~HTML
+        <figure class="code">
+          <figcaption>example.rb</figcaption>
+          <pre><code>puts "hi"</code></pre>
+          <p><em>Note:</em> runs on Ruby.</p>
+        </figure>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        ```example.rb
+        puts "hi"
+        ```
+
+        *Note:* runs on Ruby.
+      MARKDOWN
+    end
+
+    it 'preserves figure child order when text precedes the code block' do
+      html = <<~HTML
+        <figure class="code">
+          <figcaption>example.rb</figcaption>
+          <p>Intro text.</p>
+          <div class="highlight">
+            <pre><code>puts "hi"</code></pre>
+          </div>
+          <p>Outro text.</p>
+        </figure>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        Intro text.
+
+        ```example.rb
+        puts "hi"
+        ```
+
+        Outro text.
+      MARKDOWN
+    end
+
+    it 'lengthens fences for figure code containing backticks' do
+      code = <<~CODE
+        ```
+        echo "hi"
+        ```
+      CODE
+
+      html = <<~HTML
+        <figure class="code">
+          <pre><code>#{code}</code></pre>
+        </figure>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        ````
+        ```
+        echo "hi"
+        ```
+        ````
+      MARKDOWN
+    end
   end
 end
