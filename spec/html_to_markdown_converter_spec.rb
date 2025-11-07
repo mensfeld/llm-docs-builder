@@ -625,6 +625,75 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
       MARKDOWN
     end
 
+    it 'handles tables with in both rowspan and colspan together' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>H1</th>
+            <th>H2</th>
+            <th>H3</th>
+          </tr>
+          <tr>
+            <td rowspan="2" colspan="2">X</td>
+            <td>Y1</td>
+          </tr>
+          <tr>
+            <td>Y2</td>
+          </tr>
+          <tr>
+            <td>A</td>
+            <td>B</td>
+            <td>C</td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 | H3 |
+        |----|----|----|
+        | X |  | Y1 |
+        |  |  | Y2 |
+        | A | B | C |
+      MARKDOWN
+    end
+
+    it 'handles tables with in rowspan and colspan separated' do
+      html = <<~HTML
+        <table>
+          <tr>
+            <th>H1</th>
+            <th>H2</th>
+            <th>H3</th>
+          </tr>
+          <tr>
+            <td rowspan="2">C2</td>
+            <td colspan="2">R2</td>
+          </tr>
+          <tr>
+            <td>A</td>
+            <td>B</td>
+          </tr>
+          <tr>
+            <td>C</td>
+            <td>D</td>
+            <td>E</td>
+          </tr>
+        </table>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to eq(<<~MARKDOWN.chomp)
+        | H1 | H2 | H3 |
+        |----|----|----|
+        | C2 | R2 |  |
+        |  | A | B |
+        | C | D | E |
+      MARKDOWN
+    end
+
     it 'renders pre/code blocks without inline backticks' do
       html = "<pre><code>puts 'hi'</code></pre>"
 
