@@ -7,5 +7,4 @@ gemspec
 group :development do
   gem 'pry'
   gem 'pry-byebug'
-  gem "ruby-lsp"
 end

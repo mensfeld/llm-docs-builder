@@ -10,6 +10,8 @@
 /test/version_tmp/
 /tmp/
 mise.toml
+.DS_Store
+.vscode/launch.json
 
 # Used by dotenv library to load environment variables.
 .env
@@ -64,3 +66,9 @@ llms.txt
 # Config files that might contain sensitive data
 llms-txt.yml
 .llms-txt.yml
+
+# AI coding agent
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
