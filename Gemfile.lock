@@ -111,7 +111,7 @@ DEPENDENCIES
   rspec (~> 3.0)
   rubocop (~> 1.0)
   simplecov (~> 0.21)
-  yard-lint (~> 1.1)
+  yard-lint
 
 BUNDLED WITH
    2.7.2
