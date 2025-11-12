@@ -2,6 +2,13 @@
 
 module LlmDocsBuilder
   module Helpers
+    # Reduces consecutive blank lines outside of code fences
+    #
+    # @param text [String] input text to process
+    # @param max_blank [Integer] maximum number of consecutive blank lines to allow
+    # @param fence_chars [Array<String>] characters that can be used for code fences
+    # @param min_fence [Integer] minimum length of fence character sequence
+    # @return [String] processed text with squeezed blank lines
     def squeeze_blank_lines_outside_fences(text, max_blank: 2, fence_chars: %w[` ~], min_fence: 3)
       return '' if text.to_s.empty?
 

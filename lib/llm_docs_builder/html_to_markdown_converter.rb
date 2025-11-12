@@ -8,6 +8,7 @@ module LlmDocsBuilder
   # - Preserve the existing public behavior covered by specs
   # - Convert tables into Markdown while preserving inline formatting
   class HtmlToMarkdownConverter
+    # Mapping of HTML heading tags to their numeric levels
     HEADING_LEVEL = {
       'h1' => 1,
       'h2' => 2,
@@ -17,15 +18,31 @@ module LlmDocsBuilder
       'h6' => 6
     }.freeze
 
+    # HTML tags treated as transparent block containers
     BLOCK_CONTAINERS = %w[div aside figure article section main header footer nav body html].freeze
+
+    # HTML tags rendered as bold/strong in markdown
     INLINE_STRONG_TAGS = %w[strong b].freeze
+
+    # HTML tags rendered as italic/emphasis in markdown
     INLINE_EM_TAGS = %w[em i].freeze
+
+    # HTML list container tags
     LIST_TAGS = %w[ul ol].freeze
+
+    # HTML tags that should be completely ignored during conversion
     IGNORE_TAGS = %w[script style head noscript iframe svg canvas].freeze
+
+    # Pattern for escaping markdown special characters in link labels
     MARKDOWN_LABEL_ESCAPE_PATTERN = /[\\\[\]()*_`!]/
+
+    # URL schemes considered safe for link destinations
     SAFE_URI_SCHEMES = %w[http https mailto ftp tel].freeze
 
-    # Entry point
+    # Entry point for HTML to Markdown conversion
+    #
+    # @param html [String] HTML content to convert
+    # @return [String] converted markdown content
     def convert(html)
       return '' if html.nil? || html.strip.empty?
 
@@ -45,6 +62,10 @@ module LlmDocsBuilder
     private
 
     # Renders a sequence of block-level nodes, inserting a blank line between blocks
+    #
+    # @param nodes [Nokogiri::XML::NodeSet]
+    # @param depth [Integer] nesting depth for lists
+    # @return [String] rendered markdown
     def render_blocks(nodes, depth: 0)
       parts = []
       inline_buffer = []
@@ -82,6 +103,11 @@ module LlmDocsBuilder
       parts.join("\n\n")
     end
 
+    # Render individual block element
+    #
+    # @param element [Nokogiri::XML::Element]
+    # @param depth [Integer] nesting depth
+    # @return [String] rendered markdown
     def render_element_block(element, depth: 0)
       tag = element.name.downcase
 
@@ -123,7 +149,10 @@ module LlmDocsBuilder
     end
 
     # Inline rendering
-    # Returns [string, has_markdown]
+    #
+    # @param node [Nokogiri::XML::Node]
+    # @param escape_for_label [Boolean] whether to escape markdown in labels
+    # @return [Array<String, Boolean, Symbol>] rendered text, has_markdown flag, and optional metadata
     def render_inline(node, escape_for_label: false)
       if node.text?
         text = inline_text(node.text)
@@ -149,6 +178,11 @@ module LlmDocsBuilder
       end
     end
 
+    # Render transparent block container
+    #
+    # @param element [Nokogiri::XML::Element] container element
+    # @param depth [Integer] nesting depth
+    # @return [String] rendered content
     def render_transparent_container(element, depth:)
       blocks = render_blocks(element.children, depth: depth)
       if blocks.strip.empty?
@@ -158,6 +192,11 @@ module LlmDocsBuilder
       end
     end
 
+    # Render figure element
+    #
+    # @param element [Nokogiri::XML::Element] figure element
+    # @param depth [Integer] nesting depth
+    # @return [String] rendered markdown
     def render_figure(element, depth:)
       renderer = HtmlToMarkdown::FigureCodeBlockRenderer.new(
         element,
@@ -175,6 +214,13 @@ module LlmDocsBuilder
       )
     end
 
+    # Render figure children preserving order
+    #
+    # @param element [Nokogiri::XML::Element] figure element
+    # @param code_block_node [Nokogiri::XML::Element] code block node
+    # @param rendered_code [String] rendered code
+    # @param depth [Integer] nesting depth
+    # @return [String] rendered content
     def render_figure_children_in_original_order(element, code_block_node:, rendered_code:, depth:)
       direct_code_child = figure_direct_child_for(element, code_block_node)
       parts = []
@@ -198,6 +244,11 @@ module LlmDocsBuilder
       parts.join("\n\n")
     end
 
+    # Find direct child of figure containing the node
+    #
+    # @param element [Nokogiri::XML::Element] figure element
+    # @param node [Nokogiri::XML::Element]
+    # @return [Nokogiri::XML::Element, nil] direct child or nil
     def figure_direct_child_for(element, node)
       return nil if node.nil?
 
@@ -209,10 +260,19 @@ module LlmDocsBuilder
       current
     end
 
+    # Check if node is a figcaption element
+    #
+    # @param node [Nokogiri::XML::Node]
+    # @return [Boolean] true if figcaption
     def figcaption?(node)
       node.element? && node.name.casecmp('figcaption').zero?
     end
 
+    # Render inline children of parent element
+    #
+    # @param parent [Nokogiri::XML::Element] parent element
+    # @param escape_for_label [Boolean] whether to escape for labels
+    # @return [Array<String, Boolean>] rendered text and has_markdown flag
     def render_inline_children(parent, escape_for_label: false)
       has_markdown = false
       parts = []
@@ -231,15 +291,29 @@ module LlmDocsBuilder
       [parts.join, has_markdown]
     end
 
+    # Render inline children as string
+    #
+    # @param parent [Nokogiri::XML::Element] parent element
+    # @return [String] rendered inline text
     def render_inline_string(parent)
       s, = render_inline_children(parent)
       s
     end
 
+    # Collapse inline whitespace preserving newlines
+    #
+    # @param parent [Nokogiri::XML::Element] parent element
+    # @return [String] collapsed inline text
     def collapsed_inline_for(parent)
       collapse_inline_preserving_newlines(render_inline_string(parent))
     end
 
+    # Render wrapped inline element (strong, em)
+    #
+    # @param node [Nokogiri::XML::Element] element to wrap
+    # @param wrapper [String] wrapper characters
+    # @param escape_for_label [Boolean] whether to escape for labels
+    # @return [Array<String, Boolean>] wrapped text and has_markdown flag
     def render_wrapped_inline(node, wrapper, escape_for_label: false)
       if escape_for_label
         s, = render_inline_children(node, escape_for_label: true)
@@ -252,6 +326,10 @@ module LlmDocsBuilder
       ["#{wrapper}#{content}#{wrapper}", true]
     end
 
+    # Render sequence of inline nodes
+    #
+    # @param nodes [Array<Nokogiri::XML::Node>]
+    # @return [String] rendered text
     def render_inline_nodes(nodes)
       return '' if nodes.nil? || nodes.empty?
 
@@ -264,6 +342,10 @@ module LlmDocsBuilder
       parts.join
     end
 
+    # Render link element
+    #
+    # @param node [Nokogiri::XML::Element] link element
+    # @return [Array<String, Boolean, Symbol>] rendered link, has_markdown flag, and optional metadata
     def render_link(node)
       href = (node['href'] || '').to_s
       sanitized_href = href.strip
@@ -285,6 +367,10 @@ module LlmDocsBuilder
       ["[#{label}](#{destination})", true]
     end
 
+    # Render image element
+    #
+    # @param node [Nokogiri::XML::Element] image element
+    # @return [String] rendered image markdown
     def render_image(node)
       src = (node['src'] || '').to_s
       return '' if src.empty?
@@ -296,6 +382,10 @@ module LlmDocsBuilder
       "![#{escape_markdown_label(alt)}](#{destination}#{title_part})"
     end
 
+    # Render inline code element
+    #
+    # @param node [Nokogiri::XML::Element] code element
+    # @return [String] rendered inline code
     def render_inline_code(node)
       text = node.text.to_s.gsub(/\r\n?/, "\n").gsub(/\n+/, ' ').strip
       return '' if text.empty?
@@ -305,6 +395,10 @@ module LlmDocsBuilder
       "#{fence}#{text}#{fence}"
     end
 
+    # Render blockquote element
+    #
+    # @param node [Nokogiri::XML::Element] blockquote element
+    # @return [String] rendered blockquote markdown
     def render_blockquote(node)
       # Render blockquote differently based on whether it contains block-level elements.
       # If it only has inline/text content, preserve the inline sequence instead of
@@ -323,6 +417,10 @@ module LlmDocsBuilder
       lines.map { |line| line.strip.empty? ? '>' : "> #{line}" }.join("\n")
     end
 
+    # Render fenced code block
+    #
+    # @param node [Nokogiri::XML::Element] pre element
+    # @return [String] rendered code block
     def render_fenced_code(node)
       inner_code = node.at_css('code')
       code = inner_code ? inner_code.text.to_s : node.text.to_s
@@ -331,6 +429,10 @@ module LlmDocsBuilder
       "#{fence}\n#{code}\n#{fence}"
     end
 
+    # Compute appropriate code fence length
+    #
+    # @param code [String] code content
+    # @return [String] fence string
     def compute_code_fence(code)
       text = code.to_s
       longest_sequence = text.scan(/`+/).map(&:length).max || 0
@@ -338,6 +440,13 @@ module LlmDocsBuilder
       '`' * fence_length
     end
 
+    # Render list (ordered or unordered)
+    #
+    # @param list_node [Nokogiri::XML::Element] list element
+    # @param ordered [Boolean] whether list is ordered
+    # @param depth [Integer] nesting depth
+    # @param start [Integer, nil] starting number for ordered lists
+    # @return [String] rendered list markdown
     def render_list(list_node, ordered:, depth:, start: nil)
       lines = []
       index = ordered ? (start || 1) : nil
@@ -389,6 +498,10 @@ module LlmDocsBuilder
       lines.join("\n")
     end
 
+    # Build segments for list item content
+    #
+    # @param list_item [Nokogiri::XML::Element] list item element
+    # @return [Array<Array>] array of segment tuples [type, value]
     def build_list_item_segments(list_item)
       segments = []
       inline_buffer = []
@@ -411,6 +524,11 @@ module LlmDocsBuilder
       segments
     end
 
+    # Extract leading inline text from segments
+    #
+    # @param segments [Array<Array>] segment tuples
+    # @param depth [Integer] nesting depth
+    # @return [Array<String, Array>] inline text and remaining segments
     def extract_leading_inline_text(segments, depth:)
       loop do
         return ['', segments] if segments.empty?
@@ -438,6 +556,11 @@ module LlmDocsBuilder
       end
     end
 
+    # Render individual list item segment
+    #
+    # @param segment [Array] segment tuple [type, value]
+    # @param depth [Integer] nesting depth
+    # @return [Array<String>] rendered lines
     def render_list_item_segment(segment, depth:)
       type, value = segment
 
@@ -466,6 +589,11 @@ module LlmDocsBuilder
       end
     end
 
+    # Indent lines for list blocks
+    #
+    # @param text [String]
+    # @param depth [Integer] nesting depth
+    # @return [Array<String>] indented lines
     def indent_list_block_lines(text, depth)
       indent = '  ' * depth
 
@@ -474,6 +602,10 @@ module LlmDocsBuilder
       end
     end
 
+    # Render definition list element
+    #
+    # @param dl_node [Nokogiri::XML::Element] definition list element
+    # @return [String] rendered definition list
     def render_definition_list(dl_node)
       out = []
       pending_term = nil
@@ -510,10 +642,19 @@ module LlmDocsBuilder
     end
 
     # Helpers
+
+    # Normalize whitespace in text
+    #
+    # @param text [String]
+    # @return [String] normalized text
     def normalize_whitespace(text)
       text.gsub(/[ \t\r\n\f\v]+/, ' ')
     end
 
+    # Process inline text node
+    #
+    # @param text [String]
+    # @return [String] processed text
     def inline_text(text)
       return '' if text.nil? || text.empty?
 
@@ -524,6 +665,10 @@ module LlmDocsBuilder
       normalize_whitespace(safe)
     end
 
+    # Collapse whitespace while preserving newlines
+    #
+    # @param text [String]
+    # @return [String] collapsed text
     def collapse_inline_preserving_newlines(text)
       return '' if text.nil? || text.empty?
 
@@ -533,10 +678,18 @@ module LlmDocsBuilder
       collapsed.gsub(placeholder, "\n")
     end
 
+    # Escape special characters in markdown label
+    #
+    # @param text [String]
+    # @return [String] escaped text
     def escape_markdown_label(text)
       text.to_s.gsub(MARKDOWN_LABEL_ESCAPE_PATTERN) { |char| "\\#{char}" }
     end
 
+    # Format URL for markdown link destination
+    #
+    # @param url [String]
+    # @return [String] formatted URL
     def format_markdown_link_destination(url)
       return '' if url.nil?
 
@@ -553,6 +706,10 @@ module LlmDocsBuilder
       end
     end
 
+    # Check if link destination is safe
+    #
+    # @param href [String] link href
+    # @return [Boolean] true if safe
     def safe_link_destination?(href)
       return false if href.nil?
 
@@ -568,6 +725,10 @@ module LlmDocsBuilder
       end
     end
 
+    # Remove separator characters around unsafe links
+    #
+    # @param node [Nokogiri::XML::Element] link node
+    # @return [void]
     def prune_unsafe_link_separators(node)
       return unless node
 
@@ -576,6 +737,10 @@ module LlmDocsBuilder
       end
     end
 
+    # Remove separator from text node if it's only a pipe
+    #
+    # @param sibling [Nokogiri::XML::Node, nil] sibling node
+    # @return [void]
     def prune_separator_text_node(sibling)
       return unless sibling&.text?
 
@@ -583,6 +748,10 @@ module LlmDocsBuilder
       sibling.remove if stripped == '|'
     end
 
+    # Parse integer from string value
+    #
+    # @param raw [String, nil] raw value
+    # @return [Integer, nil] parsed integer or nil
     def parse_integer(raw)
       return nil if raw.nil?
 
@@ -592,6 +761,10 @@ module LlmDocsBuilder
       str.to_i
     end
 
+    # Clean and normalize output markdown
+    #
+    # @param output [String] raw output
+    # @return [String] cleaned output
     def clean_output(output)
       cleaned = output.gsub(/\r\n?/, "\n")
       cleaned = cleaned.gsub(/[ \t]+\n/, "\n")
@@ -601,6 +774,10 @@ module LlmDocsBuilder
       cleaned.gsub(/(?:\n[ \t]*)+\z/, '')
     end
 
+    # Check if node should be treated as a block element
+    #
+    # @param node [Nokogiri::XML::Node]
+    # @return [Boolean] true if block-like
     def block_like?(node)
       return false unless node.element?
 

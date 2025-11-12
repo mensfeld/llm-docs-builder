@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
 module LlmDocsBuilder
+  # Provides content transformation functionality
+  #
+  # This module contains specialized transformers for modifying markdown content,
+  # including cleanup operations, link processing, heading normalization, and
+  # content enhancement for AI consumption.
+  #
+  # @api private
   module Transformers
     # Base module for all transformers
     #
@@ -11,8 +18,9 @@ module LlmDocsBuilder
     module BaseTransformer
       # Transform content
       #
-      # @param content [String] content to transform
+      # @param content [String] markdown content
       # @param options [Hash] transformation options
+      # @option options [various] (keys vary by implementation - see specific transformer classes)
       # @return [String] transformed content
       def transform(content, options = {})
         raise NotImplementedError, "#{self.class} must implement #transform"
@@ -21,6 +29,7 @@ module LlmDocsBuilder
       # Check if transformation should be applied
       #
       # @param options [Hash] transformation options
+      # @option options [various] (keys vary by implementation - see specific transformer classes)
       # @return [Boolean] true if transformation should be applied
       def should_transform?(options)
         true

@@ -75,6 +75,10 @@ module LlmDocsBuilder
       false
     end
 
+    # Checks if text contains meaningful non-whitespace content
+    #
+    # @param text [String, nil]
+    # @return [Boolean] true if text contains non-whitespace characters
     def meaningful_text?(text)
       return false if text.nil?
 
@@ -82,6 +86,10 @@ module LlmDocsBuilder
       stripped.match?(/\S/)
     end
 
+    # Checks if text looks like markdown syntax
+    #
+    # @param text [String, nil]
+    # @return [Boolean] true if text contains markdown-like patterns
     def markdown_like_text?(text)
       return false if text.nil?
       return true if markdown_heading_snippet?(text)
@@ -101,12 +109,21 @@ module LlmDocsBuilder
       false
     end
 
+    # Determines if inline body text should be allowed in HTML context
+    #
+    # @param content [String] full content being processed
+    # @param text [String] specific text to check
+    # @return [Boolean] true if inline body text is acceptable
     def allow_inline_body_text?(content, text)
       return false if markdown_like_text?(text)
 
       html_with_body_wrapper?(content)
     end
 
+    # Checks if content has HTML document structure wrapper tags
+    #
+    # @param content [String] content to check for HTML wrapper tags
+    # @return [Boolean] true if content contains DOCTYPE, html, or body tags
     def html_with_body_wrapper?(content)
       content.match?(/<\s*!DOCTYPE\s+html/i) ||
         content.match?(/<\s*html\b/i) ||

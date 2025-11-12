@@ -112,7 +112,7 @@ module LlmDocsBuilder
 
     # Compress content using TextCompressor
     #
-    # @param content [String] content to compress
+    # @param content [String] markdown content
     # @return [String] compressed content
     def compress_content(content)
       compressor = TextCompressor.new
