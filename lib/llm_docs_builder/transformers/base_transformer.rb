@@ -18,10 +18,12 @@ module LlmDocsBuilder
     module BaseTransformer
       # Transform content
       #
+      # @abstract Subclasses must implement this method and document specific options
       # @param content [String] markdown content
       # @param options [Hash] transformation options
-      # @option options [various] (keys vary by implementation - see specific transformer classes)
+      # @option options [Object] :* options vary by implementation - see specific transformer classes
       # @return [String] transformed content
+      # @note Options vary by implementation - see specific transformer classes for supported keys
       def transform(content, options = {})
         raise NotImplementedError, "#{self.class} must implement #transform"
       end
@@ -29,8 +31,9 @@ module LlmDocsBuilder
       # Check if transformation should be applied
       #
       # @param options [Hash] transformation options
-      # @option options [various] (keys vary by implementation - see specific transformer classes)
+      # @option options [Object] :* options vary by implementation - see specific transformer classes
       # @return [Boolean] true if transformation should be applied
+      # @note Options vary by implementation - see specific transformer classes for supported keys
       def should_transform?(options)
         true
       end

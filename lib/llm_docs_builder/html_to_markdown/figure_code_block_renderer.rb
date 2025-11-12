@@ -49,9 +49,12 @@ module LlmDocsBuilder
 
       private
 
-      # @return [Nokogiri::XML::Node] the figure element being processed
-      # @return [Proc] callable for collapsing inline content
-      # @return [Proc] callable for calculating fence length
+      # @!attribute [r] element
+      #   @return [Nokogiri::XML::Node] the figure element being processed
+      # @!attribute [r] inline_collapser
+      #   @return [Proc] callable for collapsing inline content
+      # @!attribute [r] fence_calculator
+      #   @return [Proc] callable for calculating fence length
       attr_reader :element, :inline_collapser, :fence_calculator
 
       # Extract caption text from figcaption element

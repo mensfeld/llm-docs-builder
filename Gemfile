@@ -7,8 +7,8 @@ gemspec
 group :development do
   gem 'pry'
   gem 'pry-byebug'
+  gem 'yard-lint'
 end
 
 group :test do
-  gem 'yard-lint'
 end
