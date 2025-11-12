@@ -9,7 +9,10 @@ module LlmDocsBuilder
   # Provides common functionality needed by multiple commands (transform, compare)
   # including strict scheme validation, redirect handling and sensible timeouts.
   class UrlFetcher
+    # Default user agent string for HTTP requests
     DEFAULT_USER_AGENT = 'llm-docs-builder/1.0 (+https://github.com/mensfeld/llm-docs-builder)'
+
+    # Maximum number of redirects to follow
     MAX_REDIRECTS = 10
 
     # @param user_agent [String] HTTP user agent header value
@@ -71,6 +74,11 @@ module LlmDocsBuilder
 
     private
 
+    # Validate and parse URL string
+    #
+    # @param url_string [String] URL to validate
+    # @return [URI::HTTP, URI::HTTPS] parsed URI
+    # @raise [Errors::GenerationError] if URL is invalid or unsupported
     def validate_and_parse_url(url_string)
       uri = URI.parse(url_string)
 
@@ -96,6 +104,12 @@ module LlmDocsBuilder
       )
     end
 
+    # Convert redirect location to absolute URL
+    #
+    # @param base_uri [URI] base URI
+    # @param location [String] redirect location
+    # @return [String] absolute redirect URL
+    # @raise [Errors::GenerationError] if location is invalid
     def absolute_redirect_url(base_uri, location)
       raise(
         Errors::GenerationError,
@@ -110,6 +124,10 @@ module LlmDocsBuilder
       )
     end
 
+    # Log redirect if verbose mode enabled
+    #
+    # @param url [String] redirect URL
+    # @return [void]
     def log_redirect(url)
       return unless @verbose
 

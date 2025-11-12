@@ -53,6 +53,39 @@ module LlmDocsBuilder
     # defaults for any options not specified via CLI.
     #
     # @param options [Hash] CLI options hash
+    # @option options [String] :docs path to documentation directory or file
+    # @option options [String] :base_url base URL for expanding relative links
+    # @option options [String] :title project title
+    # @option options [String] :description project description
+    # @option options [String] :body additional body content
+    # @option options [String] :output output file path
+    # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
+    # @option options [Boolean] :remove_comments remove HTML comments
+    # @option options [Boolean] :normalize_whitespace normalize whitespace
+    # @option options [Boolean] :remove_badges remove badge images
+    # @option options [Boolean] :remove_frontmatter remove YAML/TOML frontmatter
+    # @option options [Boolean] :verbose enable verbose output
+    # @option options [String] :suffix suffix for transformed files
+    # @option options [Array<String>] :excludes glob patterns for files to exclude
+    # @option options [Boolean] :bulk enable bulk transformation mode
+    # @option options [Boolean] :include_hidden include hidden files
+    # @option options [Boolean] :remove_code_examples remove code blocks
+    # @option options [Boolean] :remove_images remove image syntax
+    # @option options [Boolean] :simplify_links simplify link text
+    # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+    # @option options [Boolean] :generate_toc generate table of contents
+    # @option options [String] :custom_instruction custom instruction text
+    # @option options [Boolean] :remove_stopwords remove common stopwords
+    # @option options [Boolean] :remove_duplicates remove duplicate paragraphs
+    # @option options [Boolean] :normalize_headings normalize heading hierarchy
+    # @option options [String] :heading_separator separator for heading paths
+    # @option options [Boolean] :include_metadata include metadata in output
+    # @option options [Boolean] :include_tokens include token counts
+    # @option options [Boolean] :include_timestamps include timestamps
+    # @option options [Boolean] :include_priority include priority metadata
+    # @option options [Boolean] :calculate_compression calculate compression ratios
+    # @option options [String] :content raw markdown content
+    # @option options [String] :source_url source URL for content
     # @return [Hash] merged configuration with CLI overrides applied
     def merge_with_options(options)
       # CLI options override config file, config file provides defaults

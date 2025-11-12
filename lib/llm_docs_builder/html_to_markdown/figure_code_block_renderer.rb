@@ -1,19 +1,36 @@
 # frozen_string_literal: true
 
 module LlmDocsBuilder
+  # Provides HTML to Markdown conversion functionality
+  #
+  # This module contains specialized renderers for converting HTML elements
+  # to Markdown format, with support for complex structures like tables,
+  # figures, and syntax-highlighted code blocks.
+  #
+  # @api private
   module HtmlToMarkdown
     # Converts <figure> elements that actually contain syntax-highlighted code back into fenced Markdown.
     class FigureCodeBlockRenderer
+      # Generic CSS class names commonly used for code formatting that should be ignored
       GENERIC_CODE_CLASSES = %w[highlight code main gutter numbers line-numbers line-number line wrap table].freeze
 
+      # @return [Nokogiri::XML::Node, nil] the identified code block node
       attr_reader :code_block_node
 
+      # Initialize a new figure code block renderer
+      #
+      # @param element [Nokogiri::XML::Node] the figure element to render
+      # @param inline_collapser [Proc] callable for collapsing inline content
+      # @param fence_calculator [Proc] callable for calculating fence length
       def initialize(element, inline_collapser:, fence_calculator:)
         @element = element
         @inline_collapser = inline_collapser
         @fence_calculator = fence_calculator
       end
 
+      # Render the figure as a fenced code block
+      #
+      # @return [String, nil] markdown fenced code block or nil if not a code figure
       def render
         @code_block_node = nil
         return unless code_figure?
@@ -32,8 +49,17 @@ module LlmDocsBuilder
 
       private
 
+      # @!attribute [r] element
+      #   @return [Nokogiri::XML::Node] the figure element being processed
+      # @!attribute [r] inline_collapser
+      #   @return [Proc] callable for collapsing inline content
+      # @!attribute [r] fence_calculator
+      #   @return [Proc] callable for calculating fence length
       attr_reader :element, :inline_collapser, :fence_calculator
 
+      # Extract caption text from figcaption element
+      #
+      # @return [String, nil] caption text or nil if no caption
       def caption_text
         caption_node = element.at_css('figcaption')
         return if caption_node.nil?
@@ -41,10 +67,16 @@ module LlmDocsBuilder
         inline_collapser.call(caption_node)
       end
 
+      # Check if figure element represents a code block
+      #
+      # @return [Boolean] true if figure contains code
       def code_figure?
         class_tokens(element).any? { |token| token.casecmp('code').zero? }
       end
 
+      # Extract code lines from figure element
+      #
+      # @return [Array<String>] array of code lines
       def extract_figure_code_lines
         pre = element.at_css('td.main pre') ||
               element.at_css('td:not(.line-numbers) pre') ||
@@ -64,12 +96,20 @@ module LlmDocsBuilder
         clean_code_lines(lines)
       end
 
+      # Extract text from a single code line node
+      #
+      # @param line_node [Nokogiri::XML::Element] line element
+      # @return [String] extracted text
       def extract_code_line_text(line_node)
         text = line_node.xpath('.//text()').map(&:text).join
         text = text.tr("\u00a0", ' ')
         text.gsub(/\r\n?/, '').rstrip
       end
 
+      # Clean and normalize code lines
+      #
+      # @param lines [Array<String>] raw code lines
+      # @return [Array<String>] cleaned lines
       def clean_code_lines(lines)
         sanitized = lines.map { |line| line.to_s.gsub(/\r\n?/, "\n") }
         sanitized.shift while sanitized.first&.strip&.empty?
@@ -77,6 +117,9 @@ module LlmDocsBuilder
         sanitized
       end
 
+      # Detect programming language from element attributes
+      #
+      # @return [String, nil] detected language or nil
       def detect_code_language
         candidates = [
           element.at_css('code'),
@@ -95,6 +138,10 @@ module LlmDocsBuilder
         nil
       end
 
+      # Extract language identifier from node attributes
+      #
+      # @param node [Nokogiri::XML::Element] element to examine
+      # @return [String, nil] language identifier or nil
       def extract_language_from_node(node)
         %w[data-language data-lang lang].each do |attr|
           value = node[attr]
@@ -122,6 +169,10 @@ module LlmDocsBuilder
         nil
       end
 
+      # Extract class tokens from node's class attribute
+      #
+      # @param node [Nokogiri::XML::Element] element to examine
+      # @return [Array<String>] array of class names
       def class_tokens(node)
         (node['class'] || '').split(/\s+/).reject(&:empty?)
       end

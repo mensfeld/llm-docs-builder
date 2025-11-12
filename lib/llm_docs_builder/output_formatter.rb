@@ -30,7 +30,7 @@ module LlmDocsBuilder
 
     # Format number with comma separators for readability
     #
-    # @param number [Integer] number to format
+    # @param number [Integer] integer value
     # @return [String] formatted number with commas
     #
     # @example

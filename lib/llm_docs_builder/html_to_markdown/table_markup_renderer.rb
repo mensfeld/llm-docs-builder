@@ -4,12 +4,19 @@ module LlmDocsBuilder
   module HtmlToMarkdown
     # Handles conversion of HTML table markup to Markdown table format
     class TableMarkupRenderer
+      # Initialize a new table markup renderer
+      #
+      # @param inline_collapser [Proc] callable for collapsing inline content
+      # @param block_renderer [Proc] callable for rendering block elements
       def initialize(inline_collapser:, block_renderer:)
         @inline_collapser = inline_collapser
         @block_renderer = block_renderer
       end
 
       # Main entry point for rendering HTML tables to Markdown
+      #
+      # @param table_node [Nokogiri::XML::Node] the HTML table element to convert
+      # @return [String] markdown table or HTML if table cannot be converted
       def render_table(table_node)
         return table_node.to_html if table_contains_nested_tables?(table_node)
         return render_table_with_rowspan_cells(table_node) if table_contains_rowspan_cells?(table_node)
@@ -71,6 +78,10 @@ module LlmDocsBuilder
 
       private
 
+      # Render table that contains rowspan cells
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [String] markdown table
       def render_table_with_rowspan_cells(table_node)
         caption_text = caption_text_for(table_node)
 
@@ -124,6 +135,10 @@ module LlmDocsBuilder
         with_optional_caption(caption_text, table_markdown)
       end
 
+      # Render table that contains colspan cells
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [String] markdown table
       def render_table_with_colspan_cells(table_node)
         caption_text = caption_text_for(table_node)
 
@@ -168,6 +183,11 @@ module LlmDocsBuilder
         with_optional_caption(caption_text, table_markdown)
       end
 
+      # Expand row cells accounting for rowspan effects
+      #
+      # @param cells [Array<Nokogiri::XML::Element>] cell elements
+      # @param span_slots [Array<Integer>] tracking array for rowspan state
+      # @return [Array<String>] expanded cell values
       def expand_row_for_rowspans(cells, span_slots)
         row_cells = []
         column = 0
@@ -205,6 +225,10 @@ module LlmDocsBuilder
         row_cells
       end
 
+      # Format row text for rowspan tables
+      #
+      # @param cells [Array<String>] cell values
+      # @return [String] formatted row text
       def format_rowspan_row_text(cells)
         values =
           if cells.is_a?(Array)
@@ -250,6 +274,10 @@ module LlmDocsBuilder
         lines.join("\n")
       end
 
+      # Render individual table cell content
+      #
+      # @param cell [Nokogiri::XML::Element] cell element
+      # @return [String] rendered cell content
       def render_table_cell(cell)
         content = @block_renderer.call(cell.children, depth: 0)
         return '' if content.nil?
@@ -260,6 +288,10 @@ module LlmDocsBuilder
         @inline_collapser.call(cell)
       end
 
+      # Extract data from table cell value
+      #
+      # @param value [String] cell value
+      # @return [Hash] cell data with lines and pipe_split flag
       def table_cell_data(value)
         text = value.to_s
         return { lines: [''], pipe_split: false } if text.empty?
@@ -282,6 +314,10 @@ module LlmDocsBuilder
         { lines: lines, pipe_split: pipe_split }
       end
 
+      # Split table cell line into segments
+      #
+      # @param line [String] cell line text
+      # @return [Array<Array<String>, Boolean>] segments and split flag
       def split_table_cell_line(line)
         return [[''], false] if line.nil? || line.empty?
 
@@ -291,6 +327,11 @@ module LlmDocsBuilder
         [[sanitized_line], false]
       end
 
+      # Sanitize table cell line text
+      #
+      # @param text [String] cell text
+      # @param escape_pipes [Boolean] whether to escape pipe characters
+      # @return [String] sanitized text
       def sanitize_table_cell_line(text, escape_pipes: false)
         raw = text.to_s
         return '' if raw.empty?
@@ -345,22 +386,38 @@ module LlmDocsBuilder
         sanitized.strip
       end
 
+      # Check if table contains nested tables
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [Boolean] true if nested tables exist
       def table_contains_nested_tables?(table_node)
         table_node.css('table').any?
       end
 
+      # Check if table contains rowspan cells
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [Boolean] true if rowspan cells exist
       def table_contains_rowspan_cells?(table_node)
         table_node.css('td[rowspan], th[rowspan]').any? do |cell|
           span_value_significant?(cell['rowspan'])
         end
       end
 
+      # Check if table contains colspan cells
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [Boolean] true if colspan cells exist
       def table_contains_colspan_cells?(table_node)
         table_node.css('td[colspan], th[colspan]').any? do |cell|
           span_value_significant?(cell['colspan'])
         end
       end
 
+      # Check if span value is significant (not 1 or empty)
+      #
+      # @param raw_value [String] span attribute value
+      # @return [Boolean] true if span is significant
       def span_value_significant?(raw_value)
         return false if raw_value.nil?
 
@@ -374,6 +431,11 @@ module LlmDocsBuilder
         integer <= 0 || value != integer.to_s
       end
 
+      # Pad table row to specified length
+      #
+      # @param values [Array<String>] row values
+      # @param length [Integer] desired length
+      # @return [Array<String>] padded row
       def pad_table_row(values, length)
         padded = values.nil? ? [] : values.dup
         padded = [] if padded.nil?
@@ -383,6 +445,11 @@ module LlmDocsBuilder
         padded[0, length]
       end
 
+      # Compute column specifications (width and padding)
+      #
+      # @param header_cells [Array<Hash>] header cell data
+      # @param data_cells [Array<Array<Hash>>] data cell data
+      # @return [Array<Hash>] column specifications
       def compute_table_column_specs(header_cells, data_cells)
         column_count = header_cells.length
 
@@ -410,6 +477,11 @@ module LlmDocsBuilder
         end
       end
 
+      # Format table row with column specifications
+      #
+      # @param row_cells [Array<Hash>] cell data
+      # @param column_specs [Array<Hash>] column specifications
+      # @return [Array<String>] formatted row lines
       def format_table_row(row_cells, column_specs)
         row_height = row_cells.map { |cell| cell[:lines].length }.max || 0
         row_height = 1 if row_height.zero?
@@ -437,16 +509,30 @@ module LlmDocsBuilder
         end
       end
 
+      # Pad table cell line to specified width
+      #
+      # @param text [String] cell text
+      # @param width [Integer] target width
+      # @return [String] padded text
       def pad_table_cell_line(text, width)
         value = text.to_s
         width <= 0 ? value : value.ljust(width)
       end
 
+      # Render table separator line
+      #
+      # @param column_widths [Array<Integer>] column widths
+      # @return [String] separator line
       def render_table_separator(column_widths)
         "|#{column_widths.map { |width| '-' * [width + 2, 3].max }.join('|')}|"
       end
 
       # Table helpers
+
+      # Extract caption text from table
+      #
+      # @param table_node [Nokogiri::XML::Element] table element
+      # @return [String, nil] caption text or nil
       def caption_text_for(table_node)
         caption = table_node.at_css('caption')
         text = @inline_collapser.call(caption).strip if caption
@@ -454,21 +540,39 @@ module LlmDocsBuilder
         text
       end
 
+      # Prepend caption to table markdown if present
+      #
+      # @param caption_text [String, nil] caption text
+      # @param table_markdown [String] table markdown
+      # @return [String] table with optional caption
       def with_optional_caption(caption_text, table_markdown)
         caption_text ? "#{caption_text}\n\n#{table_markdown}" : table_markdown
       end
 
+      # Find index of header row
+      #
+      # @param rows [Array<Hash>] row data
+      # @param default [Integer, nil] default index if no header found
+      # @return [Integer, nil] header row index
       def find_header_index(rows, default: nil)
         idx = rows.find_index { |row| row[:header] }
         idx.nil? ? default : idx
       end
 
+      # Format row content with borders
+      #
+      # @param content [String] row content
+      # @return [String] bordered row
       def format_bordered_row_content(content)
         value = content.to_s
         value = ' ' if value.empty?
         "| #{value} |"
       end
 
+      # Calculate column widths from cell data
+      #
+      # @param cells [Array<Hash>] cell data
+      # @return [Array<Integer>] column widths
       def column_widths_from_cells(cells)
         cells.map do |cell|
           width = cell[:lines].map(&:length).max || 0
@@ -476,6 +580,10 @@ module LlmDocsBuilder
         end
       end
 
+      # Parse integer from string value
+      #
+      # @param raw [String, nil] raw value
+      # @return [Integer, nil] parsed integer or nil
       def parse_integer(raw)
         return nil if raw.nil?
 

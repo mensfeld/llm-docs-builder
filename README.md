@@ -68,6 +68,8 @@ llm-docs-builder transform --url https://yoursite.com/docs/page.html
 llm-docs-builder bulk-transform --config llm-docs-builder.yml
 ```
 
+**HTML to Markdown Conversion:** The transformer automatically detects and converts HTML content to clean markdown format. This works seamlessly with both local files and remote URLs, converting HTML tables, code blocks, and other elements into their markdown equivalents.
+
 ## Installation
 
 ### Docker (Recommended)
@@ -84,6 +86,20 @@ gem install llm-docs-builder
 ```
 
 ## Features
+
+### Automatic HTML to Markdown Conversion
+
+The tool automatically detects and converts HTML content to clean markdown:
+- **HTML Tables** → Markdown tables
+- **HTML Code Blocks** → Fenced code blocks
+- **Figures & Captions** → Clean markdown equivalents
+- **Seamless Integration** - Works with local files and remote URLs without special configuration
+
+```bash
+# Transform HTML content automatically
+llm-docs-builder transform --docs page-with-html.md
+llm-docs-builder transform --url https://site.com/docs/api.html
+```
 
 ### Measure and Compare
 

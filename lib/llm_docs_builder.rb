@@ -11,6 +11,13 @@ loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect('cli' => 'CLI')
 loader.setup
 
+# Build and optimize documentation for LLMs
+#
+# This gem provides tools for generating llms.txt files and transforming markdown
+# documentation to be AI-friendly. It can reduce token consumption by 67-95% while
+# preserving essential documentation content.
+#
+# @api public
 module LlmDocsBuilder
   class << self
     # Generates llms.txt from existing markdown documentation

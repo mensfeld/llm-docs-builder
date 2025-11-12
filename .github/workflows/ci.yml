@@ -54,6 +54,18 @@ jobs:
           GITHUB_COVERAGE: ${{ matrix.coverage }}
         run: bin/rspecs
 
+  yard-lint:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Run yard-lint
+        run: bundle exec yard-lint lib/
 
   ci-success:
     name: CI Success
@@ -61,6 +73,7 @@ jobs:
     if: always()
     needs:
       - specs
+      - yard-lint
     steps:
       - name: Check all jobs passed
         if: |
