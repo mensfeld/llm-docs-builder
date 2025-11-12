@@ -4,6 +4,9 @@ require 'zeitwerk'
 require 'pathname'
 require 'find'
 
+autoload(:Nokogiri, 'nokogiri')
+autoload(:CGI, 'cgi')
+
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect('cli' => 'CLI')
 loader.setup
