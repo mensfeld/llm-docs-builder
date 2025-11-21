@@ -77,7 +77,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  bundler (~> 2.0)
+  bundler
   llm-docs-builder!
   pry
   rake (~> 13.0)
