@@ -9,6 +9,3 @@ group :development do
   gem 'pry-byebug'
   gem 'yard-lint'
 end
-
-group :test do
-end
