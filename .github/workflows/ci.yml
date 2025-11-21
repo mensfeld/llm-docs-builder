@@ -35,17 +35,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove Gemfile.lock for Ruby preview versions
+        if: contains(matrix.ruby, 'preview')
+        run: rm -f Gemfile.lock
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
           bundler: 'latest'
-          cache-version: 1
-
-      - name: Remove Gemfile.lock for Ruby preview versions
-        if: contains(matrix.ruby, 'preview')
-        run: rm -f Gemfile.lock
 
       - name: Install latest bundler
         run: |
