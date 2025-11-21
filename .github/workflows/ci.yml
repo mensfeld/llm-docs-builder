@@ -42,6 +42,10 @@ jobs:
           bundler-cache: true
           bundler: 'latest'
 
+      - name: Remove Gemfile.lock for Ruby preview versions
+        if: contains(matrix.ruby, 'preview')
+        run: rm -f Gemfile.lock
+
       - name: Install latest bundler
         run: |
           gem install bundler --no-document
