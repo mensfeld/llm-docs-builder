@@ -41,6 +41,7 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
           bundler: 'latest'
+          cache-version: 1
 
       - name: Remove Gemfile.lock for Ruby preview versions
         if: contains(matrix.ruby, 'preview')
