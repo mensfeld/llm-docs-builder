@@ -72,8 +72,8 @@ module LlmDocsBuilder
     # Removes common English stopwords that don't carry significant meaning.
     # Preserves code blocks, inline code, and technical terms.
     #
-    # WARNING: This is an aggressive optimization that may affect readability.
-    # Use with caution and test results carefully.
+    # @deprecated This is an aggressive optimization that may affect readability.
+    #   Use with caution and test results carefully.
     #
     # @param content [String] text to process
     # @return [String] text with stopwords removed

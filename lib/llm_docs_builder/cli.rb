@@ -399,7 +399,6 @@ module LlmDocsBuilder
     end
 
     # Display version information
-    #
     def show_version
       puts "llm-docs-builder version #{LlmDocsBuilder::VERSION}"
     end
