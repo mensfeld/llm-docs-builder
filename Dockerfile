@@ -4,7 +4,7 @@
 # Creates a minimal Docker image (~50MB) for running the CLI without Ruby installation
 
 # Stage 1: Builder
-FROM ruby:3.4-alpine AS builder
+FROM ruby:4.0-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -36,7 +36,7 @@ RUN bundle config set --local without 'development test' && \
 RUN gem build llm-docs-builder.gemspec
 
 # Stage 2: Runtime
-FROM ruby:3.4-alpine
+FROM ruby:4.0-alpine
 
 # Install runtime dependencies only
 RUN apk add --no-cache \
