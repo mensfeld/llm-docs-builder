@@ -38,15 +38,22 @@ RUN gem build llm-docs-builder.gemspec
 # Stage 2: Runtime
 FROM ruby:4.0-alpine
 
-# Install runtime dependencies only
+# Install runtime dependencies and build tools for native extensions
 RUN apk add --no-cache \
     ca-certificates \
-    tzdata
+    tzdata \
+    libxml2 \
+    libxslt
 
-# Copy built gem and install it
+# Copy built gem and install it (needs build tools for nokogiri)
 COPY --from=builder /gem/llm-docs-builder-*.gem /tmp/
-RUN gem install /tmp/llm-docs-builder-*.gem --no-document && \
-    rm /tmp/llm-docs-builder-*.gem
+RUN apk add --no-cache --virtual .build-deps \
+    build-base \
+    libxml2-dev \
+    libxslt-dev && \
+    gem install /tmp/llm-docs-builder-*.gem --no-document && \
+    rm /tmp/llm-docs-builder-*.gem && \
+    apk del .build-deps
 
 # Set working directory for user files
 WORKDIR /workspace
