@@ -36,12 +36,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Force Ruby platform for native gems
-        if: matrix.force_ruby_platform == 'true'
-        run: bundle config set force_ruby_platform true
-
       - name: Set up Ruby
         uses: ruby/setup-ruby@ae195bbe749a7cef685ac729197124a48305c1cb # v1.276.0
+        env:
+          BUNDLE_FORCE_RUBY_PLATFORM: ${{ matrix.force_ruby_platform }}
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -65,10 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-      - name: Force Ruby platform for native gems
-        run: bundle config set force_ruby_platform true
       - name: Set up Ruby
         uses: ruby/setup-ruby@ae195bbe749a7cef685ac729197124a48305c1cb # v1.276.0
+        env:
+          BUNDLE_FORCE_RUBY_PLATFORM: 'true'
         with:
           ruby-version: '4.0.0'
           bundler-cache: true
