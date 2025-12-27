@@ -23,21 +23,17 @@ jobs:
       fail-fast: false
       matrix:
         ruby:
-          - '4.0.0-preview2'
+          - '4.0'
           - '3.4'
           - '3.3'
           - '3.2'
         include:
-          - ruby: '3.4'
+          - ruby: '4.0'
             coverage: 'true'
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0
-
-      - name: Remove Gemfile.lock for Ruby preview versions
-        if: contains(matrix.ruby, 'preview')
-        run: rm -f Gemfile.lock
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@ae195bbe749a7cef685ac729197124a48305c1cb # v1.276.0
@@ -67,7 +63,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@ae195bbe749a7cef685ac729197124a48305c1cb # v1.276.0
         with:
-          ruby-version: '3.4.8'
+          ruby-version: '4.0.0'
           bundler-cache: true
       - name: Run yard-lint
         run: bundle exec yard-lint lib/
