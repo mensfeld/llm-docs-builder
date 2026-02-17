@@ -7,7 +7,7 @@
   "includePaths": [
     ".ruby-version",
     "Gemfile",
-    "Gemfile.lint",
+    "llm-docs-builder.gemspec",
     ".github/workflows/**"
   ],
   "ignorePaths": [
