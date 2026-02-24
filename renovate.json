@@ -9,7 +9,8 @@
     "Gemfile",
     "llm-docs-builder.gemspec",
     ".github/workflows/**",
-    "Dockerfile*"
+    "Dockerfile*",
+    "package.json"
   ],
   "ignorePaths": [
     "spec/integrations"
