@@ -11,38 +11,25 @@ Style/StringLiterals:
 
 Layout/LineLength:
   Max: 120
-  Exclude:
-    - 'lib/llms_txt/cli.rb'
 
 Metrics/ClassLength:
   Max: 200
-  Exclude:
-    - 'lib/llms_txt/cli.rb'
 
 Metrics/MethodLength:
   Max: 35
-  Exclude:
-    - 'lib/llms_txt/cli.rb'
 
 Metrics/AbcSize:
   Max: 40
-  Exclude:
-    - 'lib/llms_txt/cli.rb'
 
 Metrics/CyclomaticComplexity:
   Max: 15
-  Exclude:
-    - 'lib/llms_txt/config.rb'
 
 Metrics/PerceivedComplexity:
   Max: 15
-  Exclude:
-    - 'lib/llms_txt/config.rb'
 
 Metrics/BlockLength:
   Exclude:
     - 'spec/**/*'
-    - 'lib/llms_txt/cli.rb'
     - '*.gemspec'
 
 Style/FrozenStringLiteralComment:
