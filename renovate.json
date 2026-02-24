@@ -8,7 +8,8 @@
     ".ruby-version",
     "Gemfile",
     "llm-docs-builder.gemspec",
-    ".github/workflows/**"
+    ".github/workflows/**",
+    "Dockerfile*"
   ],
   "ignorePaths": [
     "spec/integrations"
