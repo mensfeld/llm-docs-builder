@@ -36,5 +36,8 @@
       ],
       "groupName": "ruby setup"
     }
+  ],
+  "labels": [
+    "dependencies"
   ]
 }
