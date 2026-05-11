@@ -2,5 +2,5 @@
 
 module LlmDocsBuilder
   # Current version of the LlmDocsBuilder gem
-  VERSION = '0.12.0'
+  VERSION = '0.13.0'
 end
