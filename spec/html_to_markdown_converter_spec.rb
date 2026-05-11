@@ -920,5 +920,62 @@ RSpec.describe LlmDocsBuilder::HtmlToMarkdownConverter do
         ````
       MARKDOWN
     end
+
+    it 'adjusts heading levels based on section nesting depth' do
+      html = <<~HTML
+        <section>
+          <h2>Using Virtual Partitions</h2>
+          <p>Top-level section content.</p>
+          <section>
+            <h2>Available Options</h2>
+            <p>Nested section content.</p>
+          </section>
+          <section>
+            <h2>Configuration</h2>
+            <p>Another nested section.</p>
+            <section>
+              <h2>Advanced</h2>
+              <p>Deeply nested section.</p>
+            </section>
+          </section>
+        </section>
+        <section>
+          <h2>Another Top Section</h2>
+          <p>Sibling section content.</p>
+        </section>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('## Using Virtual Partitions')
+      expect(markdown).to include('### Available Options')
+      expect(markdown).to include('### Configuration')
+      expect(markdown).to include('#### Advanced')
+      expect(markdown).to include('## Another Top Section')
+    end
+
+    it 'preserves heading levels when no section nesting is present' do
+      html = '<h1>Title</h1><p>text</p><h2>Section</h2><p>text</p><h3>Sub</h3>'
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('# Title')
+      expect(markdown).to include('## Section')
+      expect(markdown).to include('### Sub')
+    end
+
+    it 'keeps sibling sections at the same heading level' do
+      html = <<~HTML
+        <section><h2>A</h2><p>text</p></section>
+        <section><h2>B</h2><p>text</p></section>
+        <section><h2>C</h2><p>text</p></section>
+      HTML
+
+      markdown = converter.convert(html)
+
+      expect(markdown).to include('## A')
+      expect(markdown).to include('## B')
+      expect(markdown).to include('## C')
+    end
   end
 end

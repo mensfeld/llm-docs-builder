@@ -51,24 +51,36 @@ module LlmDocsBuilder
           next line if in_code_block
 
           # Match markdown headings (1-6 hash symbols followed by space and text)
-          heading_match = line.match(/^(#+)\s+(.+)$/)
+          # Supports optional ATX closing hashes (e.g., "## Title ##")
+          heading_match = line.match(/^(#+)\s+(.+?)(?:\s+#+)?\s*$/)
 
-          if heading_match && heading_match[1].count('#').between?(1, 6)
-            level = heading_match[1].count('#')
+          if heading_match && heading_match[1].length.between?(1, 6)
+            level = heading_match[1].length
             title = heading_match[2].strip
 
             # Update heading stack to current level
             heading_stack = heading_stack[0...level - 1]
-            heading_stack << title
+
+            # Compute the effective heading level. When same-level headings
+            # are nested under a parent (e.g., two consecutive ## headings),
+            # the child must receive a deeper markdown level so the output
+            # hierarchy is correct.
+            effective_level = if heading_stack.empty?
+                               level
+                             else
+                               [heading_stack.last[:effective_level] + 1, level].max
+                             end
+            effective_level = [effective_level, 6].min
+
+            heading_stack << { title: title, effective_level: effective_level }
 
             # Build hierarchical heading
             if level == 1
               # H1 stays as-is (top level)
               line
             else
-              # H2+ gets parent context
-              hierarchical_title = heading_stack.join(separator)
-              "#{'#' * level} #{hierarchical_title}\n"
+              hierarchical_title = heading_stack.map { |e| e[:title] }.join(separator)
+              "#{'#' * effective_level} #{hierarchical_title}\n"
             end
           else
             line

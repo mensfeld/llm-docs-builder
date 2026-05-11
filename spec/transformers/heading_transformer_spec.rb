@@ -303,6 +303,56 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
         expect(result).to include('# Comment')
         expect(result).to include('# Another comment')
       end
+
+      it 'adjusts heading level when same-level headings nest under parent' do
+        content = <<~MD
+          ## Using Virtual Partitions
+          Some content.
+          ## Available Options
+          More content.
+          ## Configuration
+          Final content.
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('## Using Virtual Partitions')
+        expect(result).to include('### Using Virtual Partitions / Available Options')
+        expect(result).to include('### Using Virtual Partitions / Configuration')
+      end
+
+      it 'adjusts nested heading levels without H1' do
+        content = <<~MD
+          ## Parent
+          ### Child A
+          ## Sibling
+          ### Child B
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('## Parent')
+        expect(result).to include('### Parent / Child A')
+        expect(result).to include('### Parent / Sibling')
+        expect(result).to include('#### Parent / Sibling / Child B')
+      end
+
+      it 'strips ATX closing hashes from headings' do
+        content = <<~MD
+          # API Reference #
+          ## Authentication ##
+          ### Keys ###
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# API Reference #')
+        expect(result).to include('## API Reference / Authentication')
+        expect(result).to include('### API Reference / Authentication / Keys')
+        # Ensure trailing hashes are not in the hierarchical title
+        expect(result).not_to match(/Authentication ##/)
+        expect(result).not_to match(/Keys ##/)
+      end
     end
 
     context 'when content has no headings' do

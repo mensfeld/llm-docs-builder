@@ -120,7 +120,8 @@ module LlmDocsBuilder
         text = collapsed_inline_for(element)
         return '' if text.empty?
 
-        "#{'#' * HEADING_LEVEL[tag]} #{text}"
+        effective_level = effective_heading_level(element, HEADING_LEVEL[tag])
+        "#{'#' * effective_level} #{text}"
       when 'blockquote'
         render_blockquote(element)
       when 'pre'
@@ -639,6 +640,39 @@ module LlmDocsBuilder
       flush_pending.call
 
       out.join("\n\n")
+    end
+
+    # Compute effective heading level adjusted for section nesting
+    #
+    # When HTML uses nested <section> elements with same-level headings,
+    # the inner headings should receive deeper markdown levels. The offset
+    # is calculated as the difference between the actual section ancestor
+    # count and the expected count for that heading tag (h1 expects 0
+    # sections, h2 expects 1, etc.), capped at heading level 6.
+    #
+    # @param element [Nokogiri::XML::Element] heading element
+    # @param base_level [Integer] HTML heading level (1-6)
+    # @return [Integer] effective markdown heading level (1-6)
+    def effective_heading_level(element, base_level)
+      depth = section_ancestor_count(element)
+      offset = [depth - (base_level - 1), 0].max
+      [base_level + offset, 6].min
+    end
+
+    # Count the number of <section> ancestor elements
+    #
+    # @param element [Nokogiri::XML::Element]
+    # @return [Integer] number of section ancestors
+    def section_ancestor_count(element)
+      count = 0
+      node = element.parent
+
+      while node
+        count += 1 if node.element? && node.name.downcase == 'section'
+        node = node.parent
+      end
+
+      count
     end
 
     # Helpers
