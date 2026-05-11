@@ -51,15 +51,16 @@ module LlmDocsBuilder
           next line if in_code_block
 
           # Match markdown headings (1-6 hash symbols followed by space and text)
-          heading_match = line.match(/^(#+)\s+(.+)$/)
+          # Supports optional ATX closing hashes (e.g., "## Title ##")
+          heading_match = line.match(/^(#+)\s+(.+?)(?:\s+#+)?\s*$/)
 
-          if heading_match && heading_match[1].count('#').between?(1, 6)
-            level = heading_match[1].count('#')
+          if heading_match && heading_match[1].length.between?(1, 6)
+            level = heading_match[1].length
             title = heading_match[2].strip
 
-            # Update heading stack to current level
-            heading_stack = heading_stack[0...level - 1]
-            heading_stack << title
+            # Remove entries at or below current level, then add current heading
+            heading_stack.reject! { |entry| entry[:level] >= level }
+            heading_stack << { level: level, title: title }
 
             # Build hierarchical heading
             if level == 1
@@ -67,7 +68,7 @@ module LlmDocsBuilder
               line
             else
               # H2+ gets parent context
-              hierarchical_title = heading_stack.join(separator)
+              hierarchical_title = heading_stack.map { |e| e[:title] }.join(separator)
               "#{'#' * level} #{hierarchical_title}\n"
             end
           else

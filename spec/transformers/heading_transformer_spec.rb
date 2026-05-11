@@ -303,6 +303,59 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
         expect(result).to include('# Comment')
         expect(result).to include('# Another comment')
       end
+
+      it 'treats same-level headings without parent as siblings' do
+        content = <<~MD
+          ## Section A
+          Some content.
+          ## Section B
+          More content.
+          ## Section C
+          Final content.
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('## Section A')
+        expect(result).to include('## Section B')
+        expect(result).to include('## Section C')
+        expect(result).not_to include('Section A / Section B')
+        expect(result).not_to include('Section A / Section C')
+      end
+
+      it 'nests children under same-level parent without H1' do
+        content = <<~MD
+          ## Parent
+          ### Child A
+          ## Sibling
+          ### Child B
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('## Parent')
+        expect(result).to include('### Parent / Child A')
+        expect(result).to include('## Sibling')
+        expect(result).to include('### Sibling / Child B')
+        expect(result).not_to include('Parent / Sibling')
+      end
+
+      it 'strips ATX closing hashes from headings' do
+        content = <<~MD
+          # API Reference #
+          ## Authentication ##
+          ### Keys ###
+        MD
+
+        result = transformer.transform(content, options)
+
+        expect(result).to include('# API Reference #')
+        expect(result).to include('## API Reference / Authentication')
+        expect(result).to include('### API Reference / Authentication / Keys')
+        # Ensure trailing hashes are not in the hierarchical title
+        expect(result).not_to match(/Authentication ##/)
+        expect(result).not_to match(/Keys ##/)
+      end
     end
 
     context 'when content has no headings' do
