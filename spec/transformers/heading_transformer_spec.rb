@@ -304,26 +304,24 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
         expect(result).to include('# Another comment')
       end
 
-      it 'treats same-level headings without parent as siblings' do
+      it 'adjusts heading level when same-level headings nest under parent' do
         content = <<~MD
-          ## Section A
+          ## Using Virtual Partitions
           Some content.
-          ## Section B
+          ## Available Options
           More content.
-          ## Section C
+          ## Configuration
           Final content.
         MD
 
         result = transformer.transform(content, options)
 
-        expect(result).to include('## Section A')
-        expect(result).to include('## Section B')
-        expect(result).to include('## Section C')
-        expect(result).not_to include('Section A / Section B')
-        expect(result).not_to include('Section A / Section C')
+        expect(result).to include('## Using Virtual Partitions')
+        expect(result).to include('### Using Virtual Partitions / Available Options')
+        expect(result).to include('### Using Virtual Partitions / Configuration')
       end
 
-      it 'nests children under same-level parent without H1' do
+      it 'adjusts nested heading levels without H1' do
         content = <<~MD
           ## Parent
           ### Child A
@@ -335,9 +333,8 @@ RSpec.describe LlmDocsBuilder::Transformers::HeadingTransformer do
 
         expect(result).to include('## Parent')
         expect(result).to include('### Parent / Child A')
-        expect(result).to include('## Sibling')
-        expect(result).to include('### Sibling / Child B')
-        expect(result).not_to include('Parent / Sibling')
+        expect(result).to include('### Parent / Sibling')
+        expect(result).to include('#### Parent / Sibling / Child B')
       end
 
       it 'strips ATX closing hashes from headings' do
