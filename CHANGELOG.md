@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.0 (2026-05-11)
+- [Breaking] Dropped Ruby 3.2 support. Minimum required Ruby version is now 3.3.
+
 ## 0.12.0 (2025-11-12)
 - [Feature] **HTML to Markdown Reverse Converter** — Added support for converting HTML content to markdown format.
   - Enables processing of HTML documentation sources
