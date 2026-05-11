@@ -2,6 +2,12 @@
 
 ## 0.13.0 (2026-05-11)
 - [Breaking] Dropped Ruby 3.2 support. Minimum required Ruby version is now 3.3.
+- [Fix] **Heading Nesting in Normalize Mode** — Fixed `normalize_headings` producing incorrect heading levels when same-level headings are nested under a parent.
+  - Consecutive same-level headings (e.g., two `##` headings) now correctly adjust the child's markdown level to be deeper than the parent's (e.g., `##` → `###`)
+  - Effective level formula: `max(parent_effective_level + 1, original_level)`
+  - ATX closing hashes (`## Title ##`) are now stripped from titles before building hierarchical paths
+- [Fix] **HTML-to-Markdown Section Nesting** — Headings inside nested `<section>` elements now receive adjusted markdown levels based on section nesting depth.
+  - `<h2>` inside a nested `<section>` under another `<section>` with its own `<h2>` is now correctly rendered as `###` instead of `##`
 
 ## 0.12.0 (2025-11-12)
 - [Feature] **HTML to Markdown Reverse Converter** — Added support for converting HTML content to markdown format.
