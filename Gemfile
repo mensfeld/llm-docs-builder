@@ -8,3 +8,7 @@ group :development do
   gem 'pry'
   gem 'yard-lint'
 end
+
+group :test do
+  gem 'warning'
+end
