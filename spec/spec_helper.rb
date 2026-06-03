@@ -13,8 +13,6 @@ end
 Warning.process do |warning|
   next unless warning.include?(Dir.pwd)
   next if warning.include?('_spec')
-  next if warning.include?('previous definition of')
-  next if warning.include?('method redefined')
   next if warning.include?('vendor/')
   next if warning.include?('bundle/')
   next if warning.include?('.bundle/')
