@@ -1,5 +1,8 @@
 # Changelog
 
+## [Unreleased]
+- [Enhancement] Add Ruby warning category opt-in to test helpers
+
 ## 0.13.0 (2026-05-11)
 - [Breaking] Dropped Ruby 3.2 support. Minimum required Ruby version is now 3.3.
 - [Fix] **Heading Nesting in Normalize Mode** — Fixed `normalize_headings` producing incorrect heading levels when same-level headings are nested under a parent.

@@ -1,5 +1,26 @@
 # frozen_string_literal: true
 
+Warning[:performance] = true if RUBY_VERSION >= '3.3'
+Warning[:deprecated] = true
+$VERBOSE = true
+
+if Warning.respond_to?(:categories)
+  (Warning.categories - %i[deprecated experimental]).each { |cat| Warning[cat] = true }
+end
+
+require 'warning'
+
+Warning.process do |warning|
+  next unless warning.include?(Dir.pwd)
+  next if warning.include?('_spec')
+  next if warning.include?('previous definition of')
+  next if warning.include?('method redefined')
+  next if warning.include?('vendor/')
+  next if warning.include?('bundle/')
+  next if warning.include?('.bundle/')
+  raise "Warning in your code: #{warning}"
+end
+
 require 'bundler/setup'
 require 'llm_docs_builder'
 require 'simplecov'
