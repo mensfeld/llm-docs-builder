@@ -75,7 +75,7 @@ GEM
     unicode-emoji (4.2.0)
     warning (1.6.0)
     yard (0.9.44)
-    yard-lint (1.8.0)
+    yard-lint (1.9.0)
       yard (~> 0.9)
       zeitwerk (~> 2.6)
     zeitwerk (2.8.2)
