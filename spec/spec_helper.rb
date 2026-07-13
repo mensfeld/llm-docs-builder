@@ -28,7 +28,7 @@ require 'open3'
 require 'fileutils'
 
 SimpleCov.start do
-  add_filter '/spec/'
+  skip '/spec/'
   enable_coverage :branch
   primary_coverage :line
 end unless ENV['SIMPLECOV'] == 'false'
