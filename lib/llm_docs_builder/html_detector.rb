@@ -14,8 +14,7 @@ module LlmDocsBuilder
       full_html_document?(content)
     end
 
-    # Prepare a snippet of content for HTML detection by removing leading whitespace
-    # and build metadata comments.
+    # Prepare a snippet of content for HTML detection by removing leading whitespace and build metadata comments.
     #
     # @param content [String]
     # @return [String, nil]

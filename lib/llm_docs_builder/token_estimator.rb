@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Estimates token count for text content using character-based approximation
   #
-  # Provides token estimation without requiring external tokenizer dependencies.
-  # Uses the common heuristic that ~4 characters equals 1 token for English text,
-  # which works reasonably well for documentation and markdown content.
+  # Provides token estimation without requiring external tokenizer dependencies. Uses the common heuristic that ~4
+  # characters equals 1 token for English text, which works reasonably well for documentation and markdown content.
   #
   # @example Basic usage
   #   estimator = LlmDocsBuilder::TokenEstimator.new

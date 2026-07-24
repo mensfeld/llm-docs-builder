@@ -4,8 +4,7 @@ module LlmDocsBuilder
   module Transformers
     # Transformer for link-related operations
     #
-    # Handles expansion of relative links to absolute URLs and
-    # conversion of HTML URLs to markdown format.
+    # Handles expansion of relative links to absolute URLs and conversion of HTML URLs to markdown format.
     #
     # @api public
     class LinkTransformer

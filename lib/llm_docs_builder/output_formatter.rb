@@ -3,8 +3,7 @@
 module LlmDocsBuilder
   # Formats output for CLI display
   #
-  # Provides formatting utilities for displaying comparison results,
-  # byte sizes, and numbers in a user-friendly way.
+  # Provides formatting utilities for displaying comparison results, byte sizes, and numbers in a user-friendly way.
   #
   # @api private
   class OutputFormatter

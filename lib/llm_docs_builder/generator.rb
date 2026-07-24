@@ -34,8 +34,7 @@ module LlmDocsBuilder
 
     # Generate llms.txt content from documentation
     #
-    # Scans documentation files, extracts metadata, prioritizes them, and builds a formatted
-    # llms.txt file.
+    # Scans documentation files, extracts metadata, prioritizes them, and builds a formatted llms.txt file.
     #
     # @return [String] generated llms.txt content
     def generate

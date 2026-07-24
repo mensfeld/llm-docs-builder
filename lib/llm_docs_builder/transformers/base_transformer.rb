@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Provides content transformation functionality
   #
-  # This module contains specialized transformers for modifying markdown content,
-  # including cleanup operations, link processing, heading normalization, and
-  # content enhancement for AI consumption.
+  # This module contains specialized transformers for modifying markdown content, including cleanup operations, link
+  # processing, heading normalization, and content enhancement for AI consumption.
   #
   # @api private
   module Transformers

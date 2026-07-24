@@ -4,8 +4,7 @@ module LlmDocsBuilder
   module Transformers
     # Transformer for whitespace normalization
     #
-    # Reduces excessive blank lines and trailing whitespace to make
-    # content more compact for LLM consumption.
+    # Reduces excessive blank lines and trailing whitespace to make content more compact for LLM consumption.
     #
     # @api public
     class WhitespaceTransformer
