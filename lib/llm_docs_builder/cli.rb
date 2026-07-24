@@ -129,8 +129,7 @@ module LlmDocsBuilder
 
     # Generate llms.txt from documentation directory or file
     #
-    # Loads configuration, merges with CLI options, generates llms.txt content,
-    # and optionally validates the output.
+    # Loads configuration, merges with CLI options, generates llms.txt content, and optionally validates the output.
     #
     # @param options [Hash] command options from parse_options
     # @option options [String] :config path to config file

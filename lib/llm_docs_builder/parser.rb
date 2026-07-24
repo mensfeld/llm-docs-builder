@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Parses llms.txt files into structured data
   #
-  # Reads and parses llms.txt files according to the llms.txt specification,
-  # extracting the title, description, and structured sections (Documentation,
-  # Examples, Optional) with their links.
+  # Reads and parses llms.txt files according to the llms.txt specification, extracting the title, description, and
+  # structured sections (Documentation, Examples, Optional) with their links.
   #
   # @example Parse an llms.txt file
   #   parser = LlmDocsBuilder::Parser.new('llms.txt')
@@ -109,8 +108,7 @@ module LlmDocsBuilder
 
   # Represents parsed llms.txt content with structured access to sections
   #
-  # Provides convenient access to parsed llms.txt sections including title,
-  # description, and link collections.
+  # Provides convenient access to parsed llms.txt sections including title, description, and link collections.
   #
   # @example Access parsed content
   #   parsed.title              # => "My Project"

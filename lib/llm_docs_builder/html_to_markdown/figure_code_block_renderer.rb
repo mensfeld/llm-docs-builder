@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Provides HTML to Markdown conversion functionality
   #
-  # This module contains specialized renderers for converting HTML elements
-  # to Markdown format, with support for complex structures like tables,
-  # figures, and syntax-highlighted code blocks.
+  # This module contains specialized renderers for converting HTML elements to Markdown format, with support for complex
+  # structures like tables, figures, and syntax-highlighted code blocks.
   #
   # @api private
   module HtmlToMarkdown

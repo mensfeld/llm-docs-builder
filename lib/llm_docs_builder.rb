@@ -13,9 +13,8 @@ loader.setup
 
 # Build and optimize documentation for LLMs
 #
-# This gem provides tools for generating llms.txt files and transforming markdown
-# documentation to be AI-friendly. It can reduce token consumption by 67-95% while
-# preserving essential documentation content.
+# This gem provides tools for generating llms.txt files and transforming markdown documentation to be AI-friendly. It
+# can reduce token consumption by 67-95% while preserving essential documentation content.
 #
 # @api public
 module LlmDocsBuilder

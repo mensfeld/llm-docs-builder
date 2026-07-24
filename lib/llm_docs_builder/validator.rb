@@ -56,8 +56,7 @@ module LlmDocsBuilder
 
     # Validate content and return result
     #
-    # Runs all validation checks, populates {#errors} array, and returns whether
-    # the content is valid.
+    # Runs all validation checks, populates {#errors} array, and returns whether the content is valid.
     #
     # @return [Boolean] true if content is valid, false otherwise
     def validate!

@@ -644,11 +644,9 @@ module LlmDocsBuilder
 
     # Compute effective heading level adjusted for section nesting
     #
-    # When HTML uses nested <section> elements with same-level headings,
-    # the inner headings should receive deeper markdown levels. The offset
-    # is calculated as the difference between the actual section ancestor
-    # count and the expected count for that heading tag (h1 expects 0
-    # sections, h2 expects 1, etc.), capped at heading level 6.
+    # When HTML uses nested <section> elements with same-level headings, the inner headings should receive deeper
+    # markdown levels. The offset is calculated as the difference between the actual section ancestor count and the
+    # expected count for that heading tag (h1 expects 0 sections, h2 expects 1, etc.), capped at heading level 6.
     #
     # @param element [Nokogiri::XML::Element] heading element
     # @param base_level [Integer] HTML heading level (1-6)

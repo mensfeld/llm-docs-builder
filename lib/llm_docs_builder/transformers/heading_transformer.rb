@@ -4,9 +4,8 @@ module LlmDocsBuilder
   module Transformers
     # Normalizes headings to include hierarchical context
     #
-    # Transforms markdown headings to include parent context, making each section
-    # self-contained for RAG systems. This is particularly useful when documents
-    # are chunked and retrieved independently.
+    # Transforms markdown headings to include parent context, making each section self-contained for RAG systems. This
+    # is particularly useful when documents are chunked and retrieved independently.
     #
     # @example Basic heading normalization
     #   # Configuration

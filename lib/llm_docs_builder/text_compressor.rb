@@ -3,9 +3,8 @@
 module LlmDocsBuilder
   # Advanced text compression techniques for reducing token count
   #
-  # Provides more aggressive text compression methods including stopword removal,
-  # duplicate content detection, and sentence deduplication. These methods are more
-  # aggressive than basic markdown cleanup and should be used carefully.
+  # Provides more aggressive text compression methods including stopword removal, duplicate content detection, and
+  # sentence deduplication. These methods are more aggressive than basic markdown cleanup and should be used carefully.
   #
   # @example Basic usage
   #   compressor = LlmDocsBuilder::TextCompressor.new
