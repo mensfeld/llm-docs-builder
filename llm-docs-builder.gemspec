@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = 'https://github.com/mensfeld/llm-docs-builder'
   spec.metadata['changelog_uri'] = 'https://github.com/mensfeld/llm-docs-builder/blob/master/CHANGELOG.md'
   spec.metadata['documentation_uri'] = 'https://github.com/mensfeld/llm-docs-builder'
+  spec.metadata['bug_tracker_uri'] = 'https://github.com/mensfeld/llm-docs-builder/issues'
   spec.metadata['rubygems_mfa_required'] = 'true'
 
   spec.files = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(spec|test)/}) }
