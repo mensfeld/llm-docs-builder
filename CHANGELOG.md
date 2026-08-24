@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+
+## 1.0.0 (2026-08-24)
+- [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** — `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
+  - Any link whose scheme is in the known absolute-scheme list (`http`, `https`, `mailto`, `ftp`, `tel`) is now left untouched, matching `HtmlToMarkdownConverter`'s `SAFE_URI_SCHEMES`.
+  - Relative links (e.g. `./guide.md`) continue to expand as before.
 - [Enhancement] Add Ruby warning category opt-in to test helpers
 
 ## 0.13.0 (2026-05-11)
