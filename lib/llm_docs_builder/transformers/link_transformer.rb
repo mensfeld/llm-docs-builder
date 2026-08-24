@@ -29,6 +29,10 @@ module LlmDocsBuilder
 
       private
 
+      # URI schemes that must never be treated as relative paths when expanding
+      # links with a base URL (kept in sync with the converter's safe schemes)
+      ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
+
       # Expand relative links to absolute URLs
       #
       # @param content [String] markdown content
@@ -39,7 +43,7 @@ module LlmDocsBuilder
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
 
-          if url.start_with?('http://', 'https://', '//', '#')
+          if url.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(url)
             match
           else
             clean_url = url.gsub(%r{^\./}, '')
@@ -47,6 +51,15 @@ module LlmDocsBuilder
             "[#{text}](#{expanded_url})"
           end
         end
+      end
+
+      # Check whether a link target uses a known absolute URI scheme
+      #
+      # @param url [String] link target
+      # @return [Boolean] true when the target already carries its own scheme
+      def absolute_url_scheme?(url)
+        scheme = url.split(':', 2).first.to_s
+        ABSOLUTE_URL_SCHEMES.include?(scheme)
       end
 
       # Convert HTML URLs to markdown format

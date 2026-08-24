@@ -41,6 +41,34 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq('[Protocol-relative](//cdn.example.com/file.js)')
       end
+
+      it 'preserves mailto: links' do
+        content = 'Contact [support](mailto:help@example.com)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs')
+
+        expect(result).to eq('Contact [support](mailto:help@example.com)')
+      end
+
+      it 'preserves tel: links' do
+        content = 'Call [us](tel:+1234567890)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs')
+
+        expect(result).to eq('Call [us](tel:+1234567890)')
+      end
+
+      it 'preserves ftp: links' do
+        content = 'Download [file](ftp://example.com/file.zip)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs')
+
+        expect(result).to eq('Download [file](ftp://example.com/file.zip)')
+      end
+
+      it 'still expands relative links when non-http schemes are present' do
+        content = 'See [guide](./guide.md) or [mail](mailto:a@b.com)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs')
+
+        expect(result).to eq('See [guide](https://example.com/docs/guide.md) or [mail](mailto:a@b.com)')
+      end
     end
 
     context 'with convert_urls option' do
