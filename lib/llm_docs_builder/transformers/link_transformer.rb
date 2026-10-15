@@ -78,20 +78,9 @@ module LlmDocsBuilder
       # Normalize `.`, `..` and empty segments of a path
       #
       # @param path [String] path to normalize
-      # @return [String] normalized path, with its leading and trailing slashes kept
+      # @return [String] normalized path, with its trailing slash kept
       def normalize_path(path)
-        segments = []
-
-        path.split('/').each do |segment|
-          case segment
-          when '', '.' then next
-          when '..' then segments.pop
-          else segments << segment
-          end
-        end
-
-        normalized = segments.join('/')
-        normalized = "/#{normalized}" if path.start_with?('/')
+        normalized = Pathname.new(path).cleanpath.to_s
         normalized += '/' if path.match?(%r{/\.{0,2}\z}) && !normalized.end_with?('/')
         normalized
       end
