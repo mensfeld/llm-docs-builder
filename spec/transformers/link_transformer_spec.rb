@@ -69,6 +69,73 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq('See [guide](https://example.com/docs/guide.md) or [mail](mailto:a@b.com)')
       end
+
+      it 'resolves parent directory links' do
+        content = '[Other](../other.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs/v2')
+
+        expect(result).to eq('[Other](https://example.com/docs/other.md)')
+      end
+
+      it 'resolves links without a ./ prefix' do
+        content = '[Setup](guides/setup.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs/')
+
+        expect(result).to eq('[Setup](https://example.com/docs/guides/setup.md)')
+      end
+
+      it 'resolves root-relative links from the base URL' do
+        content = '[Root](/api/index.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[Root](https://example.com/docs/api/index.md)')
+      end
+
+      it 'keeps anchors and query strings on relative links' do
+        content = '[Config](../config.md?v=2#options)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[Config](https://example.com/config.md?v=2#options)')
+      end
+
+      it 'falls back to joining paths when the target is not a valid URI' do
+        content = '[Spaced](./my page.md)'
+        result = transformer.transform(content, base_url: 'https://example.com')
+
+        expect(result).to eq('[Spaced](https://example.com/my page.md)')
+      end
+    end
+
+    context 'with base_url and source_path options' do
+      it 'resolves ./ links from the source file directory' do
+        content = '[Setup](./setup.md)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[Setup](https://example.com/guides/setup.md)')
+      end
+
+      it 'resolves ../ links from the source file directory' do
+        content = '[Guide](../../guides/getting-started.md)'
+        result = transformer.transform(content,
+          base_url: 'https://example.com/docs',
+          source_path: 'docs/api/endpoints.md')
+
+        expect(result).to eq('[Guide](https://example.com/docs/guides/getting-started.md)')
+      end
+
+      it 'resolves image paths from the source file directory' do
+        content = '![Diagram](../images/flow.png)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq('![Diagram](https://example.com/images/flow.png)')
+      end
+
+      it 'leaves absolute URLs and anchors unchanged' do
+        content = '[Site](https://other.com/a.md) [Top](#top) [Mail](mailto:a@b.com)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq(content)
+      end
     end
 
     context 'with convert_urls option' do

@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- [Enhancement] **Relative Link Resolution** — `base_url` link expansion now resolves relative links like a browser would.
+  - `../` and `./` segments are normalized (`../other.md` → `https://example.com/other.md` instead of `https://example.com/docs/../other.md`).
+  - `bulk-transform` resolves each link from its file's own directory, so `./setup.md` in `guides/intro.md` expands to `<base_url>/guides/setup.md`.
+  - Links starting with `/` resolve from `base_url`; anchors, query strings, absolute URLs and `mailto:`/`tel:`/`ftp:` links are unchanged.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** — `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).

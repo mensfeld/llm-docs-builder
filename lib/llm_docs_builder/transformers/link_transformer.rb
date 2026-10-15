@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'uri'
+
 module LlmDocsBuilder
   module Transformers
     # Transformer for link-related operations
@@ -15,12 +17,14 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @param options [Hash] transformation options
       # @option options [String] :base_url base URL for expanding relative links
+      # @option options [String] :source_path path of the transformed file relative to the
+      #   docs root, used to resolve relative links against the file's own directory
       # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
       # @return [String] transformed content
       def transform(content, options = {})
         result = content.dup
 
-        result = expand_relative_links(result, options[:base_url]) if options[:base_url]
+        result = expand_relative_links(result, options[:base_url], options[:source_path]) if options[:base_url]
         result = convert_html_urls(result) if options[:convert_urls]
         result = simplify_links(result) if options[:simplify_links]
 
@@ -37,8 +41,11 @@ module LlmDocsBuilder
       #
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
+      # @param source_path [String, nil] path of the file relative to the docs root
       # @return [String] content with expanded links
-      def expand_relative_links(content, base_url)
+      def expand_relative_links(content, base_url, source_path = nil)
+        source_dir = source_path ? File.dirname(source_path) : '.'
+
         content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do |match|
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
@@ -46,11 +53,27 @@ module LlmDocsBuilder
           if url.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(url)
             match
           else
-            clean_url = url.gsub(%r{^\./}, '')
-            expanded_url = File.join(base_url, clean_url)
-            "[#{text}](#{expanded_url})"
+            "[#{text}](#{resolve_relative_url(base_url, url, source_dir)})"
           end
         end
+      end
+
+      # Resolve a relative link target against the base URL
+      #
+      # Targets starting with `/` are resolved from the base URL itself, other targets from
+      # the source file's directory. `./` and `../` segments are normalized.
+      #
+      # @param base_url [String] base URL for expansion
+      # @param url [String] relative link target
+      # @param source_dir [String] directory of the source file relative to the docs root
+      # @return [String] expanded URL
+      def resolve_relative_url(base_url, url, source_dir)
+        path = url.start_with?('/') ? url.delete_prefix('/') : File.join(source_dir, url)
+        base = base_url.end_with?('/') ? base_url : "#{base_url}/"
+
+        URI.join(base, path).to_s
+      rescue URI::Error
+        File.join(base_url, url.gsub(%r{^\./}, ''))
       end
 
       # Check whether a link target uses a known absolute URI scheme
