@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'uri'
-
 module LlmDocsBuilder
   module Transformers
     # Transformer for link-related operations
@@ -60,20 +58,42 @@ module LlmDocsBuilder
 
       # Resolve a relative link target against the base URL
       #
-      # Targets starting with `/` are resolved from the base URL itself, other targets from
-      # the source file's directory. `./` and `../` segments are normalized.
+      # Targets starting with `/` are resolved from the base URL itself, other targets from the source
+      # file's directory. `./` and `../` segments are normalized. Titles, queries and anchors are kept.
       #
       # @param base_url [String] base URL for expansion
-      # @param url [String] relative link target
+      # @param target [String] relative link target, optionally followed by a link title
       # @param source_dir [String] directory of the source file relative to the docs root
       # @return [String] expanded URL
-      def resolve_relative_url(base_url, url, source_dir)
-        path = url.start_with?('/') ? url.delete_prefix('/') : File.join(source_dir, url)
-        base = base_url.end_with?('/') ? base_url : "#{base_url}/"
+      def resolve_relative_url(base_url, target, source_dir)
+        url, title = target.match(/\A(.*?)(\s+(?:"[^"]*"|'[^']*'))?\z/m).captures
+        path, suffix = url.match(/\A([^?#]*)(.*)\z/m).captures
+        origin = base_url[%r{\A[^:/?#]+://[^/?#]*}].to_s
+        base_path = base_url.delete_prefix(origin)
+        dir = path.start_with?('/') ? base_path : File.join(base_path, source_dir)
 
-        URI.join(base, path).to_s
-      rescue URI::Error
-        File.join(base_url, url.gsub(%r{^\./}, ''))
+        "#{origin}#{normalize_path("#{dir}/#{path}")}#{suffix}#{title}"
+      end
+
+      # Normalize `.`, `..` and empty segments of a path
+      #
+      # @param path [String] path to normalize
+      # @return [String] normalized path, with its leading and trailing slashes kept
+      def normalize_path(path)
+        segments = []
+
+        path.split('/').each do |segment|
+          case segment
+          when '', '.' then next
+          when '..' then segments.pop
+          else segments << segment
+          end
+        end
+
+        normalized = segments.join('/')
+        normalized = "/#{normalized}" if path.start_with?('/')
+        normalized += '/' if path.match?(%r{/\.{0,2}\z}) && !normalized.end_with?('/')
+        normalized
       end
 
       # Check whether a link target uses a known absolute URI scheme

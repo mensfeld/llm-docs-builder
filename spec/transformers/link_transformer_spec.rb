@@ -98,11 +98,18 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(result).to eq('[Config](https://example.com/config.md?v=2#options)')
       end
 
-      it 'falls back to joining paths when the target is not a valid URI' do
+      it 'keeps spaces in link targets' do
         content = '[Spaced](./my page.md)'
         result = transformer.transform(content, base_url: 'https://example.com')
 
         expect(result).to eq('[Spaced](https://example.com/my page.md)')
+      end
+
+      it 'keeps trailing slashes on directory links' do
+        content = '[Guides](./guides/) [Up](..)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs')
+
+        expect(result).to eq('[Guides](https://example.com/docs/guides/) [Up](https://example.com/)')
       end
     end
 
@@ -128,6 +135,27 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
 
         expect(result).to eq('![Diagram](https://example.com/images/flow.png)')
+      end
+
+      it 'resolves links with a title and keeps the title' do
+        content = '[A](./setup.md "Setup guide") [B](../index.md \'Home\')'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[A](https://example.com/guides/setup.md "Setup guide") [B](https://example.com/index.md \'Home\')')
+      end
+
+      it 'resolves targets with spaces from the source file directory' do
+        content = '[Spaced](../my notes/page one.md)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[Spaced](https://example.com/my notes/page one.md)')
+      end
+
+      it 'resolves non-ASCII targets from the source file directory' do
+        content = '[PL](./zażółć.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')
+
+        expect(result).to eq('[PL](https://example.com/docs/guides/zażółć.md)')
       end
 
       it 'leaves absolute URLs and anchors unchanged' do
