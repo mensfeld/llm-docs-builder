@@ -125,7 +125,7 @@ llm-docs-builder generate --config llm-docs-builder.yml
 ```yaml
 # llm-docs-builder.yml
 docs: ./docs
-base_url: https://myproject.io
+base_url: https://myproject.io  # Base URL for expanding relative links
 title: My Project
 description: Brief description
 body: Optional body content between description and sections

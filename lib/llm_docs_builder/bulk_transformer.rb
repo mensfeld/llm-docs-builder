@@ -109,12 +109,14 @@ module LlmDocsBuilder
 
     # Applies markdown transformations to a single file
     #
-    # Creates MarkdownTransformer instance and delegates transformation
+    # Creates MarkdownTransformer instance and delegates transformation. Passes the file's
+    # path relative to the docs directory so relative links resolve from its own location.
     #
     # @param file_path [String] path to markdown file
     # @return [String] transformed content
     def transform_file(file_path)
-      transformer = MarkdownTransformer.new(file_path, options)
+      source_path = Pathname.new(file_path).relative_path_from(Pathname.new(docs_path)).to_s
+      transformer = MarkdownTransformer.new(file_path, options.merge(source_path: source_path))
       transformer.transform
     end
 

@@ -103,6 +103,15 @@ RSpec.describe LlmDocsBuilder::BulkTransformer do
       expect(readme_content).to include('https://example.com/docs.md') # .html converted to .md
     end
 
+    it 'resolves relative links from each file directory' do
+      transformer = described_class.new(temp_dir, base_url: 'https://myproject.io')
+
+      transformer.transform_all
+
+      endpoints_content = File.read(File.join(temp_dir, 'docs', 'api', 'endpoints.llm.md'))
+      expect(endpoints_content).to include('[getting started guide](https://myproject.io/guides/getting-started.md)')
+    end
+
     it 'respects exclusion patterns' do
       transformer = described_class.new(
         temp_dir,
