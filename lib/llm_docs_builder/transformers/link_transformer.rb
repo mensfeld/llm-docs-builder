@@ -32,6 +32,10 @@ module LlmDocsBuilder
 
       private
 
+      # URI schemes that must never be treated as relative paths when expanding
+      # links with a base URL (kept in sync with the converter's safe schemes)
+      ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
+
       # Placeholder that stands in for a protected code fragment
       CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
 
@@ -162,10 +166,6 @@ module LlmDocsBuilder
         body = code.chomp
         "#{protect.call(body)}#{code.delete_prefix(body)}"
       end
-
-      # URI schemes that must never be treated as relative paths when expanding
-      # links with a base URL (kept in sync with the converter's safe schemes)
-      ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
 
       # Expand relative links to absolute URLs
       #

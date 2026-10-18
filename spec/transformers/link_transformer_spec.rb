@@ -230,8 +230,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
       it 'leaves links in inline code unchanged' do
         content = 'Write `[ic](../intro.md)` or ``[a `b`](../intro.md)`` to link.'
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(content)
+        expect(result).to eq(content)
       end
 
       it 'leaves links in fenced code blocks unchanged' do
@@ -244,8 +245,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
           [tilde](../intro.md)
           ~~~~
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(content)
+        expect(result).to eq(content)
       end
 
       it 'leaves links in fenced code blocks inside list items unchanged' do
@@ -256,20 +258,23 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
               [fc](../intro.md)
               ```
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(content)
+        expect(result).to eq(content)
       end
 
       it 'leaves links in unclosed fenced code blocks unchanged' do
         content = "```\n[fc](../intro.md)\n"
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(content)
+        expect(result).to eq(content)
       end
 
       it 'leaves links in indented code blocks unchanged' do
         content = "Example:\n\n    [icb](../intro.md)\n\tmore [tab](../intro.md)\n"
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(content)
+        expect(result).to eq(content)
       end
 
       it 'leaves links in code blocks inside blockquotes unchanged' do
@@ -281,8 +286,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
           >     [icb](../intro.md)
           > [quoted](../quoted.md)
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(<<~MD)
+        expect(result).to eq(<<~MD)
           > ```md
           > [fc](../intro.md)
           > ```
@@ -308,30 +314,51 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
           [After](../after.md)
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options))
-          .to eq(content.sub('(../after.md)', '(https://example.com/docs/guides/after.md)'))
+        expect(result).to eq(<<~MD)
+          ```md
+          > ```
+          > [fc](../intro.md)
+          > ```
+          ```
+
+          > ```md
+          > > ```
+          > > [qfc](../intro.md)
+          > > ```
+          > ```
+
+          [After](https://example.com/docs/guides/after.md)
+        MD
       end
 
-      it 'keeps CRLF line endings' do
+      it 'keeps CRLF line endings without link options' do
         content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
+        result = transformer.transform(content)
 
-        expect(transformer.transform(content)).to eq(content)
-        expect(transformer.transform(content, options))
-          .to eq("```\r\n[fc](../intro.md)\r\n```\r\n[After](https://example.com/docs/guides/after.md)\r\n")
+        expect(result).to eq(content)
+      end
+
+      it 'keeps CRLF line endings when expanding links' do
+        content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq("```\r\n[fc](../intro.md)\r\n```\r\n[After](https://example.com/docs/guides/after.md)\r\n")
       end
 
       it 'treats an indented fence as indented code' do
         content = "Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](../after.md)\n"
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options))
-          .to eq("Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](https://example.com/docs/guides/after.md)\n")
+        expect(result).to eq("Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](https://example.com/docs/guides/after.md)\n")
       end
 
       it 'expands links between escaped backticks' do
         content = '\\`[a](../a.md)\\`'
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq('\\`[a](https://example.com/docs/guides/a.md)\\`')
+        expect(result).to eq('\\`[a](https://example.com/docs/guides/a.md)\\`')
       end
 
       it 'expands links next to code' do
@@ -343,8 +370,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
           ```
           [After](../after.md)
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(<<~MD)
+        expect(result).to eq(<<~MD)
           Use [`config`](https://example.com/docs/guides/config.md) with `code`.
 
           ```
@@ -363,8 +391,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
               [nested](../nested.md)
         MD
+        result = transformer.transform(content, options)
 
-        expect(transformer.transform(content, options)).to eq(<<~MD)
+        expect(result).to eq(<<~MD)
           Text
               [lazy](https://example.com/docs/guides/lazy.md)
 
@@ -376,8 +405,9 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
       it 'leaves code unchanged with convert_urls and simplify_links' do
         content = "`[see the docs](https://example.com/a.html)`\n"
+        result = transformer.transform(content, convert_urls: true, simplify_links: true)
 
-        expect(transformer.transform(content, convert_urls: true, simplify_links: true)).to eq(content)
+        expect(result).to eq(content)
       end
     end
 
