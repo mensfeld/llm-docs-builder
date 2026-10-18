@@ -19,17 +19,130 @@ module LlmDocsBuilder
       #   docs root, used to resolve relative links against the file's own directory
       # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
       # @return [String] transformed content
+      # @note Code (fenced and indented code blocks, inline code spans) is left unchanged
       def transform(content, options = {})
-        result = content.dup
+        outside_code(content) do |result|
+          result = expand_relative_links(result, options[:base_url], options[:source_path]) if options[:base_url]
+          result = convert_html_urls(result) if options[:convert_urls]
+          result = simplify_links(result) if options[:simplify_links]
 
-        result = expand_relative_links(result, options[:base_url], options[:source_path]) if options[:base_url]
-        result = convert_html_urls(result) if options[:convert_urls]
-        result = simplify_links(result) if options[:simplify_links]
-
-        result
+          result
+        end
       end
 
       private
+
+      # Placeholder that stands in for a protected code fragment
+      CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
+
+      # Inline code span: a backtick run closed by a run of the same length, within one paragraph
+      INLINE_CODE = /(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
+
+      # Opening line of a fenced code block
+      FENCE_OPENING = /\A[ \t]*(`{3,}|~{3,})/
+
+      # Line that starts a list item
+      LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
+
+      # Run a transformation on content with code replaced by placeholders, then restore the code
+      #
+      # @param content [String] markdown content
+      # @yieldparam text [String] content with code fragments replaced by placeholders
+      # @yieldreturn [String] transformed content
+      # @return [String] transformed content with the original code restored
+      def outside_code(content)
+        codes = []
+        protect = lambda do |code|
+          codes << code
+          "\u0000#{codes.size - 1}\u0000"
+        end
+
+        text = protect_code_blocks(content, protect)
+        text = text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
+
+        yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
+      end
+
+      # Replace fenced and indented code blocks with placeholders
+      #
+      # Indented lines count as code only after a blank line and outside lists, where they would
+      # otherwise be paragraph or list item continuations.
+      #
+      # @param content [String] markdown content
+      # @param protect [Proc] stores a code fragment and returns its placeholder
+      # @return [String] content with code blocks replaced
+      def protect_code_blocks(content, protect)
+        out = +''
+        code = +''
+        fence = nil
+        in_list = false
+        prev_blank = true
+
+        content.each_line do |line|
+          if fence
+            code << line
+            fence = nil if line.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
+            prev_blank = true
+            next
+          end
+
+          if (fence = fence_opening(line)) || (!in_list && (prev_blank || !code.empty?) && indented_code?(line))
+            code << line
+            next
+          end
+
+          out << protect_lines(code, protect) << line
+          code = +''
+          in_list = in_list_after?(line, in_list, prev_blank)
+          prev_blank = line.strip.empty?
+        end
+
+        out << protect_lines(code, protect)
+      end
+
+      # Fence of a line that opens a fenced code block
+      #
+      # @param line [String] markdown line
+      # @return [String, nil] the opening fence, or nil when the line does not open a block
+      def fence_opening(line)
+        opening = line.match(FENCE_OPENING)
+        return unless opening
+        return if opening[1].start_with?('`') && opening.post_match.include?('`')
+
+        opening[1]
+      end
+
+      # Check whether a line is indented enough to be code
+      #
+      # @param line [String] markdown line
+      # @return [Boolean] true for a non-blank line indented by four spaces or a tab
+      def indented_code?(line)
+        line.match?(/\A(?: {4}|\t)\s*\S/)
+      end
+
+      # Check whether content after a line is still inside a list
+      #
+      # @param line [String] markdown line
+      # @param in_list [Boolean] whether the previous line was inside a list
+      # @param prev_blank [Boolean] whether the previous line was blank
+      # @return [Boolean] true when the list continues after this line
+      def in_list_after?(line, in_list, prev_blank)
+        return true if line.match?(LIST_ITEM)
+        return in_list if line.strip.empty? || !prev_blank || line.match?(/\A[ \t]/)
+
+        false
+      end
+
+      # Replace collected code lines with a placeholder, keeping the final line break
+      #
+      # @param code [String] collected code lines
+      # @param protect [Proc] stores a code fragment and returns its placeholder
+      # @return [String] placeholder, or an empty string when there is no code
+      def protect_lines(code, protect)
+        return '' if code.empty?
+
+        "#{protect.call(code.chomp)}#{"\n" if code.end_with?("\n")}"
+      end
 
       # URI schemes that must never be treated as relative paths when expanding
       # links with a base URL (kept in sync with the converter's safe schemes)

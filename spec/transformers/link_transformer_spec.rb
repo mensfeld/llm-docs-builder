@@ -225,6 +225,100 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
       end
     end
 
+    context 'with code in the content' do
+      let(:options) { { base_url: 'https://example.com/docs', source_path: 'guides/sub/page.md' } }
+
+      it 'leaves links in inline code unchanged' do
+        content = 'Write `[ic](../intro.md)` or ``[a `b`](../intro.md)`` to link.'
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves links in fenced code blocks unchanged' do
+        content = <<~MD
+          ```md
+          [fc](../intro.md)
+          ```
+
+          ~~~~
+          [tilde](../intro.md)
+          ~~~~
+        MD
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves links in fenced code blocks inside list items unchanged' do
+        content = <<~MD
+          - Item
+
+              ```md
+              [fc](../intro.md)
+              ```
+        MD
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves links in unclosed fenced code blocks unchanged' do
+        content = "```\n[fc](../intro.md)\n"
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves links in indented code blocks unchanged' do
+        content = "Example:\n\n    [icb](../intro.md)\n\tmore [tab](../intro.md)\n"
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'expands links next to code' do
+        content = <<~MD
+          Use [`config`](../config.md) with `code`.
+
+          ```
+          [fc](../intro.md)
+          ```
+          [After](../after.md)
+        MD
+
+        expect(transformer.transform(content, options)).to eq(<<~MD)
+          Use [`config`](https://example.com/docs/guides/config.md) with `code`.
+
+          ```
+          [fc](../intro.md)
+          ```
+          [After](https://example.com/docs/guides/after.md)
+        MD
+      end
+
+      it 'expands links in indented paragraph and list item continuations' do
+        content = <<~MD
+          Text
+              [lazy](../lazy.md)
+
+          - Item
+
+              [nested](../nested.md)
+        MD
+
+        expect(transformer.transform(content, options)).to eq(<<~MD)
+          Text
+              [lazy](https://example.com/docs/guides/lazy.md)
+
+          - Item
+
+              [nested](https://example.com/docs/guides/nested.md)
+        MD
+      end
+
+      it 'leaves code unchanged with convert_urls and simplify_links' do
+        content = "`[see the docs](https://example.com/a.html)`\n"
+
+        expect(transformer.transform(content, convert_urls: true, simplify_links: true)).to eq(content)
+      end
+    end
+
     context 'with convert_urls option' do
       it 'converts .html URLs to .md' do
         result = transformer.transform(content, convert_urls: true)
