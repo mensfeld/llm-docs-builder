@@ -272,6 +272,47 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(transformer.transform(content, options)).to eq(content)
       end
 
+      it 'leaves links in code blocks inside blockquotes unchanged' do
+        content = <<~MD
+          > ```md
+          > [fc](../intro.md)
+          > ```
+          >
+          >     [icb](../intro.md)
+          > [quoted](../quoted.md)
+        MD
+
+        expect(transformer.transform(content, options)).to eq(<<~MD)
+          > ```md
+          > [fc](../intro.md)
+          > ```
+          >
+          >     [icb](../intro.md)
+          > [quoted](https://example.com/docs/guides/quoted.md)
+        MD
+      end
+
+      it 'keeps CRLF line endings' do
+        content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
+
+        expect(transformer.transform(content)).to eq(content)
+        expect(transformer.transform(content, options))
+          .to eq("```\r\n[fc](../intro.md)\r\n```\r\n[After](https://example.com/docs/guides/after.md)\r\n")
+      end
+
+      it 'treats an indented fence as indented code' do
+        content = "Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](../after.md)\n"
+
+        expect(transformer.transform(content, options))
+          .to eq("Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](https://example.com/docs/guides/after.md)\n")
+      end
+
+      it 'expands links between escaped backticks' do
+        content = '\\`[a](../a.md)\\`'
+
+        expect(transformer.transform(content, options)).to eq('\\`[a](https://example.com/docs/guides/a.md)\\`')
+      end
+
       it 'expands links next to code' do
         content = <<~MD
           Use [`config`](../config.md) with `code`.

@@ -36,10 +36,13 @@ module LlmDocsBuilder
       CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
 
       # Inline code span: a backtick run closed by a run of the same length, within one paragraph
-      INLINE_CODE = /(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
+      INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
 
       # Opening line of a fenced code block
       FENCE_OPENING = /\A[ \t]*(`{3,}|~{3,})/
+
+      # Blockquote markers at the start of a line
+      BLOCKQUOTE_PREFIX = /\A(?: {0,3}> ?)*/
 
       # Line that starts a list item
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
@@ -65,8 +68,8 @@ module LlmDocsBuilder
 
       # Replace fenced and indented code blocks with placeholders
       #
-      # Indented lines count as code only after a blank line and outside lists, where they would
-      # otherwise be paragraph or list item continuations.
+      # Indented lines count as code only after a blank line and outside lists, where they would otherwise be
+      # paragraph or list item continuations. Code inside blockquotes is detected after the `>` markers.
       #
       # @param content [String] markdown content
       # @param protect [Proc] stores a code fragment and returns its placeholder
@@ -75,26 +78,40 @@ module LlmDocsBuilder
         out = +''
         code = +''
         fence = nil
+        fence_depth = 0
+        depth = 0
         in_list = false
         prev_blank = true
 
         content.each_line do |line|
+          quote = line[BLOCKQUOTE_PREFIX]
+          body = line.delete_prefix(quote)
+          prev_blank ||= quote.count('>') > depth
+          depth = quote.count('>')
+          fence = nil if depth < fence_depth
+
           if fence
             code << line
-            fence = nil if line.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
+            fence = nil if body.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
             prev_blank = true
             next
           end
 
-          if (fence = fence_opening(line)) || (!in_list && (prev_blank || !code.empty?) && indented_code?(line))
+          if !in_list && (prev_blank || !code.empty?) && indented_code?(body)
+            code << line
+            next
+          end
+
+          if (fence = fence_opening(body))
+            fence_depth = depth
             code << line
             next
           end
 
           out << protect_lines(code, protect) << line
           code = +''
-          in_list = in_list_after?(line, in_list, prev_blank)
-          prev_blank = line.strip.empty?
+          in_list = in_list_after?(body, in_list, prev_blank)
+          prev_blank = body.strip.empty?
         end
 
         out << protect_lines(code, protect)
@@ -141,7 +158,8 @@ module LlmDocsBuilder
       def protect_lines(code, protect)
         return '' if code.empty?
 
-        "#{protect.call(code.chomp)}#{"\n" if code.end_with?("\n")}"
+        body = code.chomp
+        "#{protect.call(body)}#{code.delete_prefix(body)}"
       end
 
       # URI schemes that must never be treated as relative paths when expanding
