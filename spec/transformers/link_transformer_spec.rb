@@ -292,6 +292,27 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         MD
       end
 
+      it 'does not close a fence on a fence line quoted deeper than the fence' do
+        content = <<~MD
+          ```md
+          > ```
+          > [fc](../intro.md)
+          > ```
+          ```
+
+          > ```md
+          > > ```
+          > > [qfc](../intro.md)
+          > > ```
+          > ```
+
+          [After](../after.md)
+        MD
+
+        expect(transformer.transform(content, options))
+          .to eq(content.sub('(../after.md)', '(https://example.com/docs/guides/after.md)'))
+      end
+
       it 'keeps CRLF line endings' do
         content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
 

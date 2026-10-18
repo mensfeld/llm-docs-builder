@@ -92,7 +92,8 @@ module LlmDocsBuilder
 
           if fence
             code << line
-            fence = nil if body.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
+            closing = line.sub(/\A(?: {0,3}> ?){#{fence_depth}}/, '')
+            fence = nil if closing.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
             prev_blank = true
             next
           end
