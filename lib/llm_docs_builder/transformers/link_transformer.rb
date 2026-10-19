@@ -36,8 +36,8 @@ module LlmDocsBuilder
       # links with a base URL (kept in sync with the converter's safe schemes)
       ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
 
-      # Any link target that starts with a URI scheme, which is never a relative path
-      URI_SCHEME = /\A[a-z][a-z0-9+.\-]*:/i
+      # A link target with a URI scheme is never a relative path
+      URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.\-]*:/i
 
       # Placeholder that stands in for a protected code fragment
       CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
@@ -253,7 +253,7 @@ module LlmDocsBuilder
 
         result.gsub(/\]\(([^)\s?#]+?)\.html?(?=[?#)\s])/) do |match|
           path = ::Regexp.last_match(1)
-          path.match?(URI_SCHEME) ? match : "](#{path}.md"
+          path.match?(URI_SCHEME_PATTERN) ? match : "](#{path}.md"
         end
       end
 
