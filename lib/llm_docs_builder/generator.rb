@@ -184,42 +184,47 @@ module LlmDocsBuilder
     # Finds the character ranges of Markdown links and images in text
     #
     # Brackets and parentheses are matched by nesting depth, so linked images, nested link text, URLs
-    # with parentheses and reference links are each one range. An unclosed bracket runs to the end.
+    # with parentheses and reference links are each one range. An unclosed bracket is not a link.
     #
     # @param text [String] single-line text
     # @return [Array<Range>] inclusive index ranges
     def link_spans(text)
+      closing = closing_indexes(text)
       spans = []
       index = 0
 
       while (start = text.index('[', index))
-        stop = closing_index(text, start)
-        stop = closing_index(text, stop + 1) while stop && ['(', '['].include?(text[stop + 1])
+        stop = closing[start]
+        index = start + 1
+        next unless stop
+
+        stop = closing[stop + 1] while closing[stop + 1]
         start -= 1 if start.positive? && text[start - 1] == '!'
-        spans << (start..(stop || (text.length - 1)))
-        index = stop ? stop + 1 : text.length
+        spans << (start..stop)
+        index = stop + 1
       end
 
       spans
     end
 
-    # Finds the index of the bracket or parenthesis that closes the one at a given index
+    # Maps the index of each opening bracket or parenthesis to the index of the one that closes it
     #
     # @param text [String] text to search
-    # @param open_index [Integer] index of the opening `[` or `(`
-    # @return [Integer, nil] index of the matching closing character, nil when unclosed
-    def closing_index(text, open_index)
-      open = text[open_index]
-      close = open == '[' ? ']' : ')'
-      depth = 0
+    # @return [Hash{Integer => Integer}] closing index by opening index, unclosed ones are absent
+    def closing_indexes(text)
+      closing = {}
+      open = { '[' => [], '(' => [] }
+      pairs = { ']' => '[', ')' => '(' }
 
-      (open_index...text.length).each do |index|
-        depth += 1 if text[index] == open
-        depth -= 1 if text[index] == close
-        return index if depth.zero?
+      text.each_char.with_index do |char, index|
+        if open.key?(char)
+          open[char] << index
+        elsif pairs.key?(char) && (opened = open[pairs[char]].pop)
+          closing[opened] = index
+        end
       end
 
-      nil
+      closing
     end
 
     # Assigns priority to file based on filename patterns

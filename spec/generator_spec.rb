@@ -194,6 +194,20 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(description).to eq('a' * 190)
       end
 
+      it 'does not treat an unclosed bracket as a link' do
+        content = "# Title\n\nRanges use half-open notation [start, end) everywhere. #{'a' * 250}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("Ranges use half-open notation [start, end) everywhere. #{'a' * 250}".slice(0, 200))
+      end
+
+      it 'does not treat a link with an unclosed URL as reaching the 200 character limit' do
+        content = "# Title\n\nSee [docs](http://x.com for more. #{'a' * 250}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("See [docs](http://x.com for more. #{'a' * 250}".slice(0, 200))
+      end
+
       it 'returns empty string when no description' do
         content = "# Title\n\n"
 
