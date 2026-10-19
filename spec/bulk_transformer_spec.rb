@@ -135,16 +135,20 @@ RSpec.describe LlmDocsBuilder::BulkTransformer do
     end
 
     it 'skips already transformed files on a second run' do
-      first_run = described_class.new(temp_dir).transform_all
-      second_run = described_class.new(temp_dir).transform_all
+      transformer = described_class.new(temp_dir)
+
+      first_run = transformer.transform_all
+      second_run = transformer.transform_all
 
       expect(second_run).to eq(first_run)
       expect(Dir.glob(File.join(temp_dir, '**', '*.llm.llm.md'))).to be_empty
     end
 
     it 'skips already transformed files with a custom suffix' do
-      described_class.new(temp_dir, suffix: '.ai').transform_all
-      transformed_files = described_class.new(temp_dir, suffix: '.ai').transform_all
+      transformer = described_class.new(temp_dir, suffix: '.ai')
+
+      transformer.transform_all
+      transformed_files = transformer.transform_all
 
       expect(transformed_files.size).to eq(4)
       expect(Dir.glob(File.join(temp_dir, '**', '*.ai.ai.md'))).to be_empty
