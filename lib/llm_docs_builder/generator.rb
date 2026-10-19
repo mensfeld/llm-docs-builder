@@ -12,6 +12,9 @@ module LlmDocsBuilder
   #
   # @api public
   class Generator
+    # Maximum length of a file description in llms.txt, in characters
+    MAX_DESCRIPTION_LENGTH = 200
+
     # @return [String] path to documentation directory or file
     attr_reader :docs_path
 
@@ -157,8 +160,8 @@ module LlmDocsBuilder
 
     # Extracts description from file content
     #
-    # Takes first paragraph after title as a single line, truncated to 200 characters. A Markdown
-    # link or image that would be cut by the limit is dropped entirely.
+    # Takes first paragraph after title as a single line, truncated to MAX_DESCRIPTION_LENGTH characters.
+    # A Markdown link or image that would be cut by the limit is dropped entirely.
     #
     # @param content [String] file content
     # @return [String] extracted description
@@ -172,11 +175,13 @@ module LlmDocsBuilder
       first_paragraph = description_lines.take_while { |line| !line.strip.empty? }
 
       description = first_paragraph.join(' ').gsub(/\s+/, ' ').strip
-      return description if description.length <= 200
+      return description if description.length <= MAX_DESCRIPTION_LENGTH
 
-      cut_link = link_spans(description).find { |span| span.begin < 200 && span.end >= 200 }
+      cut_link = link_spans(description).find do |span|
+        span.begin < MAX_DESCRIPTION_LENGTH && span.end >= MAX_DESCRIPTION_LENGTH
+      end
 
-      return description.slice(0, 200) unless cut_link
+      return description.slice(0, MAX_DESCRIPTION_LENGTH) unless cut_link
 
       description.slice(0, cut_link.begin).rstrip
     end
@@ -213,13 +218,13 @@ module LlmDocsBuilder
     # @return [Hash{Integer => Integer}] closing index by opening index, unclosed ones are absent
     def closing_indexes(text)
       closing = {}
-      open = { '[' => [], '(' => [] }
+      open_indexes = { '[' => [], '(' => [] }
       pairs = { ']' => '[', ')' => '(' }
 
       text.each_char.with_index do |char, index|
-        if open.key?(char)
-          open[char] << index
-        elsif pairs.key?(char) && (opened = open[pairs[char]].pop)
+        if open_indexes.key?(char)
+          open_indexes[char] << index
+        elsif pairs.key?(char) && (opened = open_indexes[pairs[char]].pop)
           closing[opened] = index
         end
       end
