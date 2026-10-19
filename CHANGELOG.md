@@ -13,6 +13,7 @@
   - A second `bulk-transform` run no longer writes `*.llm.llm.md` files.
   - `generate` lists each page once, from its source file, instead of listing both `README.md` and `README.llm.md`.
   - Source files whose names end with the suffix (e.g. `notes.llm.md`) are skipped too. An empty suffix skips nothing.
+- [Fix] **Angle-Bracket Link Destinations** - `base_url` link expansion now resolves CommonMark `[text](<path with spaces>)` links like other relative links: the brackets are dropped and spaces are percent-encoded (`<../my docs/a b.md>` → `<base_url>/my%20docs/a%20b.md`) instead of producing a broken URL with a stray `>`.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** - `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
