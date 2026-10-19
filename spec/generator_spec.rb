@@ -135,6 +135,35 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(description.length).to eq(200)
       end
 
+      it 'joins a multi-line paragraph into a single line' do
+        content = "# Title\n\n1. up: [up](../intro.md)\n2. self: [self](#self)\n"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('1. up: [up](../intro.md) 2. self: [self](#self)')
+      end
+
+      it 'does not cut a link at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 180} [anchor](https://example.com/guide.md#anchor) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 180)
+      end
+
+      it 'does not cut an image at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 180} ![logo](https://example.com/logo.png) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 180)
+      end
+
+      it 'keeps a link that ends within the 200 character limit' do
+        link = '[guide](https://example.com/guide.md)'
+        content = "# Title\n\n#{'a' * (199 - link.length)} #{link} #{'b' * 50}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("#{'a' * (199 - link.length)} #{link}")
+      end
+
       it 'returns empty string when no description' do
         content = "# Title\n\n"
 

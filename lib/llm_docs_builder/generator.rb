@@ -157,7 +157,8 @@ module LlmDocsBuilder
 
     # Extracts description from file content
     #
-    # Takes first paragraph after title, truncated to 200 characters
+    # Takes first paragraph after title as a single line, truncated to 200 characters. A Markdown
+    # link or image that would be cut by the limit is dropped entirely.
     #
     # @param content [String] file content
     # @return [String] extracted description
@@ -170,7 +171,16 @@ module LlmDocsBuilder
       # Get first paragraph
       first_paragraph = description_lines.take_while { |line| !line.strip.empty? }
 
-      first_paragraph.join(' ').strip.slice(0, 200)
+      description = first_paragraph.join(' ').gsub(/\s+/, ' ').strip
+      return description if description.length <= 200
+
+      cut_link = description.to_enum(:scan, /!?\[[^\]]*\]\([^)]*\)/)
+                            .map { ::Regexp.last_match }
+                            .find { |match| match.begin(0) < 200 && match.end(0) > 200 }
+
+      return description.slice(0, 200) unless cut_link
+
+      description.slice(0, cut_link.begin(0)).rstrip
     end
 
     # Assigns priority to file based on filename patterns
