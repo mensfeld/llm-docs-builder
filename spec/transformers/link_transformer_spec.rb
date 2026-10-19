@@ -538,6 +538,13 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq(content)
       end
+
+      it 'leaves .html targets with any other URI scheme unchanged' do
+        content = '[A](sftp://host/a.html) [B](file:///a.html) [C](javascript:void.html)'
+        result = transformer.transform(content, convert_urls: true)
+
+        expect(result).to eq(content)
+      end
     end
 
     context 'with simplify_links option' do
