@@ -174,13 +174,52 @@ module LlmDocsBuilder
       description = first_paragraph.join(' ').gsub(/\s+/, ' ').strip
       return description if description.length <= 200
 
-      cut_link = description.to_enum(:scan, /!?\[[^\]]*\]\([^)]*\)/)
-                            .map { ::Regexp.last_match }
-                            .find { |match| match.begin(0) < 200 && match.end(0) > 200 }
+      cut_link = link_spans(description).find { |span| span.begin < 200 && span.end >= 200 }
 
       return description.slice(0, 200) unless cut_link
 
-      description.slice(0, cut_link.begin(0)).rstrip
+      description.slice(0, cut_link.begin).rstrip
+    end
+
+    # Finds the character ranges of Markdown links and images in text
+    #
+    # Brackets and parentheses are matched by nesting depth, so linked images, nested link text, URLs
+    # with parentheses and reference links are each one range. An unclosed bracket runs to the end.
+    #
+    # @param text [String] single-line text
+    # @return [Array<Range>] inclusive index ranges
+    def link_spans(text)
+      spans = []
+      index = 0
+
+      while (start = text.index('[', index))
+        stop = closing_index(text, start)
+        stop = closing_index(text, stop + 1) while stop && ['(', '['].include?(text[stop + 1])
+        start -= 1 if start.positive? && text[start - 1] == '!'
+        spans << (start..(stop || (text.length - 1)))
+        index = stop ? stop + 1 : text.length
+      end
+
+      spans
+    end
+
+    # Finds the index of the bracket or parenthesis that closes the one at a given index
+    #
+    # @param text [String] text to search
+    # @param open_index [Integer] index of the opening `[` or `(`
+    # @return [Integer, nil] index of the matching closing character, nil when unclosed
+    def closing_index(text, open_index)
+      open = text[open_index]
+      close = open == '[' ? ']' : ')'
+      depth = 0
+
+      (open_index...text.length).each do |index|
+        depth += 1 if text[index] == open
+        depth -= 1 if text[index] == close
+        return index if depth.zero?
+      end
+
+      nil
     end
 
     # Assigns priority to file based on filename patterns

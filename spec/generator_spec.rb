@@ -164,6 +164,36 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(description).to eq("#{'a' * (199 - link.length)} #{link}")
       end
 
+      it 'does not cut a linked image at the 200 character limit' do
+        badge = '[![Gem Version](https://badge.fury.io/rb/x.svg)](https://rubygems.org/gems/x)'
+        content = "# Title\n\n#{'a' * 150} #{badge} tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 150)
+      end
+
+      it 'does not cut a link with nested brackets at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 170} [see [docs]](https://example.com/docs/page.md) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 170)
+      end
+
+      it 'does not cut a link whose URL contains parentheses' do
+        link = '[Foo](https://en.wikipedia.org/wiki/Foo_(bar))'
+        content = "# Title\n\n#{'a' * (200 - link.length)} #{link} tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * (200 - link.length))
+      end
+
+      it 'does not cut a reference link at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 190} [anchor text][ref-label] tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 190)
+      end
+
       it 'returns empty string when no description' do
         content = "# Title\n\n"
 
