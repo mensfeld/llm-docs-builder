@@ -5,6 +5,9 @@
   - `../` and `./` segments are normalized (`../other.md` → `https://example.com/other.md` instead of `https://example.com/docs/../other.md`).
   - `bulk-transform` resolves each link from its file's own directory, so `./setup.md` in `guides/intro.md` expands to `<base_url>/guides/setup.md`.
   - Links starting with `/` resolve from `base_url`; anchors, query strings, absolute URLs and `mailto:`/`tel:`/`ftp:` links are unchanged.
+- [Fix] **llms.txt Paths Are Percent-Encoded** — `generate` now percent-encodes each path segment in `llms.txt` entries, with and without `base_url`.
+  - `docs/my docs/a b.md` gives `my%20docs/a%20b.md`, so names with spaces or parentheses no longer break the Markdown link.
+  - Non-ASCII names are encoded as UTF-8 (`zażółć.md` → `za%C5%BC%C3%B3%C5%82%C4%87.md`).
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** — `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).

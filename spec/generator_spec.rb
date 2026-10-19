@@ -43,6 +43,16 @@ RSpec.describe LlmDocsBuilder::Generator do
       expect(content).to include('https://example.com/guide.md')
     end
 
+    it 'percent-encodes paths with spaces in llms.txt entries' do
+      FileUtils.mkdir_p(File.join(temp_dir, 'my docs'))
+      File.write(File.join(temp_dir, 'my docs', 'a b.md'), "# AB\n\nSpaced")
+
+      expect(described_class.new(temp_dir).generate).to include('- [AB](my%20docs/a%20b.md)')
+
+      gen = described_class.new(temp_dir, base_url: 'https://example.com/docs/')
+      expect(gen.generate).to include('- [AB](https://example.com/docs/my%20docs/a%20b.md)')
+    end
+
     it 'writes to output file when specified' do
       File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
       output_path = File.join(temp_dir, 'llms.txt')
@@ -254,6 +264,16 @@ RSpec.describe LlmDocsBuilder::Generator do
         generator_with_url = described_class.new(temp_dir, base_url: 'https://example.com')
         url = generator_with_url.send(:build_url, 'docs/guide.md')
         expect(url).to eq('https://example.com/docs/guide.md')
+      end
+
+      it 'percent-encodes spaces, parentheses and non-ASCII characters per segment' do
+        url = generator.send(:build_url, 'my docs/zażółć (1).md')
+        expect(url).to eq('my%20docs/za%C5%BC%C3%B3%C5%82%C4%87%20%281%29.md')
+      end
+
+      it 'leaves safe characters unchanged' do
+        url = generator.send(:build_url, 'guides/sub_dir/page-1.v2~x.md')
+        expect(url).to eq('guides/sub_dir/page-1.v2~x.md')
       end
     end
 

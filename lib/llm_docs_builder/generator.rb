@@ -310,13 +310,18 @@ module LlmDocsBuilder
 
     # Constructs full URL from path using base_url option if provided
     #
+    # Each path segment is percent-encoded, so names with spaces, parentheses or
+    # non-ASCII characters give a valid Markdown link destination.
+    #
     # @param path [String] relative path to file
     # @return [String] full URL or relative path
     def build_url(path)
+      encoded_path = path.split('/').map { |segment| ERB::Util.url_encode(segment) }.join('/')
+
       if (base_url = options[:base_url])
-        File.join(base_url, path)
+        File.join(base_url, encoded_path)
       else
-        path
+        encoded_path
       end
     end
 
