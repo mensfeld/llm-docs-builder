@@ -239,11 +239,18 @@ module LlmDocsBuilder
 
       # Convert HTML URLs to markdown format
       #
+      # Converts absolute URLs anywhere in the content and relative link targets, keeping queries and anchors.
+      #
       # @param content [String] markdown content
       # @return [String] content with converted URLs
       def convert_html_urls(content)
-        content.gsub(%r{https?://[^\s<>]+\.html?(?=[)\s]|$)}) do |url|
-          url.sub(/\.html?$/, '.md')
+        result = content.gsub(%r{https?://[^\s<>?#]+?\.html?(?=[?#)\s]|$)}) do |url|
+          url.sub(/\.html?\z/, '.md')
+        end
+
+        result.gsub(/\]\(([^)\s?#]+?)\.html?(?=[?#)\s])/) do |match|
+          path = ::Regexp.last_match(1)
+          absolute_url_scheme?(path) ? match : "](#{path}.md"
         end
       end
 

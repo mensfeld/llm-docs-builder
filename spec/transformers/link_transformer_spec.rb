@@ -512,6 +512,32 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to include('https://example.com/file.pdf')
       end
+
+      it 'converts .html URLs with anchors and queries' do
+        content = '[A](https://example.com/doc.html#sec) [B](https://example.com/doc.html?x=1) ' \
+                  'see https://example.com/doc.htm#top'
+        result = transformer.transform(content, convert_urls: true)
+
+        expect(result).to eq(
+          '[A](https://example.com/doc.md#sec) [B](https://example.com/doc.md?x=1) ' \
+          'see https://example.com/doc.md#top'
+        )
+      end
+
+      it 'converts relative .html link targets' do
+        content = '[A](../intro.html) [B](guide.htm#setup) [C](/api/index.html?v=2 "API")'
+        result = transformer.transform(content, convert_urls: true)
+
+        expect(result).to eq('[A](../intro.md) [B](guide.md#setup) [C](/api/index.md?v=2 "API")')
+      end
+
+      it 'leaves .html in queries, anchors and non-http schemes unchanged' do
+        content = '[A](https://example.com/page?next=a.html) [B](#a.html) [C](mailto:a@b.html) ' \
+                  '[D](ftp://example.com/a.html)'
+        result = transformer.transform(content, convert_urls: true)
+
+        expect(result).to eq(content)
+      end
     end
 
     context 'with simplify_links option' do
