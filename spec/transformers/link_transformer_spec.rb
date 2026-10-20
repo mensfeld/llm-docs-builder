@@ -153,9 +153,11 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
       it 'resolves angle-bracket targets and percent-encodes their spaces' do
         content = '[spa](<../../my docs/a b.md>)'
-        result = transformer.transform(content,
+        result = transformer.transform(
+          content,
           base_url: 'https://myproject.io/docs/',
-          source_path: 'guides/sub/page.md')
+          source_path: 'guides/sub/page.md'
+        )
 
         expect(result).to eq('[spa](https://myproject.io/docs/my%20docs/a%20b.md)')
       end
