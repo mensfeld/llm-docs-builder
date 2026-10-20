@@ -430,6 +430,44 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         MD
       end
 
+      it 'expands links after a destination that runs into code' do
+        content = <<~MD
+          See [a](../a.md and `f()` then [b](../b.md).
+
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Next: [intro](intro.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [a](../a.md and `f()` then [b](https://example.com/docs/guides/b.md).
+
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Next: [intro](https://example.com/docs/guides/sub/intro.md)
+        MD
+      end
+
+      it 'expands links with code in the title' do
+        content = <<~MD
+          See [run](../cli.md "Run `bin/x`") and [x](../x.md 'Call `f()`').
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [run](https://example.com/docs/guides/cli.md "Run `bin/x`") and [x](https://example.com/docs/guides/x.md 'Call `f()`').
+        MD
+      end
+
       it 'leaves code unchanged with convert_urls and simplify_links' do
         content = "`[see the docs](https://example.com/a.html)`\n"
         result = transformer.transform(content, convert_urls: true, simplify_links: true)

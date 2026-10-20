@@ -219,7 +219,7 @@ RSpec.describe 'bulk-transform command' do
       client.call(1)
       ```
 
-      That is all (really). See [intro](intro.md).
+      Next: [intro](intro.md) and [run](../cli.md "Run `bin/x`").
     MD
 
     config_file = File.join(temp_dir, 'config.yml')
@@ -240,7 +240,7 @@ RSpec.describe 'bulk-transform command' do
       client.call(1)
       ```
 
-      That is all (really). See [intro](https://myproject.io/docs/guides/intro.md).
+      Next: [intro](https://myproject.io/docs/guides/intro.md) and [run](https://myproject.io/docs/cli.md "Run `bin/x`").
     MD
   end
 

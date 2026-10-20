@@ -171,18 +171,19 @@ module LlmDocsBuilder
 
       # Expand relative links to absolute URLs
       #
+      # A destination never runs into protected code; only a link title may contain it.
+      #
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
       # @param source_path [String, nil] path of the file relative to the docs root
       # @return [String] content with expanded links
       def expand_relative_links(content, base_url, source_path = nil)
-        content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do |match|
+        content.gsub(/\[([^\]]+)\]\(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)/) do |match|
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
           destination = url.delete_prefix('<')
 
-          if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination) ||
-             url.match?(CODE_PLACEHOLDER)
+          if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)
             match
           else
             "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"
