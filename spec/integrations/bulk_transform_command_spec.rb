@@ -208,6 +208,42 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'leaves a link whose destination runs into code unchanged' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'typo.md'), <<~MD)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      That is all (really). See [intro](intro.md).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'typo.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      That is all (really). See [intro](https://myproject.io/docs/guides/intro.md).
+    MD
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

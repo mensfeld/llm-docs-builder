@@ -181,7 +181,8 @@ module LlmDocsBuilder
           url = ::Regexp.last_match(2)
           destination = url.delete_prefix('<')
 
-          if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)
+          if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination) ||
+             url.match?(CODE_PLACEHOLDER)
             match
           else
             "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"

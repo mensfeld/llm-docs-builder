@@ -403,6 +403,33 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         MD
       end
 
+      it 'leaves links whose destination runs into code unchanged' do
+        content = <<~MD
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Read [paren title](../a.md (see `run()`)) and [a](<../a`b`.md>).
+
+          That is all (really). [Next](../next.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Read [paren title](../a.md (see `run()`)) and [a](<../a`b`.md>).
+
+          That is all (really). [Next](https://example.com/docs/guides/next.md)
+        MD
+      end
+
       it 'leaves code unchanged with convert_urls and simplify_links' do
         content = "`[see the docs](https://example.com/a.html)`\n"
         result = transformer.transform(content, convert_urls: true, simplify_links: true)
