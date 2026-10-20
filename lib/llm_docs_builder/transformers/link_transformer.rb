@@ -51,6 +51,8 @@ module LlmDocsBuilder
       # Line that starts a list item
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
+      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM
+
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
       # @param content [String] markdown content

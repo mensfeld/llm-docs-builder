@@ -164,6 +164,50 @@ RSpec.describe 'bulk-transform command' do
     expect(spaced).to include('See [q](https://myproject.io/docs/guides/my%20page.md?tab=2).')
   end
 
+  it 'leaves links inside code unchanged' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
+
+    File.write(File.join(docs_dir, 'guides', 'sub', 'page.md'), <<~MD)
+      # Page
+
+      See [intro](../intro.md) and `[ic](../intro.md)`.
+
+      ```md
+      [fc](../intro.md)
+      ```
+
+      Indented:
+
+          [icb](../intro.md)
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'sub', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      See [intro](https://myproject.io/docs/guides/intro.md) and `[ic](../intro.md)`.
+
+      ```md
+      [fc](../intro.md)
+      ```
+
+      Indented:
+
+          [icb](../intro.md)
+    MD
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',
