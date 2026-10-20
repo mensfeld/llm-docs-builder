@@ -151,6 +151,35 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(result).to eq('[Spaced](https://example.com/my notes/page one.md)')
       end
 
+      it 'resolves angle-bracket targets and percent-encodes their spaces' do
+        content = '[spa](<../../my docs/a b.md>)'
+        result = transformer.transform(
+          content,
+          base_url: 'https://myproject.io/docs/',
+          source_path: 'guides/sub/page.md'
+        )
+
+        expect(result).to eq('[spa](https://myproject.io/docs/my%20docs/a%20b.md)')
+      end
+
+      it 'resolves angle-bracket targets with a title, anchor or leading slash' do
+        content = '[A](<./set up.md> "Setup") [B](<../a b.md#part 1>) [C](</root dir/x.md>)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')
+
+        expect(result).to eq(
+          '[A](https://example.com/docs/guides/set%20up.md "Setup") ' \
+          '[B](https://example.com/docs/a%20b.md#part%201) ' \
+          '[C](https://example.com/docs/root%20dir/x.md)'
+        )
+      end
+
+      it 'leaves angle-bracket absolute URLs and anchors unchanged' do
+        content = '[Site](<https://other.com/a b.md>) [Top](<#top>) [Mail](<mailto:a@b.com>)'
+        result = transformer.transform(content, base_url: 'https://example.com', source_path: 'guides/intro.md')
+
+        expect(result).to eq(content)
+      end
+
       it 'resolves non-ASCII targets from the source file directory' do
         content = '[PL](./zażółć.md)'
         result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')
