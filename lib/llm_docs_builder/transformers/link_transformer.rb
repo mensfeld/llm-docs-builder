@@ -37,7 +37,8 @@ module LlmDocsBuilder
       ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
 
       # A link target with a URI scheme is never a relative path
-      URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.\-]*:/i
+      URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
+      private_constant :URI_SCHEME_PATTERN
 
       # Placeholder that stands in for a protected code fragment
       CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
