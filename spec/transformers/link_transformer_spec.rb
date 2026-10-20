@@ -481,6 +481,13 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq("Use [`Config`](config.md) and [`run`](../cli.md).\n")
       end
+
+      it 'simplifies links after a destination that runs into code' do
+        content = "See [the API](../api.md and `f()` then [see the docs](b.md).\n"
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq("See [the API](../api.md and `f()` then [docs](b.md).\n")
+      end
     end
 
     context 'with convert_urls option' do

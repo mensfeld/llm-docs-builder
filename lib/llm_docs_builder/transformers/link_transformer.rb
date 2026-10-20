@@ -51,7 +51,10 @@ module LlmDocsBuilder
       # Line that starts a list item
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
-      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM
+      # Inline link; its destination never runs into protected code, only its title may contain it
+      LINK_PATTERN = /\[([^\]]+)\]\(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)/
+
+      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :LINK_PATTERN
 
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
@@ -171,14 +174,12 @@ module LlmDocsBuilder
 
       # Expand relative links to absolute URLs
       #
-      # A destination never runs into protected code; only a link title may contain it.
-      #
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
       # @param source_path [String, nil] path of the file relative to the docs root
       # @return [String] content with expanded links
       def expand_relative_links(content, base_url, source_path = nil)
-        content.gsub(/\[([^\]]+)\]\(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)/) do |match|
+        content.gsub(LINK_PATTERN) do |match|
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
           destination = url.delete_prefix('<')
@@ -251,7 +252,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content with simplified links
       def simplify_links(content)
-        content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do
+        content.gsub(LINK_PATTERN) do
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
 
