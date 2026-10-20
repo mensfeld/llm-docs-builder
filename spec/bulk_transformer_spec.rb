@@ -134,6 +134,26 @@ RSpec.describe LlmDocsBuilder::BulkTransformer do
       expect(File.exist?(File.join(temp_dir, 'README.ai.md'))).to be true
     end
 
+    it 'skips already transformed files on a second run' do
+      transformer = described_class.new(temp_dir)
+
+      first_run = transformer.transform_all
+      second_run = transformer.transform_all
+
+      expect(second_run).to eq(first_run)
+      expect(Dir.glob(File.join(temp_dir, '**', '*.llm.llm.md'))).to be_empty
+    end
+
+    it 'skips already transformed files with a custom suffix' do
+      transformer = described_class.new(temp_dir, suffix: '.ai')
+
+      transformer.transform_all
+      transformed_files = transformer.transform_all
+
+      expect(transformed_files.size).to eq(4)
+      expect(Dir.glob(File.join(temp_dir, '**', '*.ai.ai.md'))).to be_empty
+    end
+
     it 'raises error for non-existent directory' do
       transformer = described_class.new('/non/existent/path')
 
