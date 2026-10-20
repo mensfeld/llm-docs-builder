@@ -6,6 +6,7 @@ require 'find'
 
 autoload(:Nokogiri, 'nokogiri')
 autoload(:CGI, 'cgi')
+autoload(:ERB, 'erb')
 
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect('cli' => 'CLI')

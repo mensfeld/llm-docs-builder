@@ -84,6 +84,38 @@ RSpec.describe 'generate command' do
     expect(content).to include('https://example.com/guide.md')
   end
 
+  it 'percent-encodes file paths in llms.txt links' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'my docs'))
+    File.write(File.join(docs_dir, 'my docs', 'a b.md'), "# AB\n\nSpaced name")
+    File.write(File.join(docs_dir, 'zażółć #1 100%.md'), "# Special\n\nSpecial name")
+
+    encoded_paths = [
+      'my%20docs/a%20b.md',
+      'za%C5%BC%C3%B3%C5%82%C4%87%20%231%20100%25.md'
+    ]
+
+    [nil, 'https://myproject.io/docs/'].each do |base_url|
+      config_file = File.join(temp_dir, 'config.yml')
+      output_file = File.join(temp_dir, 'llms.txt')
+
+      File.write(config_file, <<~YAML)
+        docs: #{docs_dir}
+        output: #{output_file}
+        #{"base_url: #{base_url}" if base_url}
+      YAML
+
+      _, _stderr, status = run_cli('generate', '--config', config_file)
+
+      expect(status.success?).to be true
+      content = File.read(output_file)
+      encoded_paths.each do |path|
+        expect(content).to include("](#{base_url}#{path})")
+      end
+      expect(content).not_to include('my docs/')
+    end
+  end
+
   it 'fails when docs path does not exist' do
     config_file = File.join(temp_dir, 'config.yml')
     File.write(config_file, <<~YAML)

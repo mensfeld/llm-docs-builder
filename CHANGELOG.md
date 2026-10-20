@@ -5,6 +5,9 @@
   - `../` and `./` segments are normalized (`../other.md` → `https://example.com/other.md` instead of `https://example.com/docs/../other.md`).
   - `bulk-transform` resolves each link from its file's own directory, so `./setup.md` in `guides/intro.md` expands to `<base_url>/guides/setup.md`.
   - Links starting with `/` resolve from `base_url`; anchors, query strings, absolute URLs and `mailto:`/`tel:`/`ftp:` links are unchanged.
+- [Fix] **llms.txt Paths Are Percent-Encoded** — `generate` now percent-encodes each path segment in `llms.txt` entries, with and without `base_url`.
+  - `docs/my docs/a b.md` gives `my%20docs/a%20b.md`, so names with spaces or parentheses no longer break the Markdown link.
+  - Non-ASCII names are encoded as UTF-8 (`zażółć.md` → `za%C5%BC%C3%B3%C5%82%C4%87.md`).
 - [Fix] **llms.txt Descriptions** — A page description is now always a single line, and the 200-character limit no longer cuts a Markdown link or image in half; a link or image that does not fit is left out.
 - [Fix] **Transformed Files Picked Up as Sources** — `bulk-transform` and `generate` now skip files ending with the transform suffix (`*.llm.md` by default, or `*<suffix>.md`).
   - A second `bulk-transform` run no longer writes `*.llm.llm.md` files.
