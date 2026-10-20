@@ -14,6 +14,7 @@ module LlmDocsBuilder
   class Generator
     # Maximum length of a file description in llms.txt, in characters
     MAX_DESCRIPTION_LENGTH = 200
+    private_constant :MAX_DESCRIPTION_LENGTH
 
     # @return [String] path to documentation directory or file
     attr_reader :docs_path
