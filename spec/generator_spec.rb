@@ -135,6 +135,79 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(description.length).to eq(200)
       end
 
+      it 'joins a multi-line paragraph into a single line' do
+        content = "# Title\n\n1. up: [up](../intro.md)\n2. self: [self](#self)\n"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('1. up: [up](../intro.md) 2. self: [self](#self)')
+      end
+
+      it 'does not cut a link at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 180} [anchor](https://example.com/guide.md#anchor) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 180)
+      end
+
+      it 'does not cut an image at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 180} ![logo](https://example.com/logo.png) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 180)
+      end
+
+      it 'keeps a link that ends within the 200 character limit' do
+        link = '[guide](https://example.com/guide.md)'
+        content = "# Title\n\n#{'a' * (199 - link.length)} #{link} #{'b' * 50}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("#{'a' * (199 - link.length)} #{link}")
+      end
+
+      it 'does not cut a linked image at the 200 character limit' do
+        badge = '[![Gem Version](https://badge.fury.io/rb/x.svg)](https://rubygems.org/gems/x)'
+        content = "# Title\n\n#{'a' * 150} #{badge} tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 150)
+      end
+
+      it 'does not cut a link with nested brackets at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 170} [see [docs]](https://example.com/docs/page.md) tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 170)
+      end
+
+      it 'does not cut a link whose URL contains parentheses' do
+        link = '[Foo](https://en.wikipedia.org/wiki/Foo_(bar))'
+        content = "# Title\n\n#{'a' * (200 - link.length)} #{link} tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * (200 - link.length))
+      end
+
+      it 'does not cut a reference link at the 200 character limit' do
+        content = "# Title\n\n#{'a' * 190} [anchor text][ref-label] tail"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq('a' * 190)
+      end
+
+      it 'does not treat an unclosed bracket as a link' do
+        content = "# Title\n\nRanges use half-open notation [start, end) everywhere. #{'a' * 250}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("Ranges use half-open notation [start, end) everywhere. #{'a' * 250}".slice(0, 200))
+      end
+
+      it 'does not treat a link with an unclosed URL as reaching the 200 character limit' do
+        content = "# Title\n\nSee [docs](http://x.com for more. #{'a' * 250}"
+
+        description = generator.send(:extract_description, content)
+        expect(description).to eq("See [docs](http://x.com for more. #{'a' * 250}".slice(0, 200))
+      end
+
       it 'returns empty string when no description' do
         content = "# Title\n\n"
 

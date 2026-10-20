@@ -12,6 +12,10 @@ module LlmDocsBuilder
   #
   # @api public
   class Generator
+    # Maximum length of a file description in llms.txt, in characters
+    MAX_DESCRIPTION_LENGTH = 200
+    private_constant :MAX_DESCRIPTION_LENGTH
+
     # @return [String] path to documentation directory or file
     attr_reader :docs_path
 
@@ -161,7 +165,8 @@ module LlmDocsBuilder
 
     # Extracts description from file content
     #
-    # Takes first paragraph after title, truncated to 200 characters
+    # Takes first paragraph after title as a single line, truncated to MAX_DESCRIPTION_LENGTH characters.
+    # A Markdown link or image that would be cut by the limit is dropped entirely.
     #
     # @param content [String] file content
     # @return [String] extracted description
@@ -174,7 +179,62 @@ module LlmDocsBuilder
       # Get first paragraph
       first_paragraph = description_lines.take_while { |line| !line.strip.empty? }
 
-      first_paragraph.join(' ').strip.slice(0, 200)
+      description = first_paragraph.join(' ').gsub(/\s+/, ' ').strip
+      return description if description.length <= MAX_DESCRIPTION_LENGTH
+
+      cut_link = link_spans(description).find do |span|
+        span.begin < MAX_DESCRIPTION_LENGTH && span.end >= MAX_DESCRIPTION_LENGTH
+      end
+
+      return description.slice(0, MAX_DESCRIPTION_LENGTH) unless cut_link
+
+      description.slice(0, cut_link.begin).rstrip
+    end
+
+    # Finds the character ranges of Markdown links and images in text
+    #
+    # Brackets and parentheses are matched by nesting depth, so linked images, nested link text, URLs
+    # with parentheses and reference links are each one range. An unclosed bracket is not a link.
+    #
+    # @param text [String] single-line text
+    # @return [Array<Range>] inclusive index ranges
+    def link_spans(text)
+      closing = closing_indexes(text)
+      spans = []
+      index = 0
+
+      while (start = text.index('[', index))
+        stop = closing[start]
+        index = start + 1
+        next unless stop
+
+        stop = closing[stop + 1] while closing[stop + 1]
+        start -= 1 if start.positive? && text[start - 1] == '!'
+        spans << (start..stop)
+        index = stop + 1
+      end
+
+      spans
+    end
+
+    # Maps the index of each opening bracket or parenthesis to the index of the one that closes it
+    #
+    # @param text [String] text to search
+    # @return [Hash{Integer => Integer}] closing index by opening index, unclosed ones are absent
+    def closing_indexes(text)
+      closing = {}
+      open_indexes = { '[' => [], '(' => [] }
+      pairs = { ']' => '[', ')' => '(' }
+
+      text.each_char.with_index do |char, index|
+        if open_indexes.key?(char)
+          open_indexes[char] << index
+        elsif pairs.key?(char) && (opened = open_indexes[pairs[char]].pop)
+          closing[opened] = index
+        end
+      end
+
+      closing
     end
 
     # Assigns priority to file based on filename patterns
