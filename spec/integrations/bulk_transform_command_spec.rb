@@ -59,6 +59,48 @@ RSpec.describe 'bulk-transform command' do
     expect(File.exist?(File.join(docs_dir, 'README.ai.md'))).to be true
   end
 
+  it 'skips already transformed files on repeated runs and in generate' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'api'))
+
+    File.write(File.join(docs_dir, 'README.md'), "# README\n\nContent here")
+    File.write(File.join(docs_dir, 'guide.md'), "# Guide\n\nGuide content")
+    File.write(File.join(docs_dir, 'api', 'reference.md'), "# API\n\nAPI docs")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      output: #{output_file}
+      base_url: https://example.com/docs/
+    YAML
+
+    2.times do
+      stdout, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+      expect(status.success?).to be true
+      expect(stdout).to include('3 files')
+    end
+
+    files = Dir.glob(File.join(docs_dir, '**', '*.md')).map { |f| f.delete_prefix("#{docs_dir}/") }
+    expect(files).to contain_exactly(
+      'README.md', 'README.llm.md',
+      'guide.md', 'guide.llm.md',
+      'api/reference.md', 'api/reference.llm.md'
+    )
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    links = File.read(output_file).lines.grep(/\A- \[/)
+    expect(links).to contain_exactly(
+      "- [README](https://example.com/docs/README.md): Content here\n",
+      "- [Guide](https://example.com/docs/guide.md): Guide content\n",
+      "- [API](https://example.com/docs/api/reference.md): API docs\n"
+    )
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

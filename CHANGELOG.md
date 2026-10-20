@@ -8,6 +8,11 @@
 - [Fix] **llms.txt Paths Are Percent-Encoded** — `generate` now percent-encodes each path segment in `llms.txt` entries, with and without `base_url`.
   - `docs/my docs/a b.md` gives `my%20docs/a%20b.md`, so names with spaces or parentheses no longer break the Markdown link.
   - Non-ASCII names are encoded as UTF-8 (`zażółć.md` → `za%C5%BC%C3%B3%C5%82%C4%87.md`).
+- [Fix] **llms.txt Descriptions** — A page description is now always a single line, and the 200-character limit no longer cuts a Markdown link or image in half; a link or image that does not fit is left out.
+- [Fix] **Transformed Files Picked Up as Sources** — `bulk-transform` and `generate` now skip files ending with the transform suffix (`*.llm.md` by default, or `*<suffix>.md`).
+  - A second `bulk-transform` run no longer writes `*.llm.llm.md` files.
+  - `generate` lists each page once, from its source file, instead of listing both `README.md` and `README.llm.md`.
+  - Source files whose names end with the suffix (e.g. `notes.llm.md`) are skipped too. An empty suffix skips nothing.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** — `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).

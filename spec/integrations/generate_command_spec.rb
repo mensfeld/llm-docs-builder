@@ -483,4 +483,32 @@ RSpec.describe 'generate command' do
     expect(desc_index).to be < body_index
     expect(body_index).to be < section_index
   end
+
+  it 'writes each description on one line without cutting a link' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(docs_dir)
+
+    badge = '[![Gem Version](https://badge.fury.io/rb/x.svg)](https://rubygems.org/gems/llm-docs-builder)'
+    nested = '[see [docs]](https://example.com/docs/page.md)'
+    File.write(File.join(docs_dir, 'badge.md'), "# Badge\n\nThe tool turns docs\ninto #{'x' * 124} #{badge} tail\n")
+    File.write(File.join(docs_dir, 'nested.md'), "# Nested\n\n#{'a' * 170}\n#{nested} tail more text\n")
+    File.write(File.join(docs_dir, 'plain.md'), "# Plain\n\n#{'p' * 150}\n#{'q' * 150}\n")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      output: #{output_file}
+    YAML
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+    lines = File.readlines(output_file, chomp: true)
+
+    expect(lines).to include("- [Badge](badge.md): The tool turns docs into #{'x' * 124}")
+    expect(lines).to include("- [Nested](nested.md): #{'a' * 170}")
+    expect(lines).to include("- [Plain](plain.md): #{'p' * 150} #{'q' * 49}")
+  end
 end
