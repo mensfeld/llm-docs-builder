@@ -258,7 +258,7 @@ module LlmDocsBuilder
           simplified_text = text
                             .gsub(/^(click here to|see|read more about|check out|visit)\s+(the\s+)?/i, '')
                             .gsub(/\s+(here|documentation|docs)$/i, '')
-                            .strip
+                            .gsub(/\A\s+|\s+\z/, '') # String#strip also removes the NUL of code placeholders
 
           simplified_text = text if simplified_text.empty?
 

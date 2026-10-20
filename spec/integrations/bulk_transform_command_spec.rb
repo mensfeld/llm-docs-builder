@@ -244,6 +244,30 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'keeps inline code in link text with simplify_links' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'api.md'), <<~MD)
+      Use [`Config`](config.md) and [see the `run` docs](../cli.md).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      simplify_links: true
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'api.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      Use [`Config`](config.md) and [`run`](../cli.md).
+    MD
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

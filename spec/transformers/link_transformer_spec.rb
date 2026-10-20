@@ -474,6 +474,13 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq(content)
       end
+
+      it 'keeps inline code at the start and end of link text with simplify_links' do
+        content = "Use [`Config`](config.md) and [see the `run` docs](../cli.md).\n"
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq("Use [`Config`](config.md) and [`run`](../cli.md).\n")
+      end
     end
 
     context 'with convert_urls option' do
