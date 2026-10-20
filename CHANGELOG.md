@@ -6,6 +6,10 @@
   - `bulk-transform` resolves each link from its file's own directory, so `./setup.md` in `guides/intro.md` expands to `<base_url>/guides/setup.md`.
   - Links starting with `/` resolve from `base_url`; anchors, query strings, absolute URLs and `mailto:`/`tel:`/`ftp:` links are unchanged.
 - [Fix] **llms.txt Descriptions** — A page description is now always a single line, and the 200-character limit no longer cuts a Markdown link or image in half; a link or image that does not fit is left out.
+- [Fix] **Transformed Files Picked Up as Sources** — `bulk-transform` and `generate` now skip files ending with the transform suffix (`*.llm.md` by default, or `*<suffix>.md`).
+  - A second `bulk-transform` run no longer writes `*.llm.llm.md` files.
+  - `generate` lists each page once, from its source file, instead of listing both `README.md` and `README.llm.md`.
+  - Source files whose names end with the suffix (e.g. `notes.llm.md`) are skipped too. An empty suffix skips nothing.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** — `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).

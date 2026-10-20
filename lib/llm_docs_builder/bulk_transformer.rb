@@ -76,16 +76,19 @@ module LlmDocsBuilder
 
     # Recursively scans the docs directory for markdown files
     #
-    # Skips hidden files (starting with dot) and returns sorted array of paths
+    # Skips hidden files (starting with dot) and already transformed files (ending with
+    # the suffix, e.g. README.llm.md) and returns sorted array of paths
     #
     # @return [Array<String>] paths to markdown files
     def find_markdown_files
       files = []
+      output_ending = "#{options[:suffix]}.md".downcase
 
       Find.find(docs_path) do |path|
         next unless File.file?(path)
         next unless path.match?(/\.md$/i)
         next if File.basename(path).start_with?('.')
+        next if output_ending != '.md' && path.downcase.end_with?(output_ending)
 
         files << path
       end

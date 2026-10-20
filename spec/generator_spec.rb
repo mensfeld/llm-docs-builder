@@ -512,6 +512,35 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(files.first[:title]).to eq('Visible')
       end
 
+      it 'skips bulk-transformed files' do
+        File.write(File.join(temp_dir, 'README.md'), "# Readme\n")
+        File.write(File.join(temp_dir, 'README.llm.md'), "# Readme\n")
+
+        files = generator.send(:find_markdown_files_in_directory)
+
+        expect(files.map { |f| f[:path] }).to eq(['README.md'])
+      end
+
+      it 'skips bulk-transformed files with a custom suffix' do
+        File.write(File.join(temp_dir, 'guide.md'), "# Guide\n")
+        File.write(File.join(temp_dir, 'guide.ai.md'), "# Guide\n")
+        gen = described_class.new(temp_dir, suffix: '.ai')
+
+        files = gen.send(:find_markdown_files_in_directory)
+
+        expect(files.map { |f| f[:path] }).to eq(['guide.md'])
+      end
+
+      it 'skips nothing with an empty suffix' do
+        File.write(File.join(temp_dir, 'guide.md'), "# Guide\n")
+        File.write(File.join(temp_dir, 'guide.llm.md'), "# Guide\n")
+        gen = described_class.new(temp_dir, suffix: '')
+
+        files = gen.send(:find_markdown_files_in_directory)
+
+        expect(files.map { |f| f[:path] }).to contain_exactly('guide.md', 'guide.llm.md')
+      end
+
       it 'sorts files by priority' do
         File.write(File.join(temp_dir, 'guide.md'), "# Guide\n")
         File.write(File.join(temp_dir, 'README.md'), "# Readme\n")

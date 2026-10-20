@@ -31,6 +31,7 @@ module LlmDocsBuilder
     # @option options [String] :description project description (overrides auto-detection)
     # @option options [String] :output output file path for saving
     # @option options [Boolean] :verbose enable verbose output
+    # @option options [String] :suffix suffix of bulk-transformed files to skip (default: '.llm')
     def initialize(docs_path, options = {})
       @docs_path = docs_path
       @options = options
@@ -72,11 +73,13 @@ module LlmDocsBuilder
 
     # Recursively finds and analyzes markdown files in directory
     #
-    # Sorts by priority (README, guides, etc.) and skips hidden files
+    # Sorts by priority (README, guides, etc.) and skips hidden files and bulk-transformed
+    # files (ending with the suffix, e.g. README.llm.md)
     #
     # @return [Array<Hash>] sorted array of analyzed file metadata
     def find_markdown_files_in_directory
       files = []
+      output_ending = "#{options.fetch(:suffix, '.llm')}.md".downcase
 
       Find.find(docs_path) do |path|
         # Skip hidden directories unless explicitly enabled
@@ -89,6 +92,7 @@ module LlmDocsBuilder
         next unless File.file?(path)
         next unless path.match?(/\.md$/i)
         next if File.basename(path).start_with?('.')
+        next if output_ending != '.md' && path.downcase.end_with?(output_ending)
         next if should_exclude?(path)
 
         files << analyze_file(path)
