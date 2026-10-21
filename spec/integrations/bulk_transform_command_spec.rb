@@ -129,6 +129,33 @@ RSpec.describe 'bulk-transform command' do
     )
   end
 
+  it 'resolves query-only links to the current page' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
+
+    File.write(File.join(docs_dir, 'guides', 'sub', 'page.md'), <<~MD)
+      # Page
+
+      See [q](?tab=2), [qa](<?tab=3#part>) and [self](#self).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'sub', 'page.llm.md'))
+    expect(content).to include(
+      'See [q](https://myproject.io/docs/guides/sub/page.md?tab=2), ' \
+      '[qa](https://myproject.io/docs/guides/sub/page.md?tab=3#part) and [self](#self).'
+    )
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

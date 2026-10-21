@@ -42,8 +42,6 @@ module LlmDocsBuilder
       # @param source_path [String, nil] path of the file relative to the docs root
       # @return [String] content with expanded links
       def expand_relative_links(content, base_url, source_path = nil)
-        source_dir = source_path ? File.dirname(source_path) : '.'
-
         content.gsub(/\[([^\]]+)\]\(([^)]+)\)/) do |match|
           text = ::Regexp.last_match(1)
           url = ::Regexp.last_match(2)
@@ -52,7 +50,7 @@ module LlmDocsBuilder
           if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)
             match
           else
-            "[#{text}](#{resolve_relative_url(base_url, url, source_dir)})"
+            "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"
           end
         end
       end
@@ -62,15 +60,18 @@ module LlmDocsBuilder
       # Targets starting with `/` are resolved from the base URL itself, other targets from the source
       # file's directory. `./` and `../` segments are normalized. Titles, queries and anchors are kept.
       # Angle-bracket destinations (`<path with spaces>`) are unwrapped and their spaces percent-encoded.
+      # A query-only target (`?tab=2`) resolves to the source file itself, as in RFC 3986.
       #
       # @param base_url [String] base URL for expansion
       # @param target [String] relative link target, optionally followed by a link title
-      # @param source_dir [String] directory of the source file relative to the docs root
+      # @param source_path [String, nil] path of the source file relative to the docs root
       # @return [String] expanded URL
-      def resolve_relative_url(base_url, target, source_dir)
+      def resolve_relative_url(base_url, target, source_path)
         url, title = target.match(/\A(.*?)(\s+(?:"[^"]*"|'[^']*'))?\z/m).captures
         url = url[/\A<(.*)>\z/m, 1]&.gsub(' ', '%20') || url
         path, suffix = url.match(/\A([^?#]*)(.*)\z/m).captures
+        path = File.basename(source_path) if source_path && path.empty? && suffix.start_with?('?')
+        source_dir = source_path ? File.dirname(source_path) : '.'
         origin = base_url[%r{\A[^:/?#]+://[^/?#]*}].to_s
         base_path = base_url.delete_prefix(origin)
         dir = path.start_with?('/') ? base_path : File.join(base_path, source_dir)

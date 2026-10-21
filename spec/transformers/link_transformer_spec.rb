@@ -180,6 +180,21 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(result).to eq(content)
       end
 
+      it 'resolves query-only targets to the source file itself' do
+        content = '[q](?tab=2) [qa](?tab=2#part "Tab") [self](#self)'
+        result = transformer.transform(
+          content,
+          base_url: 'https://myproject.io/docs/',
+          source_path: 'guides/sub/page.md'
+        )
+
+        expect(result).to eq(
+          '[q](https://myproject.io/docs/guides/sub/page.md?tab=2) ' \
+          '[qa](https://myproject.io/docs/guides/sub/page.md?tab=2#part "Tab") ' \
+          '[self](#self)'
+        )
+      end
+
       it 'resolves non-ASCII targets from the source file directory' do
         content = '[PL](./zażółć.md)'
         result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')

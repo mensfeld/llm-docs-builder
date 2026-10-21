@@ -14,6 +14,7 @@
   - `generate` lists each page once, from its source file, instead of listing both `README.md` and `README.llm.md`.
   - Source files whose names end with the suffix (e.g. `notes.llm.md`) are skipped too. An empty suffix skips nothing.
 - [Fix] **Angle-Bracket Link Destinations** - `base_url` link expansion now resolves CommonMark `[text](<path with spaces>)` links like other relative links: the brackets are dropped and spaces are percent-encoded (`<../my docs/a b.md>` → `<base_url>/my%20docs/a%20b.md`) instead of producing a broken URL with a stray `>`.
+- [Fix] **Query-Only Links** - `base_url` link expansion now resolves a query-only link like `[q](?tab=2)` to the current page (`guides/sub/page.md` gives `<base_url>/guides/sub/page.md?tab=2`, as RFC 3986 does) instead of the page's directory (`<base_url>/guides/sub/?tab=2`). Anchor-only links like `#self` are unchanged.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** - `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
