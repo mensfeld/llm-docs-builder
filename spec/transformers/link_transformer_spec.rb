@@ -63,6 +63,15 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(result).to eq('Download [file](ftp://example.com/file.zip)')
       end
 
+      it 'preserves links with any URI scheme, in any case' do
+        content = '[U](HTTPS://example.com/x) [x](Mailto:a@b.c) [s](sftp://host/x) [y](ssh://git@h/r) ' \
+                  '[g](git://host/r) [z](irc://h/c) [w](urn:isbn:1) [d](data:text/plain,hi) ' \
+                  '[j](javascript:void(0)) [p](<Sftp://host/a b>)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/a.md')
+
+        expect(result).to eq(content)
+      end
+
       it 'still expands relative links when non-http schemes are present' do
         content = 'See [guide](./guide.md) or [mail](mailto:a@b.com)'
         result = transformer.transform(content, base_url: 'https://example.com/docs')
