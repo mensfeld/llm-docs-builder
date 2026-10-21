@@ -220,6 +220,8 @@ RSpec.describe 'bulk-transform command' do
       [![alt](../img/a.png)](../intro.md)
 
       [![logo](logo.png)](https://example.org)
+
+      [![](shot.png)](../intro.md)
     MD
 
     config_file = File.join(temp_dir, 'config.yml')
@@ -241,6 +243,8 @@ RSpec.describe 'bulk-transform command' do
       [![alt](https://myproject.io/docs/img/a.png)](https://myproject.io/docs/intro.md)
 
       [![logo](https://myproject.io/docs/guides/logo.png)](https://example.org)
+
+      [![](https://myproject.io/docs/guides/shot.png)](https://myproject.io/docs/intro.md)
     MD
   end
 

@@ -58,15 +58,21 @@ module LlmDocsBuilder
       # Bracketed part of a link text: an image, or brackets that do not open a link (links do not nest)
       NESTED_LINK_TEXT_PATTERN = /(?:[^\[\]]|!\[[^\[\]]*\]|\[[^\[\]]*\](?!\())*/
 
-      # Inline link; its text may hold brackets nested up to two levels deep (e.g. a linked image), its
-      # destination never runs into protected code, only its title may contain it
-      LINK_PATTERN = /
-        \[((?:[^\[\]]|!\[#{NESTED_LINK_TEXT_PATTERN}\]|\[#{NESTED_LINK_TEXT_PATTERN}\](?!\())+)\]
-        \(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)
-      /x
+      # Part of a link text: brackets in it may be nested up to two levels deep (e.g. a linked image)
+      LINK_TEXT_PART_PATTERN = /[^\[\]]|!\[#{NESTED_LINK_TEXT_PATTERN}\]|\[#{NESTED_LINK_TEXT_PATTERN}\](?!\()/
+
+      # Link destination; it never runs into protected code, only its title may contain it
+      LINK_DESTINATION_PATTERN = /\(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)/
+
+      # Inline link
+      LINK_PATTERN = /\[((?:#{LINK_TEXT_PART_PATTERN})+)\]#{LINK_DESTINATION_PATTERN}/
+
+      # Inline link or image inside a link text, where an image may have no alt text (`[![](badge.svg)](url)`)
+      NESTED_LINK_PATTERN = /\[((?:#{LINK_TEXT_PART_PATTERN})*)\]#{LINK_DESTINATION_PATTERN}/
 
       private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM,
-        :NESTED_LINK_TEXT_PATTERN, :LINK_PATTERN
+        :NESTED_LINK_TEXT_PATTERN, :LINK_TEXT_PART_PATTERN, :LINK_DESTINATION_PATTERN, :LINK_PATTERN,
+        :NESTED_LINK_PATTERN
 
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
@@ -189,11 +195,12 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
       # @param source_path [String, nil] path of the file relative to the docs root
+      # @param pattern [Regexp] pattern of the links to expand
       # @return [String] content with expanded links
-      def expand_relative_links(content, base_url, source_path = nil)
-        content.gsub(LINK_PATTERN) do
+      def expand_relative_links(content, base_url, source_path = nil, pattern = LINK_PATTERN)
+        content.gsub(pattern) do
           url = ::Regexp.last_match(2)
-          text = expand_relative_links(::Regexp.last_match(1), base_url, source_path)
+          text = expand_relative_links(::Regexp.last_match(1), base_url, source_path, NESTED_LINK_PATTERN)
           destination = url.delete_prefix('<')
 
           if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)

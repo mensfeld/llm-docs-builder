@@ -131,6 +131,16 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         )
       end
 
+      it 'expands a linked image without alt text' do
+        content = '[![](badge.svg)](https://ci.example.com) [![](i.png)](x.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/page.md')
+
+        expect(result).to eq(
+          '[![](https://example.com/docs/guides/badge.svg)](https://ci.example.com) ' \
+          '[![](https://example.com/docs/guides/i.png)](https://example.com/docs/guides/x.md)'
+        )
+      end
+
       it 'expands only the link after an unmatched opening bracket' do
         content = '[a [b](x.md) and [c]](y.md)'
         result = transformer.transform(content, base_url: 'https://example.com')
