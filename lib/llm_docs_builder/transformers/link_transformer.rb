@@ -55,10 +55,18 @@ module LlmDocsBuilder
       # Line that starts a list item
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
-      # Inline link; its destination never runs into protected code, only its title may contain it
-      LINK_PATTERN = /\[([^\]]+)\]\(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)/
+      # Bracketed part of a link text: an image, or brackets that do not open a link (links do not nest)
+      NESTED_LINK_TEXT_PATTERN = /(?:[^\[\]]|!\[[^\[\]]*\]|\[[^\[\]]*\](?!\())*/
 
-      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :LINK_PATTERN
+      # Inline link; its text may hold brackets nested up to two levels deep (e.g. a linked image), its
+      # destination never runs into protected code, only its title may contain it
+      LINK_PATTERN = /
+        \[((?:[^\[\]]|!\[#{NESTED_LINK_TEXT_PATTERN}\]|\[#{NESTED_LINK_TEXT_PATTERN}\](?!\())+)\]
+        \(([^)\u0000]+(?:\s+(?:"[^")]*"|'[^')]*'))?)\)
+      /x
+
+      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM,
+        :NESTED_LINK_TEXT_PATTERN, :LINK_PATTERN
 
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
@@ -183,13 +191,13 @@ module LlmDocsBuilder
       # @param source_path [String, nil] path of the file relative to the docs root
       # @return [String] content with expanded links
       def expand_relative_links(content, base_url, source_path = nil)
-        content.gsub(LINK_PATTERN) do |match|
-          text = ::Regexp.last_match(1)
+        content.gsub(LINK_PATTERN) do
           url = ::Regexp.last_match(2)
+          text = expand_relative_links(::Regexp.last_match(1), base_url, source_path)
           destination = url.delete_prefix('<')
 
           if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)
-            match
+            "[#{text}](#{url})"
           else
             "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"
           end
