@@ -111,6 +111,42 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq('[Guides](https://example.com/docs/guides/) [Up](https://example.com/)')
       end
+
+      it 'expands links whose text holds nested brackets' do
+        content = '[a [b] c](../intro.md) and [a [b [c]] d](x.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/page.md')
+
+        expect(result).to eq(
+          '[a [b] c](https://example.com/docs/intro.md) and [a [b [c]] d](https://example.com/docs/guides/x.md)'
+        )
+      end
+
+      it 'expands both the linked image and its link' do
+        content = '[![alt](../img/a.png)](../intro.md) [![b](b.svg "B")](https://ci.example.com)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/page.md')
+
+        expect(result).to eq(
+          '[![alt](https://example.com/docs/img/a.png)](https://example.com/docs/intro.md) ' \
+          '[![b](https://example.com/docs/guides/b.svg "B")](https://ci.example.com)'
+        )
+      end
+
+      it 'expands a linked image without alt text' do
+        content = '[![](badge.svg)](https://ci.example.com) [![](i.png)](x.md)'
+        result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/page.md')
+
+        expect(result).to eq(
+          '[![](https://example.com/docs/guides/badge.svg)](https://ci.example.com) ' \
+          '[![](https://example.com/docs/guides/i.png)](https://example.com/docs/guides/x.md)'
+        )
+      end
+
+      it 'expands only the link after an unmatched opening bracket' do
+        content = '[a [b](x.md) and [c]](y.md)'
+        result = transformer.transform(content, base_url: 'https://example.com')
+
+        expect(result).to eq('[a [b](https://example.com/x.md) and [c]](y.md)')
+      end
     end
 
     context 'with base_url and source_path options' do

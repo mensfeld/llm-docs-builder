@@ -208,6 +208,46 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'expands links with nested brackets and linked images' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'page.md'), <<~MD)
+      # Page
+
+      See [a [b] c](../intro.md).
+
+      [![alt](../img/a.png)](../intro.md)
+
+      [![logo](logo.png)](https://example.org)
+
+      [![](shot.png)](../intro.md)
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      See [a [b] c](https://myproject.io/docs/intro.md).
+
+      [![alt](https://myproject.io/docs/img/a.png)](https://myproject.io/docs/intro.md)
+
+      [![logo](https://myproject.io/docs/guides/logo.png)](https://example.org)
+
+      [![](https://myproject.io/docs/guides/shot.png)](https://myproject.io/docs/intro.md)
+    MD
+  end
+
   it 'leaves a link whose destination runs into code unchanged' do
     docs_dir = File.join(temp_dir, 'docs')
     FileUtils.mkdir_p(File.join(docs_dir, 'guides'))

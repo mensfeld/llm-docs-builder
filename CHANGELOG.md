@@ -19,6 +19,7 @@
 - [Fix] **`convert_urls` Skips Anchors, Queries and Relative Links** - `.html`/`.htm` URLs followed by an anchor or a query are now converted (`doc.html#sec` → `doc.md#sec`, `doc.html?x=1` → `doc.md?x=1`).
   - Relative link targets are converted too, also without `base_url` (`[Intro](../intro.html)` → `[Intro](../intro.md)`).
   - `.html` inside a query or an anchor and targets with a non-HTTP scheme (`mailto:`, `ftp:`, `sftp:`, `file:`, ...) are left unchanged.
+- [Fix] **Links With Brackets in Their Text** - `base_url` link expansion now expands links whose text holds brackets, nested up to two levels deep (`[a [b] c](../intro.md)`), and linked images like `[![alt](../img/a.png)](../intro.md)`, where both the image and the outer link are now expanded. Before, such links stayed relative, and a linked image got only its image expanded.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** - `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
