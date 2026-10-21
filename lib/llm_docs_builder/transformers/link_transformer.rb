@@ -36,6 +36,10 @@ module LlmDocsBuilder
       # links with a base URL (kept in sync with the converter's safe schemes)
       ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
 
+      # A link target with a URI scheme is never a relative path
+      URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
+      private_constant :URI_SCHEME_PATTERN
+
       # Placeholder that stands in for a protected code fragment
       CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
 
@@ -239,11 +243,18 @@ module LlmDocsBuilder
 
       # Convert HTML URLs to markdown format
       #
+      # Converts absolute URLs anywhere in the content and relative link targets, keeping queries and anchors.
+      #
       # @param content [String] markdown content
       # @return [String] content with converted URLs
       def convert_html_urls(content)
-        content.gsub(%r{https?://[^\s<>]+\.html?(?=[)\s]|$)}) do |url|
-          url.sub(/\.html?$/, '.md')
+        result = content.gsub(%r{https?://[^\s<>?#]+?\.html?(?=[?#)\s]|$)}) do |url|
+          url.sub(/\.html?\z/, '.md')
+        end
+
+        result.gsub(/\]\(([^)\s?#]+?)\.html?(?=[?#)\s])/) do |match|
+          path = ::Regexp.last_match(1)
+          path.match?(URI_SCHEME_PATTERN) ? match : "](#{path}.md"
         end
       end
 

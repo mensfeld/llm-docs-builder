@@ -304,6 +304,38 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'converts .html URLs with anchors, queries and relative targets' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'page.md'), <<~MD)
+      # Page
+
+      - [Intro](../intro.html#x)
+      - [Doc](https://e.com/d.html?x=1)
+      - [Files](sftp://host/a.html)
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      convert_urls: true
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      - [Intro](../intro.md#x)
+      - [Doc](https://e.com/d.md?x=1)
+      - [Files](sftp://host/a.html)
+    MD
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',
