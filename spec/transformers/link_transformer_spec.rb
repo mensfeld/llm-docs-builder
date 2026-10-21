@@ -195,6 +195,21 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         )
       end
 
+      it 'percent-encodes the source file name of query-only targets' do
+        content = '[q](?tab=2)'
+        results = ['my page.md', 'c#.md', 'a(b).md'].map do |name|
+          transformer.transform(content, base_url: 'https://myproject.io/docs/', source_path: "guides/#{name}")
+        end
+
+        expect(results).to eq(
+          [
+            '[q](https://myproject.io/docs/guides/my%20page.md?tab=2)',
+            '[q](https://myproject.io/docs/guides/c%23.md?tab=2)',
+            '[q](https://myproject.io/docs/guides/a%28b%29.md?tab=2)'
+          ]
+        )
+      end
+
       it 'resolves non-ASCII targets from the source file directory' do
         content = '[PL](./zażółć.md)'
         result = transformer.transform(content, base_url: 'https://example.com/docs', source_path: 'guides/intro.md')

@@ -60,7 +60,8 @@ module LlmDocsBuilder
       # Targets starting with `/` are resolved from the base URL itself, other targets from the source
       # file's directory. `./` and `../` segments are normalized. Titles, queries and anchors are kept.
       # Angle-bracket destinations (`<path with spaces>`) are unwrapped and their spaces percent-encoded.
-      # A query-only target (`?tab=2`) resolves to the source file itself, as in RFC 3986.
+      # A query-only target (`?tab=2`) resolves to the source file itself, as in RFC 3986, with its
+      # name percent-encoded.
       #
       # @param base_url [String] base URL for expansion
       # @param target [String] relative link target, optionally followed by a link title
@@ -70,7 +71,8 @@ module LlmDocsBuilder
         url, title = target.match(/\A(.*?)(\s+(?:"[^"]*"|'[^']*'))?\z/m).captures
         url = url[/\A<(.*)>\z/m, 1]&.gsub(' ', '%20') || url
         path, suffix = url.match(/\A([^?#]*)(.*)\z/m).captures
-        path = File.basename(source_path) if source_path && path.empty? && suffix.start_with?('?')
+        query_only = source_path && path.empty? && suffix.start_with?('?')
+        path = ERB::Util.url_encode(File.basename(source_path)) if query_only
         source_dir = source_path ? File.dirname(source_path) : '.'
         origin = base_url[%r{\A[^:/?#]+://[^/?#]*}].to_s
         base_path = base_url.delete_prefix(origin)
