@@ -164,6 +164,146 @@ RSpec.describe 'bulk-transform command' do
     expect(spaced).to include('See [q](https://myproject.io/docs/guides/my%20page.md?tab=2).')
   end
 
+  it 'leaves links inside code unchanged' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
+
+    File.write(File.join(docs_dir, 'guides', 'sub', 'page.md'), <<~MD)
+      # Page
+
+      See [intro](../intro.md) and `[ic](../intro.md)`.
+
+      ```md
+      [fc](../intro.md)
+      ```
+
+      Indented:
+
+          [icb](../intro.md)
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'sub', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      See [intro](https://myproject.io/docs/guides/intro.md) and `[ic](../intro.md)`.
+
+      ```md
+      [fc](../intro.md)
+      ```
+
+      Indented:
+
+          [icb](../intro.md)
+    MD
+  end
+
+  it 'leaves a link whose destination runs into code unchanged' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'typo.md'), <<~MD)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      Next: [intro](intro.md) and [run](../cli.md "Run `bin/x`").
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'typo.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      Next: [intro](https://myproject.io/docs/guides/intro.md) and [run](https://myproject.io/docs/cli.md "Run `bin/x`").
+    MD
+  end
+
+  it 'keeps inline code in link text with simplify_links' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'api.md'), <<~MD)
+      Use [`Config`](config.md) and [see the `run` docs](../cli.md).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      simplify_links: true
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'api.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      Use [`Config`](config.md) and [`run`](../cli.md).
+    MD
+  end
+
+  it 'simplifies links after a destination that runs into code' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
+
+    File.write(File.join(docs_dir, 'guides', 'typo.md'), <<~MD)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      Next: [see the intro docs](intro.md).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      simplify_links: true
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'typo.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      See [the API](../api.md for details.
+
+      ```ruby
+      client.call(1)
+      ```
+
+      Next: [intro](intro.md).
+    MD
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

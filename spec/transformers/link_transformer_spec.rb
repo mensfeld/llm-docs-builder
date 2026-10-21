@@ -225,6 +225,271 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
       end
     end
 
+    context 'with code in the content' do
+      let(:options) { { base_url: 'https://example.com/docs', source_path: 'guides/sub/page.md' } }
+
+      it 'leaves links in inline code unchanged' do
+        content = 'Write `[ic](../intro.md)` or ``[a `b`](../intro.md)`` to link.'
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
+      it 'leaves links in fenced code blocks unchanged' do
+        content = <<~MD
+          ```md
+          [fc](../intro.md)
+          ```
+
+          ~~~~
+          [tilde](../intro.md)
+          ~~~~
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
+      it 'leaves links in fenced code blocks inside list items unchanged' do
+        content = <<~MD
+          - Item
+
+              ```md
+              [fc](../intro.md)
+              ```
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
+      it 'leaves links in unclosed fenced code blocks unchanged' do
+        content = "```\n[fc](../intro.md)\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
+      it 'leaves links in indented code blocks unchanged' do
+        content = "Example:\n\n    [icb](../intro.md)\n\tmore [tab](../intro.md)\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
+      it 'leaves links in code blocks inside blockquotes unchanged' do
+        content = <<~MD
+          > ```md
+          > [fc](../intro.md)
+          > ```
+          >
+          >     [icb](../intro.md)
+          > [quoted](../quoted.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          > ```md
+          > [fc](../intro.md)
+          > ```
+          >
+          >     [icb](../intro.md)
+          > [quoted](https://example.com/docs/guides/quoted.md)
+        MD
+      end
+
+      it 'does not close a fence on a fence line quoted deeper than the fence' do
+        content = <<~MD
+          ```md
+          > ```
+          > [fc](../intro.md)
+          > ```
+          ```
+
+          > ```md
+          > > ```
+          > > [qfc](../intro.md)
+          > > ```
+          > ```
+
+          [After](../after.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          ```md
+          > ```
+          > [fc](../intro.md)
+          > ```
+          ```
+
+          > ```md
+          > > ```
+          > > [qfc](../intro.md)
+          > > ```
+          > ```
+
+          [After](https://example.com/docs/guides/after.md)
+        MD
+      end
+
+      it 'keeps CRLF line endings without link options' do
+        content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
+        result = transformer.transform(content)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps CRLF line endings when expanding links' do
+        content = "```\r\n[fc](../intro.md)\r\n```\r\n[After](../after.md)\r\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq("```\r\n[fc](../intro.md)\r\n```\r\n[After](https://example.com/docs/guides/after.md)\r\n")
+      end
+
+      it 'treats an indented fence as indented code' do
+        content = "Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](../after.md)\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq("Example:\n\n    ```\n    [icb](../intro.md)\n\n[After](https://example.com/docs/guides/after.md)\n")
+      end
+
+      it 'expands links between escaped backticks' do
+        content = '\\`[a](../a.md)\\`'
+        result = transformer.transform(content, options)
+
+        expect(result).to eq('\\`[a](https://example.com/docs/guides/a.md)\\`')
+      end
+
+      it 'expands links next to code' do
+        content = <<~MD
+          Use [`config`](../config.md) with `code`.
+
+          ```
+          [fc](../intro.md)
+          ```
+          [After](../after.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          Use [`config`](https://example.com/docs/guides/config.md) with `code`.
+
+          ```
+          [fc](../intro.md)
+          ```
+          [After](https://example.com/docs/guides/after.md)
+        MD
+      end
+
+      it 'expands links in indented paragraph and list item continuations' do
+        content = <<~MD
+          Text
+              [lazy](../lazy.md)
+
+          - Item
+
+              [nested](../nested.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          Text
+              [lazy](https://example.com/docs/guides/lazy.md)
+
+          - Item
+
+              [nested](https://example.com/docs/guides/nested.md)
+        MD
+      end
+
+      it 'leaves links whose destination runs into code unchanged' do
+        content = <<~MD
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Read [paren title](../a.md (see `run()`)) and [a](<../a`b`.md>).
+
+          That is all (really). [Next](../next.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Read [paren title](../a.md (see `run()`)) and [a](<../a`b`.md>).
+
+          That is all (really). [Next](https://example.com/docs/guides/next.md)
+        MD
+      end
+
+      it 'expands links after a destination that runs into code' do
+        content = <<~MD
+          See [a](../a.md and `f()` then [b](../b.md).
+
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Next: [intro](intro.md)
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [a](../a.md and `f()` then [b](https://example.com/docs/guides/b.md).
+
+          See [the API](../api.md for details.
+
+          ```ruby
+          client.call(1)
+          ```
+
+          Next: [intro](https://example.com/docs/guides/sub/intro.md)
+        MD
+      end
+
+      it 'expands links with code in the title' do
+        content = <<~MD
+          See [run](../cli.md "Run `bin/x`") and [x](../x.md 'Call `f()`').
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [run](https://example.com/docs/guides/cli.md "Run `bin/x`") and [x](https://example.com/docs/guides/x.md 'Call `f()`').
+        MD
+      end
+
+      it 'leaves code unchanged with convert_urls and simplify_links' do
+        content = "`[see the docs](https://example.com/a.html)`\n"
+        result = transformer.transform(content, convert_urls: true, simplify_links: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps inline code at the start and end of link text with simplify_links' do
+        content = "Use [`Config`](config.md) and [see the `run` docs](../cli.md).\n"
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq("Use [`Config`](config.md) and [`run`](../cli.md).\n")
+      end
+
+      it 'simplifies links after a destination that runs into code' do
+        content = "See [the API](../api.md and `f()` then [see the docs](b.md).\n"
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq("See [the API](../api.md and `f()` then [docs](b.md).\n")
+      end
+    end
+
     context 'with convert_urls option' do
       it 'converts .html URLs to .md' do
         result = transformer.transform(content, convert_urls: true)
