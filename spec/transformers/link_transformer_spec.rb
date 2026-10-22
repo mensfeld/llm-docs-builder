@@ -270,6 +270,84 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
       end
     end
 
+    context 'with link reference definitions' do
+      let(:options) { { base_url: 'https://myproject.io/docs/', source_path: 'guides/sub/page.md' } }
+
+      it 'resolves definitions from the source file directory and keeps their titles' do
+        content = <<~MD
+          See [text][r1] and [collapsed][].
+
+          [r1]: ../intro.md "Intro"
+          [collapsed]: ./sibling.md
+          [Root]: /api/index.md 'API'
+          [sp]: <../my docs/a b.md> (Spaced)
+          [q]: ?tab=2#part
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          See [text][r1] and [collapsed][].
+
+          [r1]: https://myproject.io/docs/guides/intro.md "Intro"
+          [collapsed]: https://myproject.io/docs/guides/sub/sibling.md
+          [Root]: https://myproject.io/docs/api/index.md 'API'
+          [sp]: https://myproject.io/docs/guides/my%20docs/a%20b.md (Spaced)
+          [q]: https://myproject.io/docs/guides/sub/page.md?tab=2#part
+        MD
+      end
+
+      it 'resolves indented definitions and definitions in blockquotes' do
+        content = "   [a]: ../a.md\n\n> [b]: ./b.md\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(
+          "   [a]: https://myproject.io/docs/guides/a.md\n\n> [b]: https://myproject.io/docs/guides/sub/b.md\n"
+        )
+      end
+
+      it 'leaves definitions with a URI scheme, protocol-relative targets and anchors unchanged' do
+        content = <<~MD
+          [a]: https://other.com/a.md
+          [b]: MAILTO:a@b.com
+          [c]: sftp://host/x
+          [d]: //cdn.example.com/x.js
+          [e]: #top
+          [f]: <https://other.com/a b.md>
+        MD
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves footnotes, definitions inside a paragraph and invalid definitions unchanged' do
+        content = <<~MD
+          [^1]: Footnote text.
+          [^note]: ../note.md
+
+          Text before
+          [para]: ../para.md
+
+          [words]: ../a.md and more
+          [title]: ../a.md "unclosed
+        MD
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+
+      it 'leaves definitions in code unchanged' do
+        content = <<~MD
+          ```md
+          [fc]: ../intro.md
+          ```
+
+              [ic]: ../intro.md
+
+          `[span]: ../intro.md`
+        MD
+
+        expect(transformer.transform(content, options)).to eq(content)
+      end
+    end
+
     context 'with code in the content' do
       let(:options) { { base_url: 'https://example.com/docs', source_path: 'guides/sub/page.md' } }
 
@@ -589,6 +667,25 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         result = transformer.transform(content, convert_urls: true)
 
         expect(result).to eq(content)
+      end
+
+      it 'converts .html targets of link reference definitions' do
+        content = <<~MD
+          [a]: ../intro.html#x "Intro"
+          [b]: guide.htm?v=2
+          [c]: https://example.com/doc.html
+          [d]: sftp://host/a.html
+          [e]: page?next=a.html
+        MD
+        result = transformer.transform(content, convert_urls: true)
+
+        expect(result).to eq(<<~MD)
+          [a]: ../intro.md#x "Intro"
+          [b]: guide.md?v=2
+          [c]: https://example.com/doc.md
+          [d]: sftp://host/a.html
+          [e]: page?next=a.html
+        MD
       end
     end
 

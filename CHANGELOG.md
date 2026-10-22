@@ -21,6 +21,8 @@
   - `.html` inside a query or an anchor and targets with a non-HTTP scheme (`mailto:`, `ftp:`, `sftp:`, `file:`, ...) are left unchanged.
 - [Fix] **Links With Brackets in Their Text** - `base_url` link expansion now expands links whose text holds brackets, nested up to two levels deep (`[a [b] c](../intro.md)`), and linked images like `[![alt](../img/a.png)](../intro.md)`, where both the image and the outer link are now expanded. Before, such links stayed relative, and a linked image got only its image expanded.
 - [Fix] **Links With Any URI Scheme** - `base_url` link expansion now leaves every link with a URI scheme unchanged, in any case (`HTTPS://`, `Mailto:`, `sftp:`, `ssh:`, `git:`, `irc:`, `urn:`, `data:`, `javascript:`, ...). Before, only lowercase `http`, `https`, `mailto`, `ftp` and `tel` links were kept, and others became broken URLs like `<base_url>/guides/sftp:/host/x`.
+- [Fix] **Link Reference Definitions** - `base_url` link expansion now expands reference-style link definitions (`[id]: ../intro.md "Title"`) like inline links, so `[text][id]`, `[id][]` and `[id]` links no longer stay relative while inline links in the same file are expanded. Titles are kept; definitions with a URI scheme, anchors, footnotes (`[^1]: ...`) and definitions in code are unchanged.
+  - `convert_urls` converts `.html`/`.htm` definition targets too (`[id]: ../intro.html` → `[id]: ../intro.md`).
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** - `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
