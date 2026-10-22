@@ -32,10 +32,6 @@ module LlmDocsBuilder
 
       private
 
-      # URI schemes that must never be treated as relative paths when expanding
-      # links with a base URL (kept in sync with the converter's safe schemes)
-      ABSOLUTE_URL_SCHEMES = %w[http https mailto ftp tel].freeze
-
       # A link target with a URI scheme is never a relative path
       URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
       private_constant :URI_SCHEME_PATTERN
@@ -214,7 +210,7 @@ module LlmDocsBuilder
           text = expand_links_matching(::Regexp.last_match(1), NESTED_LINK_PATTERN, base_url, source_path)
           destination = url.delete_prefix('<')
 
-          if destination.start_with?('http://', 'https://', '//', '#') || absolute_url_scheme?(destination)
+          if destination.start_with?('//', '#') || destination.match?(URI_SCHEME_PATTERN)
             "[#{text}](#{url})"
           else
             "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"
@@ -256,15 +252,6 @@ module LlmDocsBuilder
         normalized = Pathname.new(path).cleanpath.to_s
         normalized += '/' if path.match?(%r{/\.{0,2}\z}) && !normalized.end_with?('/')
         normalized
-      end
-
-      # Check whether a link target uses a known absolute URI scheme
-      #
-      # @param url [String] link target
-      # @return [Boolean] true when the target already carries its own scheme
-      def absolute_url_scheme?(url)
-        scheme = url.split(':', 2).first.to_s
-        ABSOLUTE_URL_SCHEMES.include?(scheme)
       end
 
       # Convert HTML URLs to markdown format

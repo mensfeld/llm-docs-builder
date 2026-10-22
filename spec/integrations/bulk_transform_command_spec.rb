@@ -164,6 +164,42 @@ RSpec.describe 'bulk-transform command' do
     expect(spaced).to include('See [q](https://myproject.io/docs/guides/my%20page.md?tab=2).')
   end
 
+  it 'leaves links with any URI scheme unchanged' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
+
+    File.write(File.join(docs_dir, 'guides', 'sub', 'page.md'), <<~MD)
+      # Page
+
+      [U](HTTPS://example.com/x) [x](Mailto:a@b.c) [s](sftp://host/x) [y](ssh://git@h/r)
+
+      [g](git://host/r) [z](irc://h/c) [w](urn:isbn:1) [d](data:text/plain,hi) [j](javascript:void(0))
+
+      See [intro](../intro.md), [q](?tab=2), [self](#self) and [m](mailto:a@b.c).
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'sub', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      [U](HTTPS://example.com/x) [x](Mailto:a@b.c) [s](sftp://host/x) [y](ssh://git@h/r)
+
+      [g](git://host/r) [z](irc://h/c) [w](urn:isbn:1) [d](data:text/plain,hi) [j](javascript:void(0))
+
+      See [intro](https://myproject.io/docs/guides/intro.md), [q](https://myproject.io/docs/guides/sub/page.md?tab=2), [self](#self) and [m](mailto:a@b.c).
+    MD
+  end
+
   it 'leaves links inside code unchanged' do
     docs_dir = File.join(temp_dir, 'docs')
     FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
