@@ -305,6 +305,48 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         )
       end
 
+      it 'resolves definitions after a heading, a thematic break or a code block' do
+        content = <<~MD
+          ## References
+          [a]: ../a.md
+
+          ---
+          [b]: ../b.md
+
+          ```rb
+          x = 1
+          ```
+          [c]: ../c.md
+
+          `code`
+          [para]: ../para.md
+        MD
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(<<~MD)
+          ## References
+          [a]: https://myproject.io/docs/guides/a.md
+
+          ---
+          [b]: https://myproject.io/docs/guides/b.md
+
+          ```rb
+          x = 1
+          ```
+          [c]: https://myproject.io/docs/guides/c.md
+
+          `code`
+          [para]: ../para.md
+        MD
+      end
+
+      it 'resolves definitions after leading blank lines once' do
+        options = { base_url: '/docs/', source_path: 'guides/page.md' }
+
+        expect(transformer.transform("\n\n[a]: ../intro.md\n", options)).to eq("\n\n[a]: /docs/intro.md\n")
+        expect(transformer.transform(">\n>\n> [a]: ../intro.md\n", options)).to eq(">\n>\n> [a]: /docs/intro.md\n")
+      end
+
       it 'leaves definitions with a URI scheme, protocol-relative targets and anchors unchanged' do
         content = <<~MD
           [a]: https://other.com/a.md

@@ -40,8 +40,8 @@ module LlmDocsBuilder
       URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
       private_constant :URI_SCHEME_PATTERN
 
-      # Placeholder that stands in for a protected code fragment
-      CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
+      # Placeholder that stands in for a protected code fragment; a code block's ends with `b`
+      CODE_PLACEHOLDER = /\u0000(\d+)b?\u0000/
 
       # Inline code span: a backtick run closed by a run of the same length, within one paragraph
       INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
@@ -82,17 +82,32 @@ module LlmDocsBuilder
       # Consecutive link reference definition lines
       REFERENCE_DEFINITIONS_PATTERN = /#{REFERENCE_DEFINITION_PATTERN}(?:\n#{REFERENCE_DEFINITION_PATTERN})*/
 
-      # Definitions at the start of the content, after any blank lines
-      LEADING_REFERENCE_DEFINITIONS_PATTERN = /\A(?:(?:\ {0,3}>\ ?)*[ \t\r]*\n)*\K#{REFERENCE_DEFINITIONS_PATTERN}/
+      # Line that link reference definitions may follow: a blank line, an ATX heading, a thematic break or a code
+      # block. A definition cannot interrupt a paragraph.
+      REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN = /
+        (?:\ {0,3}>\ ?)*
+        (?:
+          [ \t]* |
+          \ {0,3}\#{1,6}(?:[ \t][^\n]*)? |
+          \ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,}) |
+          \u0000\d+b\u0000[ \t]*
+        )\r?
+      /x
 
-      # Definitions after a blank line; a definition cannot interrupt a paragraph. Kept apart from the leading
+      # Definitions on the first or second line of the content
+      LEADING_REFERENCE_DEFINITIONS_PATTERN =
+        /\A(?:#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n)?\K#{REFERENCE_DEFINITIONS_PATTERN}/
+
+      # Definitions from the third line on, so that they never overlap the leading ones. Kept apart from the leading
       # pattern: an `\A` alternative here would make the regex try every position of the content.
-      FOLLOWING_REFERENCE_DEFINITIONS_PATTERN = /\n(?:\ {0,3}>\ ?)*[ \t\r]*\n\K#{REFERENCE_DEFINITIONS_PATTERN}/
+      FOLLOWING_REFERENCE_DEFINITIONS_PATTERN =
+        /\n#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n\K#{REFERENCE_DEFINITIONS_PATTERN}/
 
       private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM,
         :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN, :LINK_DESTINATION_PATTERN, :LINK_PATTERN,
         :NESTED_LINK_PATTERN, :REFERENCE_DEFINITION_PATTERN, :REFERENCE_DEFINITIONS_PATTERN,
-        :LEADING_REFERENCE_DEFINITIONS_PATTERN, :FOLLOWING_REFERENCE_DEFINITIONS_PATTERN
+        :REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN, :LEADING_REFERENCE_DEFINITIONS_PATTERN,
+        :FOLLOWING_REFERENCE_DEFINITIONS_PATTERN
 
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
@@ -102,9 +117,9 @@ module LlmDocsBuilder
       # @return [String] transformed content with the original code restored
       def outside_code(content)
         codes = []
-        protect = lambda do |code|
+        protect = lambda do |code, block: false|
           codes << code
-          "\u0000#{codes.size - 1}\u0000"
+          "\u0000#{codes.size - 1}#{'b' if block}\u0000"
         end
 
         text = protect_code_blocks(content, protect)
@@ -207,7 +222,7 @@ module LlmDocsBuilder
         return '' if code.empty?
 
         body = code.chomp
-        "#{protect.call(body)}#{code.delete_prefix(body)}"
+        "#{protect.call(body, block: true)}#{code.delete_prefix(body)}"
       end
 
       # Expand relative links and link reference definitions to absolute URLs
