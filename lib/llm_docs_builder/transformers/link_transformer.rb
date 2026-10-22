@@ -22,8 +22,12 @@ module LlmDocsBuilder
       # @note Code (fenced and indented code blocks, inline code spans) is left unchanged
       def transform(content, options = {})
         outside_code(content) do |result|
-          result = expand_relative_links(result, options[:base_url], options[:source_path]) if options[:base_url]
-          result = convert_html_urls(result) if options[:convert_urls]
+          if options[:base_url]
+            result = expand_relative_links(
+              result, options[:base_url], options[:source_path], convert_urls: options[:convert_urls]
+            )
+          end
+          result = convert_html_urls(result, convert_definitions: !options[:base_url]) if options[:convert_urls]
           result = simplify_links(result) if options[:simplify_links]
 
           result
@@ -36,8 +40,8 @@ module LlmDocsBuilder
       URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
       private_constant :URI_SCHEME_PATTERN
 
-      # Placeholder that stands in for a protected code fragment
-      CODE_PLACEHOLDER = /\u0000(\d+)\u0000/
+      # Placeholder that stands in for a protected code fragment; a code block's ends with `b`
+      CODE_PLACEHOLDER = /\u0000(\d+)b?\u0000/
 
       # Inline code span: a backtick run closed by a run of the same length, within one paragraph
       INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
@@ -67,9 +71,43 @@ module LlmDocsBuilder
       # Inline link or image inside a link text, where an image may have no alt text (`[![](badge.svg)](url)`)
       NESTED_LINK_PATTERN = /\[((?:#{LINK_TEXT_PART_PATTERN})*)\]#{LINK_DESTINATION_PATTERN}/
 
+      # Link reference definition line (`[id]: target "title"`): its label, destination and the rest of the line.
+      # Footnote definitions (`[^1]: text`) are not link reference definitions.
+      REFERENCE_DEFINITION_PATTERN = /
+        ^((?:\ {0,3}>\ ?)*\ {0,3}\[(?!\^)(?:[^\[\]\\\n]|\\.)+\]:[ \t]*)
+        (<[^<>\n]*>|[^\s<\u0000][^\s\u0000]*)
+        ((?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^()\n]*\)))?[ \t\r]*)$
+      /x
+
+      # Consecutive link reference definition lines
+      REFERENCE_DEFINITIONS_PATTERN = /#{REFERENCE_DEFINITION_PATTERN}(?:\n#{REFERENCE_DEFINITION_PATTERN})*/
+
+      # Line that link reference definitions may follow: a blank line, an ATX heading, a thematic break or a code
+      # block. A definition cannot interrupt a paragraph.
+      REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN = /
+        (?:\ {0,3}>\ ?)*
+        (?:
+          [ \t]* |
+          \ {0,3}\#{1,6}(?:[ \t][^\n]*)? |
+          \ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,}) |
+          \u0000\d+b\u0000[ \t]*
+        )\r?
+      /x
+
+      # Definitions on the first or second line of the content
+      LEADING_REFERENCE_DEFINITIONS_PATTERN =
+        /\A(?:#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n)?\K#{REFERENCE_DEFINITIONS_PATTERN}/
+
+      # Definitions from the third line on, so that they never overlap the leading ones. Kept apart from the leading
+      # pattern: an `\A` alternative here would make the regex try every position of the content.
+      FOLLOWING_REFERENCE_DEFINITIONS_PATTERN =
+        /\n#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n\K#{REFERENCE_DEFINITIONS_PATTERN}/
+
       private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM,
         :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN, :LINK_DESTINATION_PATTERN, :LINK_PATTERN,
-        :NESTED_LINK_PATTERN
+        :NESTED_LINK_PATTERN, :REFERENCE_DEFINITION_PATTERN, :REFERENCE_DEFINITIONS_PATTERN,
+        :REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN, :LEADING_REFERENCE_DEFINITIONS_PATTERN,
+        :FOLLOWING_REFERENCE_DEFINITIONS_PATTERN
 
       # Run a transformation on content with code replaced by placeholders, then restore the code
       #
@@ -79,9 +117,9 @@ module LlmDocsBuilder
       # @return [String] transformed content with the original code restored
       def outside_code(content)
         codes = []
-        protect = lambda do |code|
+        protect = lambda do |code, block: false|
           codes << code
-          "\u0000#{codes.size - 1}\u0000"
+          "\u0000#{codes.size - 1}#{'b' if block}\u0000"
         end
 
         text = protect_code_blocks(content, protect)
@@ -184,17 +222,46 @@ module LlmDocsBuilder
         return '' if code.empty?
 
         body = code.chomp
-        "#{protect.call(body)}#{code.delete_prefix(body)}"
+        "#{protect.call(body, block: true)}#{code.delete_prefix(body)}"
       end
 
-      # Expand relative links to absolute URLs
+      # Expand relative links and link reference definitions to absolute URLs
       #
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
       # @param source_path [String, nil] path of the file relative to the docs root
+      # @param convert_urls [Boolean] also convert HTML targets of link reference definitions to markdown, so the
+      #   definitions are scanned only once
       # @return [String] content with expanded links
-      def expand_relative_links(content, base_url, source_path = nil)
-        expand_links_matching(content, LINK_PATTERN, base_url, source_path)
+      def expand_relative_links(content, base_url, source_path = nil, convert_urls: false)
+        result = expand_links_matching(content, LINK_PATTERN, base_url, source_path)
+
+        rewrite_reference_definitions(result) do |target|
+          expanded = expand_target(target, base_url, source_path)
+          convert_urls ? convert_html_target(expanded) : expanded
+        end
+      end
+
+      # Rewrite the destinations of link reference definitions
+      #
+      # @param content [String] markdown content
+      # @yieldparam target [String] destination of a definition
+      # @yieldreturn [String] new destination
+      # @return [String] content with rewritten definitions
+      def rewrite_reference_definitions(content)
+        return content unless content.include?(']:')
+
+        rewrite = lambda do |definitions|
+          definitions.gsub(REFERENCE_DEFINITION_PATTERN) do
+            match = ::Regexp.last_match
+
+            "#{match[1]}#{yield(match[2])}#{match[3]}"
+          end
+        end
+
+        content
+          .sub(LEADING_REFERENCE_DEFINITIONS_PATTERN, &rewrite)
+          .gsub(FOLLOWING_REFERENCE_DEFINITIONS_PATTERN, &rewrite)
       end
 
       # Expand relative links that match a pattern, and the links and images in their link text
@@ -208,14 +275,22 @@ module LlmDocsBuilder
         content.gsub(pattern) do
           url = ::Regexp.last_match(2)
           text = expand_links_matching(::Regexp.last_match(1), NESTED_LINK_PATTERN, base_url, source_path)
-          destination = url.delete_prefix('<')
 
-          if destination.start_with?('//', '#') || destination.match?(URI_SCHEME_PATTERN)
-            "[#{text}](#{url})"
-          else
-            "[#{text}](#{resolve_relative_url(base_url, url, source_path)})"
-          end
+          "[#{text}](#{expand_target(url, base_url, source_path)})"
         end
+      end
+
+      # Expand a link target unless it is absolute, protocol-relative or an anchor
+      #
+      # @param target [String] link target, optionally followed by a link title
+      # @param base_url [String] base URL for expansion
+      # @param source_path [String, nil] path of the file relative to the docs root
+      # @return [String] expanded or unchanged target
+      def expand_target(target, base_url, source_path)
+        destination = target.delete_prefix('<')
+        return target if destination.start_with?('//', '#') || destination.match?(URI_SCHEME_PATTERN)
+
+        resolve_relative_url(base_url, target, source_path)
       end
 
       # Resolve a relative link target against the base URL
@@ -256,19 +331,33 @@ module LlmDocsBuilder
 
       # Convert HTML URLs to markdown format
       #
-      # Converts absolute URLs anywhere in the content and relative link targets, keeping queries and anchors.
+      # Converts absolute URLs anywhere in the content and relative link and link reference definition targets,
+      # keeping queries and anchors.
       #
       # @param content [String] markdown content
+      # @param convert_definitions [Boolean] whether to convert link reference definition targets
       # @return [String] content with converted URLs
-      def convert_html_urls(content)
+      def convert_html_urls(content, convert_definitions: true)
         result = content.gsub(%r{https?://[^\s<>?#]+?\.html?(?=[?#)\s]|$)}) do |url|
           url.sub(/\.html?\z/, '.md')
         end
 
-        result.gsub(/\]\(([^)\s?#]+?)\.html?(?=[?#)\s])/) do |match|
+        result = result.gsub(/\]\(([^)\s?#]+?)\.html?(?=[?#)\s])/) do |match|
           path = ::Regexp.last_match(1)
           path.match?(URI_SCHEME_PATTERN) ? match : "](#{path}.md"
         end
+
+        return result unless convert_definitions
+
+        rewrite_reference_definitions(result) { |target| convert_html_target(target) }
+      end
+
+      # Convert a relative HTML link reference definition target to markdown
+      #
+      # @param target [String] destination of a definition
+      # @return [String] converted or unchanged target
+      def convert_html_target(target)
+        target.match?(URI_SCHEME_PATTERN) ? target : target.sub(/\A([^?#]+?)\.html?(?=[?#]|\z)/, '\1.md')
       end
 
       # Simplify verbose link text

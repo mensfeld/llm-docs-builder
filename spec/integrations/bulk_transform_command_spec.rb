@@ -380,6 +380,52 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'expands link reference definitions like inline links' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'guides', 'sub'))
+
+    File.write(File.join(docs_dir, 'guides', 'sub', 'page.md'), <<~MD)
+      # Page
+
+      See [text][r1], [collapsed][] and [inline](../intro.md).
+
+      [r1]: ../intro.md "Intro"
+      [collapsed]: ./sibling.md
+      [site]: https://example.org/a.md
+      [^1]: A footnote.
+
+      ```md
+      [code]: ../intro.md
+      ```
+    MD
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      base_url: https://myproject.io/docs/
+    YAML
+
+    _, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+
+    content = File.read(File.join(docs_dir, 'guides', 'sub', 'page.llm.md'))
+    expect(content).to eq(<<~MD.chomp)
+      # Page
+
+      See [text][r1], [collapsed][] and [inline](https://myproject.io/docs/guides/intro.md).
+
+      [r1]: https://myproject.io/docs/guides/intro.md "Intro"
+      [collapsed]: https://myproject.io/docs/guides/sub/sibling.md
+      [site]: https://example.org/a.md
+      [^1]: A footnote.
+
+      ```md
+      [code]: ../intro.md
+      ```
+    MD
+  end
+
   it 'converts .html URLs with anchors, queries and relative targets' do
     docs_dir = File.join(temp_dir, 'docs')
     FileUtils.mkdir_p(File.join(docs_dir, 'guides'))
