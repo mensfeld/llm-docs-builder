@@ -22,8 +22,12 @@ module LlmDocsBuilder
       # @note Code (fenced and indented code blocks, inline code spans) is left unchanged
       def transform(content, options = {})
         outside_code(content) do |result|
-          result = expand_relative_links(result, options[:base_url], options[:source_path]) if options[:base_url]
-          result = convert_html_urls(result) if options[:convert_urls]
+          if options[:base_url]
+            result = expand_relative_links(
+              result, options[:base_url], options[:source_path], convert_urls: options[:convert_urls]
+            )
+          end
+          result = convert_html_urls(result, convert_definitions: !options[:base_url]) if options[:convert_urls]
           result = simplify_links(result) if options[:simplify_links]
 
           result
@@ -211,11 +215,16 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @param base_url [String] base URL for expansion
       # @param source_path [String, nil] path of the file relative to the docs root
+      # @param convert_urls [Boolean] also convert HTML targets of link reference definitions to markdown, so the
+      #   definitions are scanned only once
       # @return [String] content with expanded links
-      def expand_relative_links(content, base_url, source_path = nil)
+      def expand_relative_links(content, base_url, source_path = nil, convert_urls: false)
         result = expand_links_matching(content, LINK_PATTERN, base_url, source_path)
 
-        rewrite_reference_definitions(result) { |target| expand_target(target, base_url, source_path) }
+        rewrite_reference_definitions(result) do |target|
+          expanded = expand_target(target, base_url, source_path)
+          convert_urls ? convert_html_target(expanded) : expanded
+        end
       end
 
       # Rewrite the destinations of link reference definitions
@@ -311,8 +320,9 @@ module LlmDocsBuilder
       # keeping queries and anchors.
       #
       # @param content [String] markdown content
+      # @param convert_definitions [Boolean] whether to convert link reference definition targets
       # @return [String] content with converted URLs
-      def convert_html_urls(content)
+      def convert_html_urls(content, convert_definitions: true)
         result = content.gsub(%r{https?://[^\s<>?#]+?\.html?(?=[?#)\s]|$)}) do |url|
           url.sub(/\.html?\z/, '.md')
         end
@@ -322,9 +332,17 @@ module LlmDocsBuilder
           path.match?(URI_SCHEME_PATTERN) ? match : "](#{path}.md"
         end
 
-        rewrite_reference_definitions(result) do |target|
-          target.match?(URI_SCHEME_PATTERN) ? target : target.sub(/\A([^?#]+?)\.html?(?=[?#]|\z)/, '\1.md')
-        end
+        return result unless convert_definitions
+
+        rewrite_reference_definitions(result) { |target| convert_html_target(target) }
+      end
+
+      # Convert a relative HTML link reference definition target to markdown
+      #
+      # @param target [String] destination of a definition
+      # @return [String] converted or unchanged target
+      def convert_html_target(target)
+        target.match?(URI_SCHEME_PATTERN) ? target : target.sub(/\A([^?#]+?)\.html?(?=[?#]|\z)/, '\1.md')
       end
 
       # Simplify verbose link text

@@ -786,6 +786,27 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
 
         expect(result).to eq('[read more](https://example.com/page.md)')
       end
+
+      it 'expands and converts .html targets of link reference definitions' do
+        content = <<~MD
+          [a]: ../intro.html#x "Intro"
+          [b]: /api.htm?v=2
+          [c]: sftp://host/a.html
+        MD
+
+        expect(transformer.transform(content, base_url: 'https://example.com/docs/', convert_urls: true))
+          .to eq(<<~MD)
+            [a]: https://example.com/intro.md#x "Intro"
+            [b]: https://example.com/docs/api.md?v=2
+            [c]: sftp://host/a.html
+          MD
+        expect(transformer.transform(content, base_url: '/docs/', source_path: 'guides/page.md', convert_urls: true))
+          .to eq(<<~MD)
+            [a]: /docs/intro.md#x "Intro"
+            [b]: /docs/api.md?v=2
+            [c]: sftp://host/a.html
+          MD
+      end
     end
 
     context 'with no options' do
