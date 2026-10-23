@@ -165,6 +165,12 @@ excludes:
   - "**/drafts/**"
 ```
 
+**Link expansion (`base_url`):** relative links become absolute URLs.
+- Inline links, linked images (`[![alt](a.png)](../intro.md)`) and reference-style definitions (`[a]: ../intro.md`) are expanded. `<path with spaces>` destinations are resolved and their spaces encoded as `%20`.
+- `bulk-transform` resolves links from each file's directory under `docs`. Single-file `transform` (and `LlmDocsBuilder.transform_markdown`) resolves them from `base_url`: with `base_url: https://myproject.io/docs`, `../intro.md` becomes `https://myproject.io/intro.md`.
+- Links starting with `/` resolve from `base_url`. In `bulk-transform`, a query-only link (`[q](?tab=2)`) resolves to the current page (`.../page.md?tab=2`).
+- Left unchanged: links in fenced code, indented code and inline code; anchors (`#x`); protocol-relative URLs (`//cdn.io/a.md`); URLs with any scheme, in any case (`HTTPS:`, `sftp:`, `urn:`, `mailto:`); HTML `<a href>` and `<img src>`.
+
 ## CLI Commands
 
 ```bash
@@ -411,7 +417,7 @@ All compression features can be used individually for fine-grained control:
 - `generate_toc: true` - Generate table of contents from headings with anchor links
 - `custom_instruction: "text"` - Inject AI context message at document top
 - `simplify_links: true` - Simplify verbose link text (e.g., "Click here to see the docs" → "docs")
-- `convert_urls: true` - Convert `.html`/`.htm` URLs to `.md` format
+- `convert_urls: true` - Convert `.html`/`.htm` URLs to `.md` format, keeping anchors and queries (`../intro.html#x` → `../intro.md#x`): absolute `http(s)` URLs anywhere in the text, and relative link and reference-style definition targets. URLs in code and in HTML attributes (`href`, `src`) are unchanged
 - `normalize_whitespace: true` - Reduce excessive blank lines and remove trailing whitespace
 
 ## License
