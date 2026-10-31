@@ -52,6 +52,45 @@ RSpec.describe 'transform command' do
     expect(content).to include('[guide](https://mysite.com/docs/guide.md)')
   end
 
+  it 'matches the README compression example with default options' do
+    input_file = File.join(temp_dir, 'test.md')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      ---
+      layout: docs
+      ---
+
+      # API Documentation
+
+      [![Build](badge.svg)](https://ci.com)
+
+      > Important: This is a note
+
+      [Click here to see the complete API documentation](./api.md)
+
+      api = API.new
+    MD
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      # API Documentation
+
+
+      > Important: This is a note
+
+      [Click here to see the complete API documentation](./api.md)
+
+      api = API.new
+    MD
+  end
+
   it 'fails when file does not exist' do
     output_file = File.join(temp_dir, 'output.md')
 

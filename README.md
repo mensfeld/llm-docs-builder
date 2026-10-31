@@ -264,7 +264,10 @@ api = API.new
 ```markdown
 # API Documentation
 
-[complete API documentation](./api.md)
+
+> Important: This is a note
+
+[Click here to see the complete API documentation](./api.md)
 
 api = API.new
 ```
