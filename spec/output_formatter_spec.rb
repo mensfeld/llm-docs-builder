@@ -139,6 +139,7 @@ RSpec.describe LlmDocsBuilder::OutputFormatter do
 
       expect(output).to include('WARNING: NO DEDICATED AI VERSION DETECTED')
       expect(output).to include('POTENTIAL SAVINGS WITH AI OPTIMIZATION')
+      expect(output).to include('https://github.com/mensfeld/llm-docs-builder#serving-optimized-docs-to-ai-bots')
     end
 
     it 'does not display no AI version warning when reduction is 5% or more' do
