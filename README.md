@@ -199,7 +199,9 @@ After using `bulk-transform` with `suffix: .llm`, configure your web server to s
 **Apache (.htaccess):**
 ```apache
 SetEnvIf User-Agent "(?i)(openai|anthropic|claude|gpt)" IS_LLM_BOT
+RewriteEngine On
 RewriteCond %{ENV:IS_LLM_BOT} !^$
+RewriteCond %{REQUEST_URI} !\.llm\.md$
 RewriteRule ^(.*)\.md$ $1.llm.md [L]
 ```
 
@@ -208,6 +210,10 @@ RewriteRule ^(.*)\.md$ $1.llm.md [L]
 map $http_user_agent $is_llm_bot {
     default 0;
     "~*(?i)(openai|anthropic|claude|gpt)" 1;
+}
+
+# Serve .llm.md files as is, so the rewrite below does not loop
+location ~ ^/docs/.*\.llm\.md$ {
 }
 
 location ~ ^/docs/(.*)\.md$ {
