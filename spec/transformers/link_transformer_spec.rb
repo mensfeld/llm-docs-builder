@@ -732,7 +732,7 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
     end
 
     context 'with simplify_links option' do
-      it 'removes "click here to" prefix and "docs" suffix' do
+      it 'simplifies "Click here to see the docs" to "docs"' do
         content = '[Click here to see the docs](./docs.md)'
         result = transformer.transform(content, simplify_links: true)
 
@@ -744,6 +744,13 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         result = transformer.transform(content, simplify_links: true)
 
         expect(result).to eq('[complete API guide](./api.md)')
+      end
+
+      it 'removes more than two prefixes' do
+        content = '[Click here to check out the see the guide](./guide.md)'
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq('[guide](./guide.md)')
       end
 
       it 'removes "see" prefix' do
