@@ -189,6 +189,7 @@ llm-docs-builder version                  # Show version
 -d, --docs PATH      Documentation path
 -o, --output PATH    Output file
 -u, --url URL        URL for comparison
+-f, --file PATH      Local markdown file for comparison
 -v, --verbose        Detailed output
 ```
 

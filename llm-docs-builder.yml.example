@@ -1,5 +1,5 @@
-# Example llms-txt.yml configuration file
-# Copy to llms-txt.yml and customize for your project
+# Example llm-docs-builder.yml configuration file
+# Copy to llm-docs-builder.yml and customize for your project
 
 # Path to documentation directory or file
 docs: ./docs

@@ -128,7 +128,7 @@ module LlmDocsBuilder
       puts '   llm-docs-builder bulk-transform --docs ./docs --config llm-docs-builder.yml'
       puts ''
       puts '2. Configure your web server to serve .md files to AI bots:'
-      puts '   See: https://github.com/mensfeld/llm-docs-builder#serving-optimized-docs'
+      puts '   See: https://github.com/mensfeld/llm-docs-builder#serving-optimized-docs-to-ai-bots'
       puts ''
       puts '3. Measure your actual savings:'
       puts '   llm-docs-builder compare --url <your-url> --file <local-md>'

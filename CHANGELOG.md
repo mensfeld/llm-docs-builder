@@ -24,6 +24,7 @@
 - [Fix] **Links With Any URI Scheme** - `base_url` link expansion now leaves every link with a URI scheme unchanged, in any case (`HTTPS://`, `Mailto:`, `sftp:`, `ssh:`, `git:`, `irc:`, `urn:`, `data:`, `javascript:`, ...). Before, only lowercase `http`, `https`, `mailto`, `ftp` and `tel` links were kept, and others became broken URLs like `<base_url>/guides/sftp:/host/x`.
 - [Fix] **Link Reference Definitions** - `base_url` link expansion now expands reference-style link definitions (`[id]: ../intro.md "Title"`) like inline links, so `[text][id]`, `[id][]` and `[id]` links no longer stay relative while inline links in the same file are expanded. Titles are kept; definitions with a URI scheme, anchors, footnotes (`[^1]: ...`) and definitions in code are unchanged.
   - `convert_urls` converts `.html`/`.htm` definition targets too (`[id]: ../intro.html` → `[id]: ../intro.md`).
+- [Fix] **`compare` Web Server Link** - The "Configure your web server" link in the `compare` output now points at the README section "Serving Optimized Docs to AI Bots" (`#serving-optimized-docs-to-ai-bots`) instead of a missing `#serving-optimized-docs` anchor.
 
 ## 1.0.0 (2026-08-24)
 - [Fix] **Link Expansion Corrupts Non-HTTP URI Schemes** - `LinkTransformer#expand_relative_links` no longer rewrites `mailto:`, `tel:`, and `ftp:` links into dead `https://...` URLs when `base_url` is set (#165).
