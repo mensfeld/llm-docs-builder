@@ -370,7 +370,7 @@ module LlmDocsBuilder
           url = ::Regexp.last_match(2)
 
           simplified_text = text
-                            .gsub(/^(click here to|see|read more about|check out|visit)\s+(the\s+)?/i, '')
+                            .gsub(/^(?:(?:click here to|see|read more about|check out|visit)\s+(?:the\s+)?)+/i, '')
                             .gsub(/\s+(here|documentation|docs)$/i, '')
                             .gsub(/\A\s+|\s+\z/, '') # String#strip also removes the NUL of code placeholders
 

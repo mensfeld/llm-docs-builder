@@ -736,7 +736,14 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         content = '[Click here to see the docs](./docs.md)'
         result = transformer.transform(content, simplify_links: true)
 
-        expect(result).to eq('[see the](./docs.md)')
+        expect(result).to eq('[docs](./docs.md)')
+      end
+
+      it 'removes repeated prefixes' do
+        content = '[Click here to see the complete API guide](./api.md)'
+        result = transformer.transform(content, simplify_links: true)
+
+        expect(result).to eq('[complete API guide](./api.md)')
       end
 
       it 'removes "see" prefix' do
