@@ -91,6 +91,36 @@ RSpec.describe 'transform command' do
     MD
   end
 
+  it 'matches the README simplify_links example' do
+    input_file = File.join(temp_dir, 'test.md')
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      [Click here to see the docs](./docs.md)
+
+      [Click here to see the complete API guide](./api.md)
+    MD
+
+    File.write(config_file, <<~YAML)
+      simplify_links: true
+    YAML
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file,
+      '--config', config_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      [docs](./docs.md)
+
+      [complete API guide](./api.md)
+    MD
+  end
+
   it 'fails when file does not exist' do
     output_file = File.join(temp_dir, 'output.md')
 

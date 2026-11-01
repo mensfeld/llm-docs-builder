@@ -15,6 +15,7 @@
   - Source files whose names end with the suffix (e.g. `notes.llm.md`) are skipped too. An empty suffix skips nothing.
 - [Fix] **Angle-Bracket Link Destinations** - `base_url` link expansion now resolves CommonMark `[text](<path with spaces>)` links like other relative links: the brackets are dropped and spaces are percent-encoded (`<../my docs/a b.md>` → `<base_url>/my%20docs/a%20b.md`) instead of producing a broken URL with a stray `>`.
 - [Fix] **Query-Only Links** - `base_url` link expansion now resolves a query-only link like `[q](?tab=2)` to the current page (`guides/sub/page.md` gives `<base_url>/guides/sub/page.md?tab=2`, as RFC 3986 does) instead of the page's directory (`<base_url>/guides/sub/?tab=2`). Anchor-only links like `#self` are unchanged.
+- [Fix] **`simplify_links` Strips Only One Prefix** - repeated filler prefixes are now all removed, so `Click here to see the docs` becomes `docs` (as documented) instead of `see the`.
 - [Fix] **Links Inside Code Are Rewritten** - link transformations (`base_url` expansion, `convert_urls`, `simplify_links`) no longer change links in fenced code blocks, indented code blocks and inline code spans.
 - [Fix] **`convert_urls` Skips Anchors, Queries and Relative Links** - `.html`/`.htm` URLs followed by an anchor or a query are now converted (`doc.html#sec` → `doc.md#sec`, `doc.html?x=1` → `doc.md?x=1`).
   - Relative link targets are converted too, also without `base_url` (`[Intro](../intro.html)` → `[Intro](../intro.md)`).
