@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## 1.1.0 (2026-11-02)
 - [Enhancement] **Relative Link Resolution** - `base_url` link expansion now resolves relative links like a browser would.
   - `../` and `./` segments are normalized (`../other.md` → `https://example.com/other.md` instead of `https://example.com/docs/../other.md`).
   - `bulk-transform` resolves each link from its file's own directory, so `./setup.md` in `guides/intro.md` expands to `<base_url>/guides/setup.md`.
