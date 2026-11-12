@@ -14,6 +14,25 @@ RSpec.describe 'validate command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
+  def write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'llms.txt'), <<~CONTENT)
+      # Cwd Project
+
+      > Read from the current directory
+
+      ## Documentation
+
+      - [Docs](docs/README.md): Documentation
+    CONTENT
+  end
+
   it 'validates valid llms.txt file' do
     # Create valid llms.txt file
     valid_file = File.join(temp_dir, 'valid.txt')
@@ -48,5 +67,36 @@ RSpec.describe 'validate command' do
     expect(status.exitstatus).to eq(1)
     expect(stdout).to include('Invalid llms.txt file')
     expect(stdout).to include('Errors:')
+  end
+
+  it 'reads llms.txt from the current directory without --docs' do
+    write_cwd_llms_txt
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'validate')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Valid llms.txt file')
+  end
+
+  it 'reads llms.txt, not the config docs directory, when the config sets docs' do
+    write_cwd_llms_txt
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: ./docs\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'validate')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Valid llms.txt file')
+  end
+
+  it 'reads llms.txt, not the file the config docs names' do
+    write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'README.md'), 'Invalid content')
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'validate')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Valid llms.txt file')
   end
 end

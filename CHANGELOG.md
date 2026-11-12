@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1 (Unreleased)
+- [Fix] **`parse` and `validate` Read `llms.txt` by Default** - Without `--docs`, both commands now read `llms.txt` in the current directory, as documented. Before, they took the config's `docs` setting (the docs directory for `generate`, `.` by default) and failed with "Is a directory".
+
 ## 1.1.0 (2026-11-02)
 - [Enhancement] **Relative Link Resolution** - `base_url` link expansion now resolves relative links like a browser would.
   - `../` and `./` segments are normalized (`../other.md` → `https://example.com/other.md` instead of `https://example.com/docs/../other.md`).

@@ -14,6 +14,25 @@ RSpec.describe 'parse command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
+  def write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'llms.txt'), <<~CONTENT)
+      # Cwd Project
+
+      > Read from the current directory
+
+      ## Documentation
+
+      - [Docs](docs/README.md): Documentation
+    CONTENT
+  end
+
   it 'parses llms.txt file and displays information' do
     # Create llms.txt file
     llms_file = File.join(temp_dir, 'llms.txt')
@@ -44,5 +63,36 @@ RSpec.describe 'parse command' do
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
     expect(stdout).to include('File not found')
+  end
+
+  it 'reads llms.txt from the current directory without --docs' do
+    write_cwd_llms_txt
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'parse', '--verbose')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Title: Cwd Project')
+  end
+
+  it 'reads llms.txt, not the config docs directory, when the config sets docs' do
+    write_cwd_llms_txt
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: ./docs\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'parse', '--verbose')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Title: Cwd Project')
+  end
+
+  it 'reads llms.txt, not the file the config docs names' do
+    write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'README.md'), "# Config Project\n\n> From the config\n")
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'parse', '--verbose')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Title: Cwd Project')
   end
 end
