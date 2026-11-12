@@ -84,4 +84,15 @@ RSpec.describe 'parse command' do
     expect(status.success?).to be true
     expect(stdout).to include('Title: Cwd Project')
   end
+
+  it 'reads llms.txt, not the file the config docs names' do
+    write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'README.md'), "# Config Project\n\n> From the config\n")
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'parse', '--verbose')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Title: Cwd Project')
+  end
 end

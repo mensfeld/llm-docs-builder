@@ -88,4 +88,15 @@ RSpec.describe 'validate command' do
     expect(status.success?).to be true
     expect(stdout).to include('Valid llms.txt file')
   end
+
+  it 'reads llms.txt, not the file the config docs names' do
+    write_cwd_llms_txt
+    File.write(File.join(temp_dir, 'README.md'), 'Invalid content')
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'validate')
+
+    expect(status.success?).to be true
+    expect(stdout).to include('Valid llms.txt file')
+  end
 end

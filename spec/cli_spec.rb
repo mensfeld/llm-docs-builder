@@ -387,8 +387,10 @@ RSpec.describe LlmDocsBuilder::CLI do
 
           Dir.chdir(dir) do
             expect do
-              cli.run(['parse', '-v'])
-            end.to output(/Title: From Cwd/).to_stdout
+              expect do
+                cli.run(['parse', '-v'])
+              end.to output(/Title: From Cwd/).to_stdout
+            end.not_to raise_error
           end
         end
       end
@@ -403,8 +405,28 @@ RSpec.describe LlmDocsBuilder::CLI do
 
           Dir.chdir(dir) do
             expect do
-              cli.run(['parse', '-v'])
-            end.to output(/Title: From Cwd/).to_stdout
+              expect do
+                cli.run(['parse', '-v'])
+              end.to output(/Title: From Cwd/).to_stdout
+            end.not_to raise_error
+          end
+        end
+      end
+
+      it 'ignores docs from the config file when it names a file' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          File.write(File.join(dir, 'llms.txt'), "# From Cwd\n\n> Description\n")
+          File.write(File.join(dir, 'README.md'), "# From Config\n\n> Description\n")
+          File.write(File.join(dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+          Dir.chdir(dir) do
+            expect do
+              expect do
+                cli.run(['parse', '-v'])
+              end.to output(/Title: From Cwd/).to_stdout
+            end.not_to raise_error
           end
         end
       end
@@ -591,8 +613,10 @@ RSpec.describe LlmDocsBuilder::CLI do
 
           Dir.chdir(dir) do
             expect do
-              cli.run(['validate'])
-            end.to output(/Valid llms\.txt file/).to_stdout
+              expect do
+                cli.run(['validate'])
+              end.to output(/Valid llms\.txt file/).to_stdout
+            end.not_to raise_error
           end
         end
       end
@@ -607,8 +631,28 @@ RSpec.describe LlmDocsBuilder::CLI do
 
           Dir.chdir(dir) do
             expect do
-              cli.run(['validate'])
-            end.to output(/Valid llms\.txt file/).to_stdout
+              expect do
+                cli.run(['validate'])
+              end.to output(/Valid llms\.txt file/).to_stdout
+            end.not_to raise_error
+          end
+        end
+      end
+
+      it 'ignores docs from the config file when it names a file' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          FileUtils.cp(valid_temp_file.path, File.join(dir, 'llms.txt'))
+          File.write(File.join(dir, 'README.md'), 'Invalid content')
+          File.write(File.join(dir, 'llm-docs-builder.yml'), "docs: README.md\n")
+
+          Dir.chdir(dir) do
+            expect do
+              expect do
+                cli.run(['validate'])
+              end.to output(/Valid llms\.txt file/).to_stdout
+            end.not_to raise_error
           end
         end
       end
