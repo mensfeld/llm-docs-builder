@@ -368,9 +368,45 @@ RSpec.describe LlmDocsBuilder::CLI do
       it 'defaults to llms.txt when no file specified' do
         cli = described_class.new
 
-        expect do
-          cli.run(['parse'])
-        end.to raise_error(SystemExit) # File not found
+        Dir.mktmpdir do |dir|
+          Dir.chdir(dir) do
+            expect do
+              expect do
+                cli.run(['parse'])
+              end.to output(/File not found: llms\.txt/).to_stdout
+            end.to raise_error(SystemExit)
+          end
+        end
+      end
+
+      it 'reads llms.txt from the current directory when no file specified' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          File.write(File.join(dir, 'llms.txt'), "# From Cwd\n\n> Description\n")
+
+          Dir.chdir(dir) do
+            expect do
+              cli.run(['parse', '-v'])
+            end.to output(/Title: From Cwd/).to_stdout
+          end
+        end
+      end
+
+      it 'ignores docs from the config file' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          FileUtils.mkdir_p(File.join(dir, 'docs'))
+          File.write(File.join(dir, 'llms.txt'), "# From Cwd\n\n> Description\n")
+          File.write(File.join(dir, 'llm-docs-builder.yml'), "docs: ./docs\n")
+
+          Dir.chdir(dir) do
+            expect do
+              cli.run(['parse', '-v'])
+            end.to output(/Title: From Cwd/).to_stdout
+          end
+        end
       end
 
       it 'displays error when file not found' do
@@ -536,9 +572,45 @@ RSpec.describe LlmDocsBuilder::CLI do
       it 'defaults to llms.txt when no file specified' do
         cli = described_class.new
 
-        expect do
-          cli.run(['validate'])
-        end.to raise_error(SystemExit) # File not found
+        Dir.mktmpdir do |dir|
+          Dir.chdir(dir) do
+            expect do
+              expect do
+                cli.run(['validate'])
+              end.to output(/File not found: llms\.txt/).to_stdout
+            end.to raise_error(SystemExit)
+          end
+        end
+      end
+
+      it 'reads llms.txt from the current directory when no file specified' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          FileUtils.cp(valid_temp_file.path, File.join(dir, 'llms.txt'))
+
+          Dir.chdir(dir) do
+            expect do
+              cli.run(['validate'])
+            end.to output(/Valid llms\.txt file/).to_stdout
+          end
+        end
+      end
+
+      it 'ignores docs from the config file' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          FileUtils.mkdir_p(File.join(dir, 'docs'))
+          FileUtils.cp(valid_temp_file.path, File.join(dir, 'llms.txt'))
+          File.write(File.join(dir, 'llm-docs-builder.yml'), "docs: ./docs\n")
+
+          Dir.chdir(dir) do
+            expect do
+              cli.run(['validate'])
+            end.to output(/Valid llms\.txt file/).to_stdout
+          end
+        end
       end
 
       it 'displays error when file not found' do

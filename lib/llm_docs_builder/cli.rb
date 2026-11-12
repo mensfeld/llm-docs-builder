@@ -290,18 +290,14 @@ module LlmDocsBuilder
     #
     # Reads and parses llms.txt file, displaying title, description, and links.
     # Defaults to 'llms.txt' in current directory if no file specified.
+    # The config file's docs setting is the docs directory for generate, so it is not used here.
     #
     # @param options [Hash] command options from parse_options
-    # @option options [String] :config path to config file
     # @option options [String] :docs path to llms.txt file (defaults to 'llms.txt')
     # @option options [Boolean] :verbose enable verbose output with link counts
     # @raise [SystemExit] exits with status 1 if file not found
     def parse(options)
-      # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
-      merged_options = config.merge_with_options(options)
-
-      file_path = merged_options[:docs] || 'llms.txt'
+      file_path = options[:docs] || 'llms.txt'
 
       unless File.exist?(file_path)
         puts "File not found: #{file_path}"
@@ -365,17 +361,13 @@ module LlmDocsBuilder
     #
     # Checks if llms.txt file follows proper format with title, description, and documentation links.
     # Defaults to 'llms.txt' in current directory if no file specified.
+    # The config file's docs setting is the docs directory for generate, so it is not used here.
     #
     # @param options [Hash] command options from parse_options
-    # @option options [String] :config path to config file
     # @option options [String] :docs path to llms.txt file (defaults to 'llms.txt')
     # @raise [SystemExit] exits with status 1 if file not found or invalid
     def validate(options)
-      # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
-      merged_options = config.merge_with_options(options)
-
-      file_path = merged_options[:docs] || 'llms.txt'
+      file_path = options[:docs] || 'llms.txt'
 
       unless File.exist?(file_path)
         puts "File not found: #{file_path}"
