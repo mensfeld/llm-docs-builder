@@ -34,7 +34,7 @@ module LlmDocsBuilder
       @docs_path = docs_path
       @options = options
       @docs_prefix = docs_path.end_with?('/') ? docs_path : "#{docs_path}/"
-      @exclude_patterns = Array(options[:excludes]).flat_map { |pattern| normalize_pattern(pattern) }
+      @exclude_patterns = Array(options[:excludes]).map { |pattern| normalize_pattern(pattern) }
     end
 
     # Recursively finds the source markdown files in docs_path
@@ -65,7 +65,7 @@ module LlmDocsBuilder
     # Tests if file matches any exclusion pattern from options
     #
     # Checks both the given path and the path relative to docs_path. A trailing `/**` matches
-    # files at any depth below the directory, and a leading `**/` also matches at the root.
+    # files at any depth below the directory.
     #
     # @param file_path [String] path to check
     # @return [Boolean] true if file should be excluded
@@ -81,15 +81,13 @@ module LlmDocsBuilder
 
     private
 
-    # Expands an exclude pattern into the fnmatch patterns that implement it
+    # Converts an exclude pattern into the fnmatch pattern that implements it
     #
     # @param pattern [String] exclude pattern from options
-    # @return [Array<String>] fnmatch patterns
+    # @return [String] fnmatch pattern
     def normalize_pattern(pattern)
       # fnmatch requires /** to be followed by at least one component
-      normalized = pattern.end_with?('/**') ? "#{pattern}/*" : pattern
-      # **/ in fnmatch doesn't match zero directories at the start of the path
-      normalized.start_with?('**/') ? [normalized, normalized.delete_prefix('**/')] : [normalized]
+      pattern.end_with?('/**') ? "#{pattern}/*" : pattern
     end
 
     # Tests if path is a hidden directory to skip

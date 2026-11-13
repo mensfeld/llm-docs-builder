@@ -33,6 +33,15 @@ RSpec.describe LlmDocsBuilder::MarkdownFinder do
       expect(relative_files(finder)).to include('.github/c.md')
     end
 
+    it 'does not skip the docs_path itself when it is .' do
+      FileUtils.mkdir_p(File.join(temp_dir, 'guide'))
+      File.write(File.join(temp_dir, 'guide', 'a.md'), "# A\n")
+
+      files = Dir.chdir(temp_dir) { described_class.new('.').files }
+
+      expect(files).to contain_exactly('./README.md', './guide/a.md', './private/a.md', './private/sub/b.md')
+    end
+
     it 'skips files nested below an excluded directory' do
       finder = described_class.new(temp_dir, excludes: ['**/private/**'])
 
