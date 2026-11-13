@@ -597,50 +597,6 @@ RSpec.describe LlmDocsBuilder::Generator do
       end
     end
 
-    describe '#should_exclude?' do
-      it 'returns false when no excludes are specified' do
-        gen = described_class.new(temp_dir)
-        expect(gen.send(:should_exclude?, 'README.md')).to be false
-      end
-
-      it 'returns false when excludes is empty array' do
-        gen = described_class.new(temp_dir, excludes: [])
-        expect(gen.send(:should_exclude?, 'README.md')).to be false
-      end
-
-      it 'excludes files matching simple pattern' do
-        gen = described_class.new(temp_dir, excludes: ['draft.md'])
-        file_path = File.join(temp_dir, 'draft.md')
-        expect(gen.send(:should_exclude?, file_path)).to be true
-      end
-
-      it 'excludes files matching glob pattern' do
-        gen = described_class.new(temp_dir, excludes: ['**/private/**'])
-        file_path = File.join(temp_dir, 'private', 'secret.md')
-        expect(gen.send(:should_exclude?, file_path)).to be true
-      end
-
-      it 'excludes files matching wildcard pattern' do
-        gen = described_class.new(temp_dir, excludes: ['draft-*.md'])
-        file_path = File.join(temp_dir, 'draft-proposal.md')
-        expect(gen.send(:should_exclude?, file_path)).to be true
-      end
-
-      it 'does not exclude files that do not match pattern' do
-        gen = described_class.new(temp_dir, excludes: ['draft.md'])
-        file_path = File.join(temp_dir, 'README.md')
-        expect(gen.send(:should_exclude?, file_path)).to be false
-      end
-
-      it 'handles multiple exclude patterns' do
-        gen = described_class.new(temp_dir, excludes: ['draft.md', 'private/**', '*.tmp.md'])
-        expect(gen.send(:should_exclude?, File.join(temp_dir, 'draft.md'))).to be true
-        expect(gen.send(:should_exclude?, File.join(temp_dir, 'private/secret.md'))).to be true
-        expect(gen.send(:should_exclude?, File.join(temp_dir, 'test.tmp.md'))).to be true
-        expect(gen.send(:should_exclude?, File.join(temp_dir, 'README.md'))).to be false
-      end
-    end
-
     describe '#has_transformations?' do
       it 'returns false when no transformation options are set' do
         gen = described_class.new(temp_dir)
@@ -688,6 +644,20 @@ RSpec.describe LlmDocsBuilder::Generator do
 
         expect(content).to include('Project')
         expect(content).not_to include('Secret')
+      end
+
+      it 'filters out files nested below excluded directories' do
+        FileUtils.mkdir_p(File.join(temp_dir, 'private', 'sub'))
+        File.write(File.join(temp_dir, 'README.md'), "# Project\n\nDescription")
+        File.write(File.join(temp_dir, 'private', 'a.md'), "# Secret\n\nSecret content")
+        File.write(File.join(temp_dir, 'private', 'sub', 'b.md'), "# Nested\n\nNested content")
+
+        gen = described_class.new(temp_dir, excludes: ['**/private/**'])
+        content = gen.generate
+
+        expect(content).to include('Project')
+        expect(content).not_to include('Secret')
+        expect(content).not_to include('Nested')
       end
     end
 

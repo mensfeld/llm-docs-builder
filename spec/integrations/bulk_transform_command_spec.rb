@@ -458,6 +458,33 @@ RSpec.describe 'bulk-transform command' do
     MD
   end
 
+  it 'skips excluded nested directories and hidden directories' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'private', 'sub'))
+    FileUtils.mkdir_p(File.join(docs_dir, '.github'))
+
+    File.write(File.join(docs_dir, 'README.md'), "# README\n\nContent")
+    File.write(File.join(docs_dir, 'private', 'a.md'), "# A\n\nPrivate")
+    File.write(File.join(docs_dir, 'private', 'sub', 'b.md'), "# B\n\nPrivate")
+    File.write(File.join(docs_dir, '.github', 'c.md'), "# C\n\nHidden")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      excludes:
+        - "**/private/**"
+    YAML
+
+    stdout, _stderr, status = run_cli('bulk-transform', '--config', config_file)
+
+    expect(status.success?).to be true
+    expect(stdout).to include('1 files')
+    expect(File.exist?(File.join(docs_dir, 'README.llm.md'))).to be true
+    expect(File.exist?(File.join(docs_dir, 'private', 'a.llm.md'))).to be false
+    expect(File.exist?(File.join(docs_dir, 'private', 'sub', 'b.llm.md'))).to be false
+    expect(File.exist?(File.join(docs_dir, '.github', 'c.llm.md'))).to be false
+  end
+
   it 'fails when directory does not exist' do
     stdout, _stderr, status = run_cli(
       'bulk-transform',

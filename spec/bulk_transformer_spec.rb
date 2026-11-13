@@ -125,6 +125,41 @@ RSpec.describe LlmDocsBuilder::BulkTransformer do
       expect(File.exist?(File.join(temp_dir, 'guides', 'getting-started.llm.md'))).to be false
     end
 
+    it 'excludes files nested below an excluded directory' do
+      FileUtils.mkdir_p(File.join(temp_dir, 'private', 'sub'))
+      File.write(File.join(temp_dir, 'private', 'a.md'), "# A\n")
+      File.write(File.join(temp_dir, 'private', 'sub', 'b.md'), "# B\n")
+
+      transformer = described_class.new(temp_dir, excludes: ['**/private/**'])
+
+      transformer.transform_all
+
+      expect(File.exist?(File.join(temp_dir, 'private', 'a.llm.md'))).to be false
+      expect(File.exist?(File.join(temp_dir, 'private', 'sub', 'b.llm.md'))).to be false
+    end
+
+    it 'skips hidden directories by default' do
+      FileUtils.mkdir_p(File.join(temp_dir, 'docs', '.github'))
+      File.write(File.join(temp_dir, 'docs', '.github', 'c.md'), "# C\n")
+
+      transformer = described_class.new(temp_dir)
+
+      transformer.transform_all
+
+      expect(File.exist?(File.join(temp_dir, 'docs', '.github', 'c.llm.md'))).to be false
+    end
+
+    it 'includes hidden directories when include_hidden is true' do
+      FileUtils.mkdir_p(File.join(temp_dir, 'docs', '.github'))
+      File.write(File.join(temp_dir, 'docs', '.github', 'c.md'), "# C\n")
+
+      transformer = described_class.new(temp_dir, include_hidden: true)
+
+      transformer.transform_all
+
+      expect(File.exist?(File.join(temp_dir, 'docs', '.github', 'c.llm.md'))).to be true
+    end
+
     it 'uses custom suffix' do
       transformer = described_class.new(temp_dir, suffix: '.ai')
 
