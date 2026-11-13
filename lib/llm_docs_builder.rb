@@ -103,6 +103,8 @@ module LlmDocsBuilder
     #   config)
     # @option options [Array<String>] :excludes glob patterns for files to exclude (overrides
     #   config)
+    # @option options [Boolean] :include_hidden include files in hidden directories (overrides
+    #   config)
     # @option options [Boolean] :verbose enable verbose output (overrides config)
     # @return [Array<String>] paths of transformed files
     #
