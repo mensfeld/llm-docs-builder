@@ -31,6 +31,7 @@ module LlmDocsBuilder
     # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
     # @option options [String] :suffix suffix for transformed files (default: '.llm')
     # @option options [Array<String>] :excludes glob patterns for files to exclude
+    # @option options [Boolean] :include_hidden include files in hidden directories
     # @option options [Boolean] :verbose enable verbose output
     def initialize(docs_path, options = {})
       @docs_path = docs_path
@@ -53,8 +54,6 @@ module LlmDocsBuilder
       transformed_files = []
 
       markdown_files.each do |file_path|
-        next if should_exclude?(file_path)
-
         puts "Transforming #{file_path}..." if options[:verbose]
 
         transformed_content = transform_file(file_path)
@@ -76,38 +75,11 @@ module LlmDocsBuilder
 
     # Recursively scans the docs directory for markdown files
     #
-    # Skips hidden files (starting with dot) and already transformed files (ending with
-    # the suffix, e.g. README.llm.md) and returns sorted array of paths
+    # See MarkdownFinder for the files it skips
     #
-    # @return [Array<String>] paths to markdown files
+    # @return [Array<String>] sorted paths to markdown files
     def find_markdown_files
-      files = []
-      output_ending = "#{options[:suffix]}.md".downcase
-
-      Find.find(docs_path) do |path|
-        next unless File.file?(path)
-        next unless path.match?(/\.md$/i)
-        next if File.basename(path).start_with?('.')
-        next if output_ending != '.md' && path.downcase.end_with?(output_ending)
-
-        files << path
-      end
-
-      files.sort
-    end
-
-    # Tests if file matches any exclusion pattern from options
-    #
-    # Uses File.fnmatch with pathname and dotmatch flags
-    #
-    # @param file_path [String] path to check
-    # @return [Boolean] true if file should be excluded
-    def should_exclude?(file_path)
-      excludes = Array(options[:excludes])
-
-      excludes.any? do |pattern|
-        File.fnmatch(pattern, file_path, File::FNM_PATHNAME | File::FNM_DOTMATCH)
-      end
+      MarkdownFinder.new(docs_path, options).files.sort
     end
 
     # Applies markdown transformations to a single file

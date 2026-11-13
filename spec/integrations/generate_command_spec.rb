@@ -511,4 +511,31 @@ RSpec.describe 'generate command' do
     expect(lines).to include("- [Nested](nested.md): #{'a' * 170}")
     expect(lines).to include("- [Plain](plain.md): #{'p' * 150} #{'q' * 49}")
   end
+
+  it 'skips excluded nested directories and hidden directories' do
+    docs_dir = File.join(temp_dir, 'docs')
+    FileUtils.mkdir_p(File.join(docs_dir, 'private', 'sub'))
+    FileUtils.mkdir_p(File.join(docs_dir, '.github'))
+
+    File.write(File.join(docs_dir, 'README.md'), "# README\n\nContent")
+    File.write(File.join(docs_dir, 'private', 'a.md'), "# A\n\nPrivate")
+    File.write(File.join(docs_dir, 'private', 'sub', 'b.md'), "# B\n\nPrivate")
+    File.write(File.join(docs_dir, '.github', 'c.md'), "# C\n\nHidden")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{docs_dir}
+      output: #{output_file}
+      excludes:
+        - "**/private/**"
+    YAML
+
+    _, _stderr, status = run_cli('generate', '--config', config_file)
+
+    expect(status.success?).to be true
+    links = File.readlines(output_file, chomp: true).grep(/\A- \[/)
+    expect(links).to eq(['- [README](README.md): Content'])
+  end
 end
