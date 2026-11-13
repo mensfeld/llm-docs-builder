@@ -13,6 +13,10 @@ module LlmDocsBuilder
     FNMATCH_FLAGS = File::FNM_PATHNAME | File::FNM_DOTMATCH
     private_constant :FNMATCH_FLAGS
 
+    # Matches a path whose last component starts with a dot
+    HIDDEN_PATH_PATTERN = %r{(?:\A|/)\.[^/]*\z}
+    private_constant :HIDDEN_PATH_PATTERN
+
     # @return [String] path to documentation directory
     attr_reader :docs_path
 
@@ -29,6 +33,8 @@ module LlmDocsBuilder
     def initialize(docs_path, options = {})
       @docs_path = docs_path
       @options = options
+      @docs_prefix = docs_path.end_with?('/') ? docs_path : "#{docs_path}/"
+      @exclude_patterns = Array(options[:excludes]).flat_map { |pattern| normalize_pattern(pattern) }
     end
 
     # Recursively finds the source markdown files in docs_path
@@ -46,7 +52,7 @@ module LlmDocsBuilder
 
         next unless File.file?(path)
         next unless path.match?(/\.md$/i)
-        next if File.basename(path).start_with?('.')
+        next if path.match?(HIDDEN_PATH_PATTERN)
         next if output_ending != '.md' && path.downcase.end_with?(output_ending)
         next if excluded?(path)
 
@@ -64,25 +70,27 @@ module LlmDocsBuilder
     # @param file_path [String] path to check
     # @return [Boolean] true if file should be excluded
     def excluded?(file_path)
-      excludes = Array(options[:excludes])
-      return false if excludes.empty?
+      return false if @exclude_patterns.empty?
 
-      paths = [file_path, relative_path(file_path)]
+      relative = relative_path(file_path)
 
-      excludes.any? do |pattern|
-        # fnmatch requires /** to be followed by at least one component
-        normalized_pattern = pattern.end_with?('/**') ? "#{pattern}/*" : pattern
-        candidates = [normalized_pattern]
-        # **/ in fnmatch doesn't match zero directories at the start of the path
-        candidates << normalized_pattern.delete_prefix('**/') if normalized_pattern.start_with?('**/')
-
-        candidates.any? do |candidate|
-          paths.any? { |path| File.fnmatch(candidate, path, FNMATCH_FLAGS) }
-        end
+      @exclude_patterns.any? do |pattern|
+        File.fnmatch(pattern, file_path, FNMATCH_FLAGS) || File.fnmatch(pattern, relative, FNMATCH_FLAGS)
       end
     end
 
     private
+
+    # Expands an exclude pattern into the fnmatch patterns that implement it
+    #
+    # @param pattern [String] exclude pattern from options
+    # @return [Array<String>] fnmatch patterns
+    def normalize_pattern(pattern)
+      # fnmatch requires /** to be followed by at least one component
+      normalized = pattern.end_with?('/**') ? "#{pattern}/*" : pattern
+      # **/ in fnmatch doesn't match zero directories at the start of the path
+      normalized.start_with?('**/') ? [normalized, normalized.delete_prefix('**/')] : [normalized]
+    end
 
     # Tests if path is a hidden directory to skip
     #
@@ -93,15 +101,20 @@ module LlmDocsBuilder
     def hidden_directory?(path)
       return false if options[:include_hidden] || path == docs_path
 
-      File.basename(path).start_with?('.') && File.directory?(path)
+      path.match?(HIDDEN_PATH_PATTERN) && File.directory?(path)
     end
 
     # Computes the path of a file relative to docs_path
     #
+    # Paths from Find.find start with docs_path, so the prefix is stripped without Pathname.
+    #
     # @param file_path [String] path to a file inside docs_path
     # @return [String] relative path, or the basename if it can't be made relative
     def relative_path(file_path)
-      Pathname.new(File.expand_path(file_path)).relative_path_from(Pathname.new(File.expand_path(docs_path))).to_s
+      return file_path.delete_prefix(@docs_prefix) if file_path.start_with?(@docs_prefix)
+
+      @expanded_docs_path ||= Pathname.new(File.expand_path(docs_path))
+      Pathname.new(File.expand_path(file_path)).relative_path_from(@expanded_docs_path).to_s
     rescue ArgumentError
       File.basename(file_path)
     end
