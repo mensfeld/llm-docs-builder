@@ -548,12 +548,13 @@ RSpec.describe LlmDocsBuilder::Generator do
       it 'sorts files by priority' do
         File.write(File.join(temp_dir, 'guide.md'), "# Guide\n")
         File.write(File.join(temp_dir, 'README.md'), "# Readme\n")
+        File.write(File.join(temp_dir, 'advanced.md'), "# Advanced\n")
         File.write(File.join(temp_dir, 'other.md'), "# Other\n")
 
         files = generator.send(:find_markdown_files_in_directory)
 
         expect(files.first[:path]).to eq('README.md')
-        expect(files.last[:priority]).to eq(3)
+        expect(files.last[:path]).to eq('advanced.md')
       end
     end
 
