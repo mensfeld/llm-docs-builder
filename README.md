@@ -322,8 +322,8 @@ Generate enriched llms.txt files with token counts, timestamps, and priority lab
 **Enhanced llms.txt (with metadata enabled):**
 ```markdown
 - [Getting Started](https://myproject.io/docs/Getting-Started.md): Quick start guide (tokens:450, updated:2025-10-13, priority:high)
-- [Configuration](https://myproject.io/docs/Configuration.md): Configuration options (tokens:2800, updated:2025-10-12, priority:high)
-- [Advanced Topics](https://myproject.io/docs/Advanced.md): Deep dive topics (tokens:5200, updated:2025-09-15, priority:medium)
+- [Configuration](https://myproject.io/docs/Configuration.md): Configuration options (tokens:2800, updated:2025-10-12, priority:medium)
+- [Advanced Topics](https://myproject.io/docs/Advanced.md): Deep dive topics (tokens:5200, updated:2025-09-15, priority:low)
 ```
 
 **Benefits:**
@@ -348,7 +348,7 @@ calculate_compression: true # Show compression ratios (slower, requires transfor
 Documents are automatically organized into multiple sections based on priority, following the llms.txt specification:
 
 **Priority-based categorization:**
-- **Documentation** (priority 1-3): Essential docs like README, getting started guides, user guides
+- **Documentation** (priority 1-3): README, getting started guides, user guides, API docs and every page that matches no other rule
 - **Examples** (priority 4-5): Tutorials and example files
 - **Optional** (priority 6-7): Advanced topics and reference documentation
 
@@ -362,6 +362,8 @@ Documents are automatically organized into multiple sections based on priority, 
 
 - [README](README.md): Main documentation
 - [Getting Started](getting-started.md): Quick start guide
+- [Configuration](configuration.md): Configuration options
+- [API](api.md): Public API
 
 ## Examples
 

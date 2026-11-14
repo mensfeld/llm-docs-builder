@@ -220,7 +220,8 @@ module LlmDocsBuilder
 
     # Assigns priority to file based on filename patterns
     #
-    # README gets highest priority, followed by guides, tutorials, API docs
+    # README gets highest priority, followed by getting started docs; other pages are documentation,
+    # except tutorials and examples (Examples) and reference and advanced topics (Optional)
     #
     # @param file_path [String] path to file
     # @return [Integer] priority value (1-7, lower is higher priority)
@@ -231,10 +232,12 @@ module LlmDocsBuilder
       return 2 if basename.include?('getting')
       return 3 if basename.include?('guide')
       return 4 if basename.include?('tutorial')
-      return 5 if basename.include?('api')
+      return 4 if basename.include?('example')
+      return 3 if basename.include?('api')
       return 6 if basename.include?('reference')
+      return 7 if basename.include?('advanced')
 
-      7 # default priority
+      3 # default priority
     end
 
     # Applies transformations to content for compression ratio calculation
