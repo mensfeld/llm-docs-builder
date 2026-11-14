@@ -447,6 +447,51 @@ RSpec.describe 'generate command' do
     expect(optional_section).to include('Reference')
   end
 
+  it 'puts ordinary pages and API docs in Documentation and only reference and advanced pages in Optional' do
+    File.write(File.join(temp_dir, 'README.md'), "# README\n\nMain doc")
+    File.write(File.join(temp_dir, 'configuration.md'), "# Configuration\n\nSettings")
+    File.write(File.join(temp_dir, 'api.md'), "# API\n\nPublic API")
+    File.write(File.join(temp_dir, 'examples.md'), "# Code Examples\n\nExample code")
+    File.write(File.join(temp_dir, 'advanced.md'), "# Advanced Topics\n\nDeep dive")
+    File.write(File.join(temp_dir, 'reference.md'), "# Reference\n\nReference docs")
+
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'llms.txt')
+
+    File.write(config_file, <<~YAML)
+      docs: #{temp_dir}
+      output: #{output_file}
+      include_metadata: true
+      include_priority: true
+      excludes:
+        - config.yml
+        - "*.txt"
+    YAML
+
+    run_cli('generate', '--config', config_file)
+    content = File.read(output_file)
+
+    sections = content.split(/^## /).drop(1).to_h do |section|
+      name, *lines = section.lines.map(&:chomp).reject(&:empty?)
+      [name, lines.sort]
+    end
+
+    expect(sections).to eq(
+      'Documentation' => [
+        '- [API](api.md): Public API (priority:medium)',
+        '- [Configuration](configuration.md): Settings (priority:medium)',
+        '- [README](README.md): Main doc (priority:high)'
+      ],
+      'Examples' => [
+        '- [Code Examples](examples.md): Example code (priority:medium)'
+      ],
+      'Optional' => [
+        '- [Advanced Topics](advanced.md): Deep dive (priority:low)',
+        '- [Reference](reference.md): Reference docs (priority:low)'
+      ]
+    )
+  end
+
   it 'includes body content when specified in config' do
     File.write(File.join(temp_dir, 'README.md'), "# Project\n\nMain doc")
 

@@ -91,6 +91,34 @@ RSpec.describe LlmDocsBuilder::Generator do
       expect(content).to include('# llm-docs-builder')
       expect(content.lines.count).to be < 10 # No files listed
     end
+
+    describe 'page priority' do
+      def section_and_label(filename)
+        File.write(File.join(temp_dir, filename), "# Page\n\nPage text")
+        content = described_class.new(temp_dir, include_metadata: true, include_priority: true).generate
+
+        [content[/^## (.+)$/, 1], content[/priority:\w+/]]
+      end
+
+      {
+        'README.md' => ['Documentation', 'priority:high'],
+        'readme.md' => ['Documentation', 'priority:high'],
+        'getting-started.md' => ['Documentation', 'priority:high'],
+        'user-guide.md' => ['Documentation', 'priority:medium'],
+        'api.md' => ['Documentation', 'priority:medium'],
+        'api-reference.md' => ['Documentation', 'priority:medium'],
+        'configuration.md' => ['Documentation', 'priority:medium'],
+        'random-file.md' => ['Documentation', 'priority:medium'],
+        'tutorial.md' => ['Examples', 'priority:medium'],
+        'examples.md' => ['Examples', 'priority:medium'],
+        'command-reference.md' => ['Optional', 'priority:low'],
+        'advanced.md' => ['Optional', 'priority:low']
+      }.each do |filename, (section, label)|
+        it "puts #{filename} in #{section} with #{label}" do
+          expect(section_and_label(filename)).to eq([section, label])
+        end
+      end
+    end
   end
 
   describe 'private methods' do
@@ -223,50 +251,6 @@ RSpec.describe LlmDocsBuilder::Generator do
 
         description = generator.send(:extract_description, content)
         expect(description).to eq('')
-      end
-    end
-
-    describe '#calculate_priority' do
-      it 'returns 1 for README files' do
-        priority = generator.send(:calculate_priority, 'README.md')
-        expect(priority).to eq(1)
-      end
-
-      it 'returns 1 for readme files (lowercase)' do
-        priority = generator.send(:calculate_priority, 'readme.md')
-        expect(priority).to eq(1)
-      end
-
-      it 'returns 2 for getting started files' do
-        priority = generator.send(:calculate_priority, 'getting-started.md')
-        expect(priority).to eq(2)
-      end
-
-      it 'returns 3 for guide files' do
-        priority = generator.send(:calculate_priority, 'user-guide.md')
-        expect(priority).to eq(3)
-      end
-
-      it 'returns 4 for tutorial files' do
-        priority = generator.send(:calculate_priority, 'tutorial.md')
-        expect(priority).to eq(4)
-      end
-
-      it 'returns 5 for API files' do
-        priority = generator.send(:calculate_priority, 'api.md')
-        expect(priority).to eq(5)
-      end
-
-      it 'returns 6 for reference files' do
-        file_path = File.join(temp_dir, 'command-reference.md')
-        priority = generator.send(:calculate_priority, file_path)
-        expect(priority).to eq(6)
-      end
-
-      it 'returns 7 for files with no special pattern' do
-        file_path = File.join(temp_dir, 'random-file.md')
-        priority = generator.send(:calculate_priority, file_path)
-        expect(priority).to eq(7)
       end
     end
 
@@ -564,12 +548,13 @@ RSpec.describe LlmDocsBuilder::Generator do
       it 'sorts files by priority' do
         File.write(File.join(temp_dir, 'guide.md'), "# Guide\n")
         File.write(File.join(temp_dir, 'README.md'), "# Readme\n")
+        File.write(File.join(temp_dir, 'advanced.md'), "# Advanced\n")
         File.write(File.join(temp_dir, 'other.md'), "# Other\n")
 
         files = generator.send(:find_markdown_files_in_directory)
 
         expect(files.first[:path]).to eq('README.md')
-        expect(files.last[:priority]).to eq(7)
+        expect(files.last[:path]).to eq('advanced.md')
       end
     end
 
@@ -583,7 +568,7 @@ RSpec.describe LlmDocsBuilder::Generator do
         expect(metadata[:path]).to eq('test.md')
         expect(metadata[:title]).to eq('Test Title')
         expect(metadata[:description]).to include('Test description')
-        expect(metadata[:priority]).to eq(7)
+        expect(metadata[:priority]).to eq(3)
       end
 
       it 'handles single file with correct relative path' do

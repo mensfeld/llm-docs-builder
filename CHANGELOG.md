@@ -5,6 +5,11 @@
 - [Fix] **`bulk-transform` Skips Nested Excludes and Hidden Directories** - `bulk-transform` now picks files like `generate` does.
   - A trailing `/**` in `excludes` matches files at any depth (`**/private/**` now skips `private/sub/b.md`), and patterns also match the path relative to the docs directory.
   - Hidden directories (e.g. `.github/`) are skipped unless `include_hidden` is set, as documented in 0.9.4.
+- [Fix] **llms.txt Sections Match the Documented Priorities** - `generate` now sorts pages into sections as the README describes.
+  - Pages that match no rule (e.g. `configuration.md`, `install.md`) go to `Documentation` (`priority:medium`) instead of `Optional` (`priority:low`).
+  - API docs (`api.md`) go to `Documentation` instead of `Examples`.
+  - Example files (`examples.md`) go to `Examples`.
+  - Only reference and advanced pages (`reference.md`, `advanced.md`) stay in `Optional`.
 
 ## 1.1.0 (2026-11-02)
 - [Enhancement] **Relative Link Resolution** - `base_url` link expansion now resolves relative links like a browser would.
