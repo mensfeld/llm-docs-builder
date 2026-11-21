@@ -20,7 +20,9 @@ verbose: false      # Verbose output
 
 # Bulk transformation options (optional)
 suffix: .llm        # Suffix for transformed files (creates file.llm.md)
-excludes:           # Patterns for files to exclude from bulk transformation
+
+# File selection for generate and bulk-transform (optional)
+excludes:           # Patterns for files to exclude
   - "**/private/**"    # Exclude private directories
   - "**/draft-*.md"    # Exclude draft files
   - "**/.*"            # Exclude hidden files
