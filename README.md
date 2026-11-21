@@ -167,7 +167,7 @@ include_hidden: false             # Include files in hidden directories (e.g. .g
 ```
 
 **File selection (`generate` and `bulk-transform`):** both commands pick the same `.md` files under `docs`.
-- `excludes` patterns match the file path and the path relative to `docs`; a trailing `/**` matches files at any depth.
+- `excludes` patterns match the path relative to `docs` (`private/a.md`) or the path starting with the `docs` value as written (`./docs/private/a.md`); a trailing `/**` matches files at any depth.
 - Hidden directories (names starting with `.`, e.g. `.github/`) are skipped by default. Set `include_hidden: true` to include their files. Hidden files (e.g. `.notes.md`) are always skipped.
 
 **Link expansion (`base_url`):** relative links become absolute URLs.
