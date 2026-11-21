@@ -24,3 +24,4 @@ excludes:           # Patterns for files to exclude from bulk transformation
   - "**/private/**"    # Exclude private directories
   - "**/draft-*.md"    # Exclude draft files
   - "**/.*"            # Exclude hidden files
+include_hidden: false  # Include files in hidden directories (e.g. .github/); hidden files are always skipped
