@@ -139,10 +139,10 @@ RSpec.describe LlmDocsBuilder::Comparator do
   end
 
   describe 'redirect handling' do
-    it 'limits redirect depth to prevent infinite loops' do
-      comparator = described_class.new(url)
+    let(:comparator) { described_class.new(url) }
+    let(:http) { instance_double(Net::HTTP) }
 
-      http = instance_double(Net::HTTP)
+    before do
       allow(Net::HTTP).to receive(:new).and_return(http)
       allow(http).to receive(:use_ssl=)
       allow(http).to receive(:open_timeout=)
@@ -151,7 +151,9 @@ RSpec.describe LlmDocsBuilder::Comparator do
       redirect_response = Net::HTTPFound.new('1.1', '302', 'Found')
       allow(redirect_response).to receive(:[]).with('location').and_return('/loop')
       allow(http).to receive(:request).and_return(redirect_response)
+    end
 
+    it 'limits redirect depth to prevent infinite loops' do
       expect do
         comparator.compare
       end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Too many redirects/)
@@ -159,16 +161,12 @@ RSpec.describe LlmDocsBuilder::Comparator do
     end
 
     it 'includes redirect count in error message' do
-      comparator = described_class.new(url)
-
-      allow(comparator).to receive(:fetch_url) do
-        raise LlmDocsBuilder::Errors::GenerationError,
-          "Too many redirects (10) when fetching #{url}"
-      end
-
       expect do
         comparator.compare
-      end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /10/)
+      end.to raise_error(
+        LlmDocsBuilder::Errors::GenerationError,
+        /Too many redirects \(#{described_class::MAX_REDIRECTS}\)/
+      )
     end
   end
 
