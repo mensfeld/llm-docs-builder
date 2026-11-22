@@ -25,5 +25,4 @@ suffix: .llm        # Suffix for transformed files (creates file.llm.md)
 excludes:           # Patterns for files to exclude
   - "**/private/**"    # Exclude private directories
   - "**/draft-*.md"    # Exclude draft files
-  - "**/.*"            # Exclude hidden files
 include_hidden: false  # Include files in hidden directories (e.g. .github/); hidden files are always skipped
