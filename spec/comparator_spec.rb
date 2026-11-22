@@ -142,20 +142,20 @@ RSpec.describe LlmDocsBuilder::Comparator do
     it 'limits redirect depth to prevent infinite loops' do
       comparator = described_class.new(url)
 
-      # Mock fetch_url to simulate hitting the redirect limit
-      allow(comparator).to receive(:fetch_url) do |_url, _ua, redirect_count = 0|
-        if redirect_count >= described_class::MAX_REDIRECTS
-          raise LlmDocsBuilder::Errors::GenerationError,
-            "Too many redirects (#{described_class::MAX_REDIRECTS}) when fetching #{url}"
-        end
+      http = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http)
+      allow(http).to receive(:use_ssl=)
+      allow(http).to receive(:open_timeout=)
+      allow(http).to receive(:read_timeout=)
 
-        # Simulate recursive redirect
-        comparator.send(:fetch_url, url, 'test', redirect_count + 1)
-      end
+      redirect_response = Net::HTTPFound.new('1.1', '302', 'Found')
+      allow(redirect_response).to receive(:[]).with('location').and_return('/loop')
+      allow(http).to receive(:request).and_return(redirect_response)
 
       expect do
         comparator.compare
       end.to raise_error(LlmDocsBuilder::Errors::GenerationError, /Too many redirects/)
+      expect(http).to have_received(:request).exactly(described_class::MAX_REDIRECTS).times
     end
 
     it 'includes redirect count in error message' do
@@ -264,42 +264,63 @@ RSpec.describe LlmDocsBuilder::Comparator do
     end
   end
 
-  describe '#send(:fetch_url) implementation' do
-    let(:comparator) { described_class.new(url) }
+  describe 'fetching through UrlFetcher' do
+    let(:comparator) do
+      described_class.new(url, human_user_agent: 'Test-Agent', ai_user_agent: 'Test-AI')
+    end
 
     it 'delegates to UrlFetcher' do
       fetcher = instance_double(LlmDocsBuilder::UrlFetcher)
       allow(LlmDocsBuilder::UrlFetcher).to receive(:new).and_return(fetcher)
       allow(fetcher).to receive(:fetch).with(url, 0).and_return('fetched content')
 
-      result = comparator.send(:fetch_url, url, 'Test-Agent')
+      result = comparator.compare
 
-      expect(result).to eq('fetched content')
+      expect(result[:human_size]).to eq('fetched content'.bytesize)
+      expect(result[:ai_size]).to eq('fetched content'.bytesize)
       expect(LlmDocsBuilder::UrlFetcher).to have_received(:new)
         .with(user_agent: 'Test-Agent', verbose: nil)
+      expect(LlmDocsBuilder::UrlFetcher).to have_received(:new)
+        .with(user_agent: 'Test-AI', verbose: nil)
     end
   end
 
-  describe 'edge cases in calculate_results' do
+  describe 'edge cases in result calculation' do
     let(:comparator) { described_class.new(url) }
 
+    def stub_fetches(human_body:, ai_body:)
+      contents = {
+        described_class::HUMAN_USER_AGENT => human_body,
+        described_class::AI_USER_AGENT => ai_body
+      }
+
+      allow(LlmDocsBuilder::UrlFetcher).to receive(:new) do |user_agent:, **|
+        instance_double(LlmDocsBuilder::UrlFetcher, fetch: contents.fetch(user_agent))
+      end
+    end
+
     it 'handles zero human size' do
-      result = comparator.send(:calculate_results, '', 'content', 'source1', 'source2')
+      stub_fetches(human_body: '', ai_body: 'content')
+
+      result = comparator.compare
 
       expect(result[:reduction_percent]).to eq(0)
       expect(result[:token_reduction_percent]).to eq(0)
     end
 
     it 'handles zero AI size' do
-      result = comparator.send(:calculate_results, 'content', '', 'source1', 'source2')
+      stub_fetches(human_body: 'content', ai_body: '')
+
+      result = comparator.compare
 
       expect(result[:factor]).to eq(Float::INFINITY)
     end
 
     it 'handles zero token counts' do
+      stub_fetches(human_body: 'content', ai_body: 'content')
       allow_any_instance_of(LlmDocsBuilder::TokenEstimator).to receive(:estimate).and_return(0)
 
-      result = comparator.send(:calculate_results, '', '', 'source1', 'source2')
+      result = comparator.compare
 
       expect(result[:token_reduction_percent]).to eq(0)
     end
