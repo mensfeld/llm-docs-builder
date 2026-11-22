@@ -136,6 +136,57 @@ RSpec.describe 'Compression Features Integration' do
     end
   end
 
+  describe 'Code Example Removal' do
+    before do
+      File.write(test_file, <<~MD)
+        # Lists
+
+        - Topics
+            - Consumers
+            - Producers
+
+        1. Install the gem:
+
+            gem install karafka
+
+        2. Configure it.
+
+        ## Next section
+
+        Important text.
+
+            indented code
+
+        Done.
+      MD
+    end
+
+    it 'keeps nested list items and later sections' do
+      result = LlmDocsBuilder.transform_markdown(test_file, remove_code_examples: true)
+
+      expect(result).to eq(<<~MD.chomp)
+        # Lists
+
+        - Topics
+            - Consumers
+            - Producers
+
+        1. Install the gem:
+
+            gem install karafka
+
+        2. Configure it.
+
+        ## Next section
+
+        Important text.
+
+
+        Done.
+      MD
+    end
+  end
+
   describe 'Advanced Compression' do
     let(:duplicate_content) do
       <<~MD

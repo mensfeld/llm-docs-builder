@@ -9,6 +9,7 @@ module LlmDocsBuilder
     # @api public
     class LinkTransformer
       include BaseTransformer
+      include CodeBlocks
 
       # Transform links in content
       #
@@ -45,15 +46,6 @@ module LlmDocsBuilder
 
       # Inline code span: a backtick run closed by a run of the same length, within one paragraph
       INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
-
-      # Opening line of a fenced code block
-      FENCE_OPENING = /\A[ \t]*(`{3,}|~{3,})/
-
-      # Blockquote markers at the start of a line
-      BLOCKQUOTE_PREFIX = /\A(?: {0,3}> ?)*/
-
-      # Line that starts a list item
-      LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
       # Contents of a bracket pair in a link text: plain text, images and brackets that do not open a link
       # (links do not nest)
@@ -103,9 +95,9 @@ module LlmDocsBuilder
       FOLLOWING_REFERENCE_DEFINITIONS_PATTERN =
         /\n#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n\K#{REFERENCE_DEFINITIONS_PATTERN}/
 
-      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM,
-        :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN, :LINK_DESTINATION_PATTERN, :LINK_PATTERN,
-        :NESTED_LINK_PATTERN, :REFERENCE_DEFINITION_PATTERN, :REFERENCE_DEFINITIONS_PATTERN,
+      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN,
+        :LINK_DESTINATION_PATTERN, :LINK_PATTERN, :NESTED_LINK_PATTERN, :REFERENCE_DEFINITION_PATTERN,
+        :REFERENCE_DEFINITIONS_PATTERN,
         :REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN, :LEADING_REFERENCE_DEFINITIONS_PATTERN,
         :FOLLOWING_REFERENCE_DEFINITIONS_PATTERN
 
@@ -122,107 +114,10 @@ module LlmDocsBuilder
           "\u0000#{codes.size - 1}#{'b' if block}\u0000"
         end
 
-        text = protect_code_blocks(content, protect)
+        text = replace_code_blocks(content) { |code| protect.call(code, block: true) }
         text = text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
 
         yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
-      end
-
-      # Replace fenced and indented code blocks with placeholders
-      #
-      # Indented lines count as code only after a blank line and outside lists, where they would otherwise be
-      # paragraph or list item continuations. Code inside blockquotes is detected after the `>` markers.
-      #
-      # @param content [String] markdown content
-      # @param protect [Proc] stores a code fragment and returns its placeholder
-      # @return [String] content with code blocks replaced
-      def protect_code_blocks(content, protect)
-        out = +''
-        code = +''
-        fence = nil
-        fence_depth = 0
-        depth = 0
-        in_list = false
-        prev_blank = true
-
-        content.each_line do |line|
-          quote = line[BLOCKQUOTE_PREFIX]
-          body = line.delete_prefix(quote)
-          prev_blank ||= quote.count('>') > depth
-          depth = quote.count('>')
-          fence = nil if depth < fence_depth
-
-          if fence
-            code << line
-            closing = line.sub(/\A(?: {0,3}> ?){#{fence_depth}}/, '')
-            fence = nil if closing.match?(/\A[ \t]*#{Regexp.escape(fence)}#{Regexp.escape(fence[0])}*\s*\z/)
-            prev_blank = true
-            next
-          end
-
-          if !in_list && (prev_blank || !code.empty?) && indented_code?(body)
-            code << line
-            next
-          end
-
-          if (fence = fence_opening(body))
-            fence_depth = depth
-            code << line
-            next
-          end
-
-          out << protect_lines(code, protect) << line
-          code = +''
-          in_list = in_list_after?(body, in_list, prev_blank)
-          prev_blank = body.strip.empty?
-        end
-
-        out << protect_lines(code, protect)
-      end
-
-      # Fence of a line that opens a fenced code block
-      #
-      # @param line [String] markdown line
-      # @return [String, nil] the opening fence, or nil when the line does not open a block
-      def fence_opening(line)
-        opening = line.match(FENCE_OPENING)
-        return unless opening
-        return if opening[1].start_with?('`') && opening.post_match.include?('`')
-
-        opening[1]
-      end
-
-      # Check whether a line is indented enough to be code
-      #
-      # @param line [String] markdown line
-      # @return [Boolean] true for a non-blank line indented by four spaces or a tab
-      def indented_code?(line)
-        line.match?(/\A(?: {4}|\t)\s*\S/)
-      end
-
-      # Check whether content after a line is still inside a list
-      #
-      # @param line [String] markdown line
-      # @param in_list [Boolean] whether the previous line was inside a list
-      # @param prev_blank [Boolean] whether the previous line was blank
-      # @return [Boolean] true when the list continues after this line
-      def in_list_after?(line, in_list, prev_blank)
-        return true if line.match?(LIST_ITEM)
-        return in_list if line.strip.empty? || !prev_blank || line.match?(/\A[ \t]/)
-
-        false
-      end
-
-      # Replace collected code lines with a placeholder, keeping the final line break
-      #
-      # @param code [String] collected code lines
-      # @param protect [Proc] stores a code fragment and returns its placeholder
-      # @return [String] placeholder, or an empty string when there is no code
-      def protect_lines(code, protect)
-        return '' if code.empty?
-
-        body = code.chomp
-        "#{protect.call(body, block: true)}#{code.delete_prefix(body)}"
       end
 
       # Expand relative links and link reference definitions to absolute URLs

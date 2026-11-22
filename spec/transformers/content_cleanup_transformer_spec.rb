@@ -139,6 +139,48 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
 
         expect(result).not_to include('def hello')
         expect(result).to include('# Code')
+        expect(result).to include('Text after.')
+      end
+
+      it 'keeps nested list items and the content after them' do
+        content = <<~MD
+          - Topics
+              - Consumers
+              - Producers
+
+          ## Next section
+
+          Important text.
+        MD
+
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps an indented line inside a numbered list and the content after it' do
+        content = <<~MD
+          1. Install the gem:
+
+              gem install karafka
+
+          2. Configure it.
+
+          ## Usage
+
+          Text after.
+        MD
+
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'removes only the indented code block, not the rest of the document' do
+        content = "Intro.\n\n    code line\n\n- Item\n    continuation\n\nText after."
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("Intro.\n\n\n\n- Item\n    continuation\n\nText after.")
       end
 
       it 'removes inline code' do
