@@ -68,7 +68,7 @@ module LlmDocsBuilder
     # @option options [String] :suffix suffix for transformed files
     # @option options [Array<String>] :excludes glob patterns for files to exclude
     # @option options [Boolean] :bulk enable bulk transformation mode
-    # @option options [Boolean] :include_hidden include hidden files
+    # @option options [Boolean] :include_hidden include files in hidden directories (hidden files are always skipped)
     # @option options [Boolean] :remove_code_examples remove code blocks
     # @option options [Boolean] :remove_images remove image syntax
     # @option options [Boolean] :simplify_links simplify link text
