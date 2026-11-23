@@ -448,6 +448,59 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
         expect(result).to eq("Use  here.\n\nKeep this.\n\n\n\n\nEnd.\n")
       end
 
+      [
+        "<!-- note: ` is odd -->\nRun `make` first.\n",
+        "<!-- don't use ` here --> Use `make` now.\n"
+      ].each do |content|
+        it "removes a comment with an odd backtick: #{content.inspect}" do
+          result = transformer.transform(content, remove_comments: true)
+
+          expect(result).not_to include('<!--', '-->')
+          expect(result).to include('`make`')
+        end
+      end
+
+      it 'removes a comment with an odd backtick before code examples' do
+        content = "<!-- note: ` is odd -->\nRun `make` first.\n"
+
+        result = transformer.transform(content, remove_comments: true, remove_code_examples: true)
+
+        expect(result).to eq("\nRun  first.\n")
+      end
+
+      it 'keeps a comment inside inline code that starts first' do
+        content = "Use `<!-- -->` here.\n<!-- x -->\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq("Use `<!-- -->` here.\n\n")
+      end
+
+      {
+        'an inline image' => [{ remove_images: true }, 'Text ![oops', 'See ![img](i.png)'],
+        'a reference image alt text' => [{ remove_images: true }, 'Text ![oops', 'See ![img][ref]'],
+        'a reference image label' => [{ remove_images: true }, 'Text ![a][oops', 'See ![img][ref]'],
+        'a badge' => [{ remove_badges: true }, 'Text ![oops', 'See ![b](https://img.shields.io/x.svg)'],
+        'a linked badge' => [
+          { remove_badges: true }, 'Text [![oops', 'See [![b](https://img.shields.io/x.svg)](https://ci.com)'
+        ]
+      }.each do |name, (options, opening, image)|
+        it "does not let #{name} cross a code block" do
+          code = "```ruby\na = [1]\n```\n"
+          content = "#{opening}\n\n#{code}\n#{image}\n"
+
+          result = transformer.transform(content, options)
+
+          expect(result).to eq("#{opening}\n\n#{code}\nSee \n")
+        end
+      end
+
+      it 'removes an image whose alt text holds inline code with a bracket' do
+        result = transformer.transform("![a `]` b](i.png) x\n", remove_images: true)
+
+        expect(result).to eq(" x\n")
+      end
+
       it 'removes a comment around a code block with the code' do
         content = "<!--\n```\ncode\n```\n-->\nText.\n"
 

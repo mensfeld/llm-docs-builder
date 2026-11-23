@@ -33,10 +33,11 @@ module LlmDocsBuilder
       #
       # @param content [String] markdown content
       # @param block_code [Proc, nil] maps each code block before it is protected
+      # @param inline_code [Regexp] inline code pattern; a match without a first capture group is left in place
       # @yieldparam text [String] content with code fragments replaced by placeholders
       # @yieldreturn [String] transformed content
       # @return [String] transformed content with the original code restored
-      def outside_code(content, block_code: nil)
+      def outside_code(content, block_code: nil, inline_code: INLINE_CODE)
         codes = []
         protect = lambda do |code, block: false|
           codes << code
@@ -46,7 +47,9 @@ module LlmDocsBuilder
         text = replace_code_blocks(content) do |code|
           protect.call(block_code ? block_code.call(code) : code, block: true)
         end
-        text = text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
+        text = text.gsub(inline_code) do |span|
+          ::Regexp.last_match(1) ? protect.call(span) : span
+        end
 
         yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
       end

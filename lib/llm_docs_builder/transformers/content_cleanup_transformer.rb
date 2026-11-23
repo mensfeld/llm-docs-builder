@@ -44,8 +44,24 @@ module LlmDocsBuilder
       # Code block lines inside a blockquote start with this marker
       QUOTED_CODE_MARKER = /^> ?/
 
-      # Badge image; its destination never crosses a code placeholder
-      BADGE_PATTERN = /!\[[^\]]*\]\([^)\u0000]*(?:badge|shield|svg|travis|coveralls|fury)[^)\u0000]*\)/i
+      # HTML comment
+      COMMENT_PATTERN = /<!--.*?-->/m
+
+      # HTML comment or inline code, whichever starts first; only inline code has a first capture group
+      COMMENT_OR_INLINE_CODE_PATTERN = /#{COMMENT_PATTERN}|#{INLINE_CODE}/
+
+      # Image alt text; it may hold inline code but never crosses a code block placeholder
+      ALT_TEXT_PATTERN = /(?:[^\]\u0000]|\u0000\d+\u0000)*/
+
+      # Inline image; its destination never crosses a code placeholder
+      IMAGE_PATTERN = /!\[#{ALT_TEXT_PATTERN}\]\([^)\u0000]+\)/
+
+      # Reference-style image
+      REFERENCE_IMAGE_PATTERN = /!\[#{ALT_TEXT_PATTERN}\]\[[^\]\u0000]+\]/
+
+      # Badge image
+      BADGE_PATTERN =
+        /!\[#{ALT_TEXT_PATTERN}\]\([^)\u0000]*(?:badge|shield|svg|travis|coveralls|fury)[^)\u0000]*\)/i
 
       # Badge image wrapped in a link
       LINKED_BADGE_PATTERN = /\[#{BADGE_PATTERN}\]\([^)\u0000]*\)/
@@ -58,7 +74,8 @@ module LlmDocsBuilder
         remove_blockquotes: /^>/
       }.freeze
 
-      private_constant :QUOTED_CODE_MARKER, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
+      private_constant :QUOTED_CODE_MARKER, :COMMENT_PATTERN, :COMMENT_OR_INLINE_CODE_PATTERN, :ALT_TEXT_PATTERN,
+        :IMAGE_PATTERN, :REFERENCE_IMAGE_PATTERN, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
 
       # Run removals on content outside code
       #
@@ -83,7 +100,7 @@ module LlmDocsBuilder
           unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
         end
 
-        outside_code(content, block_code: unquote) do |text|
+        outside_code(content, block_code: unquote, inline_code: inline_code_pattern(removals)) do |text|
           text = remove_comments(text) if removals.key?(:remove_comments)
           text = remove_badges(text) if removals.key?(:remove_badges)
           text = remove_images(text) if removals.key?(:remove_images)
@@ -107,7 +124,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without comments
       def remove_comments(content)
-        content.gsub(/<!--.*?-->/m, '')
+        content.gsub(COMMENT_PATTERN, '')
       end
 
       # Remove badge images
@@ -129,7 +146,9 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_badges remove badge images
       # @return [String] content without code
       def remove_code_examples(content, options)
-        content = outside_code(content, block_code: ->(_code) { '' }) do |text|
+        removed = ->(_code) { '' }
+
+        content = outside_code(content, block_code: removed, inline_code: inline_code_pattern(options)) do |text|
           text = remove_comments(text) if options[:remove_comments]
           text = remove_badges(text) if options[:remove_badges]
           text
@@ -143,11 +162,18 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without images
       def remove_images(content)
-        # Remove inline images
-        content = content.gsub(/!\[([^\]]*)\]\([^)\u0000]+\)/, '')
-        # Remove reference-style images
-        content = content.gsub(/!\[([^\]]*)\]\[[^\]]+\]/, '')
-        content
+        content.gsub(IMAGE_PATTERN, '').gsub(REFERENCE_IMAGE_PATTERN, '')
+      end
+
+      # Pattern that finds the inline code to protect
+      #
+      # A comment that starts before a backtick hides it, so with comment removal the comment is matched first.
+      #
+      # @param options [Hash] removal options
+      # @option options [Boolean] :remove_comments remove HTML comments
+      # @return [Regexp] inline code pattern for {CodeBlocks#outside_code}
+      def inline_code_pattern(options)
+        options[:remove_comments] ? COMMENT_OR_INLINE_CODE_PATTERN : INLINE_CODE
       end
 
       # Remove blockquote formatting
