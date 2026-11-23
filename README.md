@@ -377,8 +377,8 @@ Documents are automatically organized into multiple sections based on priority, 
 
 ## Optional
 
-- [Advanced Topics](advanced.md): Deep dive into advanced features
 - [API Reference](reference.md): Complete API reference
+- [Advanced Topics](advanced.md): Deep dive into advanced features
 ```
 
 Empty sections are automatically omitted. The "Optional" section aligns with the llms.txt spec for marking secondary content that can be skipped when context windows are limited.
