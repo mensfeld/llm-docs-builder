@@ -15,7 +15,10 @@ module LlmDocsBuilder
       # Line that starts a list item
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
-      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM
+      # ATX heading line
+      ATX_HEADING = /\A\#{1,6}(?:[ \t]|\s*\z)/
+
+      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING
 
       private
 
@@ -40,9 +43,8 @@ module LlmDocsBuilder
         content.each_line do |line|
           quote = line.start_with?('>', ' ') ? line[BLOCKQUOTE_PREFIX] : ''
           body = quote.empty? ? line : line.delete_prefix(quote)
-          quote_depth = quote.count('>')
-          prev_blank ||= quote_depth > depth
-          depth = quote_depth
+          prev_blank ||= quote.count('>') > depth
+          depth = quote.count('>')
           fence = nil if depth < fence_depth
 
           if fence
@@ -59,6 +61,7 @@ module LlmDocsBuilder
 
           if (fence = fence_opening(body))
             fence_depth = depth
+            in_list = in_list_after?(body, in_list, prev_blank)
             code << line
             next
           end
@@ -104,13 +107,16 @@ module LlmDocsBuilder
 
       # Check whether content after a line is still inside a list
       #
+      # A line that is not indented ends the list after a blank line, or right away when it is a heading or a fence.
+      #
       # @param line [String] markdown line
       # @param in_list [Boolean] whether the previous line was inside a list
       # @param prev_blank [Boolean] whether the previous line was blank
       # @return [Boolean] true when the list continues after this line
       def in_list_after?(line, in_list, prev_blank)
         return true if line.match?(LIST_ITEM)
-        return in_list if line.strip.empty? || !prev_blank || line.match?(/\A[ \t]/)
+        return in_list if !in_list || line.strip.empty? || line.match?(/\A[ \t]/)
+        return in_list unless prev_blank || line.match?(ATX_HEADING) || fence_opening(line)
 
         false
       end

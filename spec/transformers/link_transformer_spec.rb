@@ -442,6 +442,13 @@ RSpec.describe LlmDocsBuilder::Transformers::LinkTransformer do
         expect(result).to eq(content)
       end
 
+      it 'leaves links in indented code after a heading that ends a list unchanged' do
+        content = "- a\n## H\n\n    [icb](../intro.md)\n"
+        result = transformer.transform(content, options)
+
+        expect(result).to eq(content)
+      end
+
       it 'leaves links in code blocks inside blockquotes unchanged' do
         content = <<~MD
           > ```md
