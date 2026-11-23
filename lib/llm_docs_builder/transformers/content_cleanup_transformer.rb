@@ -47,9 +47,6 @@ module LlmDocsBuilder
       # HTML comment
       COMMENT_PATTERN = /<!--.*?-->/m
 
-      # HTML comment or inline code, whichever starts first; only inline code has a first capture group
-      COMMENT_OR_INLINE_CODE_PATTERN = /#{COMMENT_PATTERN}|#{INLINE_CODE}/
-
       # Image alt text; it may hold inline code but never crosses a code block placeholder
       ALT_TEXT_PATTERN = /(?:[^\]\u0000]|\u0000\d+\u0000)*/
 
@@ -74,7 +71,7 @@ module LlmDocsBuilder
         remove_blockquotes: /^>/
       }.freeze
 
-      private_constant :QUOTED_CODE_MARKER, :COMMENT_PATTERN, :COMMENT_OR_INLINE_CODE_PATTERN, :ALT_TEXT_PATTERN,
+      private_constant :QUOTED_CODE_MARKER, :COMMENT_PATTERN, :ALT_TEXT_PATTERN,
         :IMAGE_PATTERN, :REFERENCE_IMAGE_PATTERN, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
 
       # Run removals on content outside code
@@ -100,7 +97,7 @@ module LlmDocsBuilder
           unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
         end
 
-        outside_code(content, block_code: unquote, inline_code: inline_code_pattern(removals)) do |text|
+        outside_code(content, block_code: unquote, comments_first: removals.key?(:remove_comments)) do |text|
           text = remove_comments(text) if removals.key?(:remove_comments)
           text = remove_badges(text) if removals.key?(:remove_badges)
           text = remove_images(text) if removals.key?(:remove_images)
@@ -148,7 +145,7 @@ module LlmDocsBuilder
       def remove_code_examples(content, options)
         removed = ->(_code) { '' }
 
-        content = outside_code(content, block_code: removed, inline_code: inline_code_pattern(options)) do |text|
+        content = outside_code(content, block_code: removed, comments_first: options[:remove_comments]) do |text|
           text = remove_comments(text) if options[:remove_comments]
           text = remove_badges(text) if options[:remove_badges]
           text
@@ -163,17 +160,6 @@ module LlmDocsBuilder
       # @return [String] content without images
       def remove_images(content)
         content.gsub(IMAGE_PATTERN, '').gsub(REFERENCE_IMAGE_PATTERN, '')
-      end
-
-      # Pattern that finds the inline code to protect
-      #
-      # A comment that starts before a backtick hides it, so with comment removal the comment is matched first.
-      #
-      # @param options [Hash] removal options
-      # @option options [Boolean] :remove_comments remove HTML comments
-      # @return [Regexp] inline code pattern for {CodeBlocks#outside_code}
-      def inline_code_pattern(options)
-        options[:remove_comments] ? COMMENT_OR_INLINE_CODE_PATTERN : INLINE_CODE
       end
 
       # Remove blockquote formatting

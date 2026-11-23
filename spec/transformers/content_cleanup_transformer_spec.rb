@@ -468,6 +468,16 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
         expect(result).to eq("\nRun  first.\n")
       end
 
+      it 'scans unclosed comments in linear time' do
+        content = Array.new(5000) { |i| "line #{i} <!-- open `x`\n" }.join
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 1
+        expect(result).to eq(content)
+      end
+
       it 'keeps a comment inside inline code that starts first' do
         content = "Use `<!-- -->` here.\n<!-- x -->\n"
 

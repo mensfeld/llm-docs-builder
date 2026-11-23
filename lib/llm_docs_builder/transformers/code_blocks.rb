@@ -24,8 +24,17 @@ module LlmDocsBuilder
       # Inline code span: a backtick run closed by a run of the same length, within one paragraph
       INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
 
+      # Start of an HTML comment or of an inline code span
+      COMMENT_OR_BACKTICK = /<!--|`/
+
+      # Start of an inline code span
+      BACKTICK = /`/
+
+      # End of an HTML comment
+      COMMENT_END = /-->/
+
       private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN, :CODE_PLACEHOLDER,
-        :INLINE_CODE
+        :INLINE_CODE, :COMMENT_OR_BACKTICK, :BACKTICK, :COMMENT_END
 
       private
 
@@ -33,11 +42,12 @@ module LlmDocsBuilder
       #
       # @param content [String] markdown content
       # @param block_code [Proc, nil] maps each code block before it is protected
-      # @param inline_code [Regexp] inline code pattern; a match without a first capture group is left in place
+      # @param comments_first [Boolean] leave backticks inside HTML comments in place, as a comment that starts
+      #   first hides them
       # @yieldparam text [String] content with code fragments replaced by placeholders
       # @yieldreturn [String] transformed content
       # @return [String] transformed content with the original code restored
-      def outside_code(content, block_code: nil, inline_code: INLINE_CODE)
+      def outside_code(content, block_code: nil, comments_first: false)
         codes = []
         protect = lambda do |code, block: false|
           codes << code
@@ -47,11 +57,46 @@ module LlmDocsBuilder
         text = replace_code_blocks(content) do |code|
           protect.call(block_code ? block_code.call(code) : code, block: true)
         end
-        text = text.gsub(inline_code) do |span|
-          ::Regexp.last_match(1) ? protect.call(span) : span
-        end
+        text = if comments_first
+                 replace_inline_code_outside_comments(text) { |span| protect.call(span) }
+               else
+                 text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
+               end
 
         yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
+      end
+
+      # Replace inline code spans that do not start inside an HTML comment
+      #
+      # Scans once: a comment is skipped up to its first `-->`, and an unclosed comment ends the search for
+      # comments, as no later `<!--` can be closed either.
+      #
+      # @param text [String] markdown content
+      # @yieldparam span [String] inline code span
+      # @yieldreturn [String] replacement for the span
+      # @return [String] content with inline code spans replaced
+      def replace_inline_code_outside_comments(text)
+        scanner = StringScanner.new(text, fixed_anchor: true)
+        out = +''
+        start_pattern = COMMENT_OR_BACKTICK
+
+        while (chunk = scanner.scan_until(start_pattern))
+          if scanner.matched == '`'
+            scanner.pos -= 1
+            span = scanner.scan(INLINE_CODE)
+            next out << chunk.chop << yield(span) if span
+
+            scanner.pos += 1
+            out << chunk
+          elsif (comment = scanner.scan_until(COMMENT_END))
+            out << chunk << comment
+          else
+            start_pattern = BACKTICK
+            out << chunk
+          end
+        end
+
+        out << scanner.rest
       end
 
       # Replace fenced and indented code blocks
