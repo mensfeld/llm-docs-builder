@@ -359,6 +359,104 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
       end
     end
 
+    context 'with code in the content' do
+      {
+        remove_comments: ['<!-- keep -->', '<!-- drop -->'],
+        remove_badges: ['[![CI](badge.svg)](https://ci.com)', '[![CI](https://img.shields.io/x.svg)](https://ci.com)'],
+        remove_images: ['![Diagram](diagram.png)', '![Logo](logo.png)'],
+        remove_blockquotes: ['> Note: quoted', '> Outside quote']
+      }.each do |option, (inside, outside)|
+        context "with #{option} option" do
+          it 'keeps the element inside fenced code and removes it outside' do
+            code = "```markdown\n#{inside}\n```\n"
+            content = "#{outside}\n\n#{code}"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to end_with("\n\n#{code}")
+            expect(result).not_to include(outside)
+          end
+
+          it 'keeps the element inside indented code and removes it outside' do
+            code = "    #{inside}\n"
+            content = "#{outside}\n\n#{code}"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to end_with("\n\n#{code}")
+            expect(result).not_to include(outside)
+          end
+
+          it 'keeps the element inside inline code' do
+            content = "Use `#{inside}` here.\n"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to eq(content)
+          end
+        end
+      end
+
+      %i[remove_images remove_badges].each do |option|
+        it "does not let #{option} remove code after an unclosed image destination" do
+          content = "![a](badge.svg\n\n```\ncode\n```\n\nSee [b](x.svg).\n"
+
+          result = transformer.transform(content, option => true)
+
+          expect(result).to eq(content)
+        end
+      end
+
+      it 'does not let a linked badge remove code after an unclosed part' do
+        content = <<~MD
+          [![a](badge
+
+          ```
+          first
+          ```
+
+          [![b](c.svg)](d)
+
+          [![e](f.svg)](g
+
+          ```
+          second
+          ```
+
+          See (h).
+        MD
+
+        result = transformer.transform(content, remove_badges: true)
+
+        expect(result).to include("```\nfirst\n```", "```\nsecond\n```")
+        expect(result).not_to include('[![b]')
+      end
+
+      it 'does not end a comment at a closing marker inside code' do
+        content = "```html\n<!-- open\n```\n\nText.\n\n```html\nclose -->\n```\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'removes a comment around a code block with the code' do
+        content = "<!--\n```\ncode\n```\n-->\nText.\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq("\nText.\n")
+      end
+
+      it 'removes one quote level from code inside a blockquote' do
+        content = "> Note:\n>\n> ```markdown\n> > quoted\n> <!-- keep -->\n>\n> ```\n"
+
+        result = transformer.transform(content, remove_blockquotes: true, remove_comments: true)
+
+        expect(result).to eq("Note:\n```markdown\n> quoted\n<!-- keep -->\n\n```\n")
+      end
+    end
+
     context 'with no options' do
       it 'returns content unchanged' do
         content = <<~MD

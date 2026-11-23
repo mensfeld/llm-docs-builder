@@ -91,6 +91,66 @@ RSpec.describe 'transform command' do
     MD
   end
 
+  it 'keeps code blocks unchanged when cleaning comments, badges, images and blockquotes' do
+    input_file = File.join(temp_dir, 'test.md')
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      # Embedding
+
+      <!-- outside comment -->
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+
+      > Note: outside quote
+
+      ```html
+      <!-- analytics: keep this comment, the loader reads it -->
+      <div id="app"></div>
+      ```
+
+      ```markdown
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+      > Note: quoted text
+      ```
+    MD
+
+    File.write(config_file, <<~YAML)
+      remove_comments: true
+      remove_badges: true
+      remove_images: true
+      remove_blockquotes: true
+    YAML
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file,
+      '--config', config_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      # Embedding
+
+
+      Note: outside quote
+
+      ```html
+      <!-- analytics: keep this comment, the loader reads it -->
+      <div id="app"></div>
+      ```
+
+      ```markdown
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+      > Note: quoted text
+      ```
+    MD
+  end
+
   it 'matches the README simplify_links example' do
     input_file = File.join(temp_dir, 'test.md')
     config_file = File.join(temp_dir, 'config.yml')

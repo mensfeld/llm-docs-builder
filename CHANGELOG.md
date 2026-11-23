@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **Cleanup Options Keep Code Unchanged** - `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` no longer edit fenced code, indented code or inline code, so HTML and Markdown examples stay intact. With `remove_blockquotes`, code inside a blockquote loses its quote markers like the text around it.
 - [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
   - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.
 - [Fix] **`parse` and `validate` Read `llms.txt` by Default** - Without `--docs`, both commands now read `llms.txt` in the current directory, as documented. Before, they took the config's `docs` setting (the docs directory for `generate`, `.` by default) and failed with "Is a directory".

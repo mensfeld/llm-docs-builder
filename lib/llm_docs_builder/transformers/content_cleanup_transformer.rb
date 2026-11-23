@@ -23,20 +23,54 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_images remove image syntax
       # @option options [Boolean] :remove_blockquotes remove blockquote formatting
       # @return [String] transformed content
+      # @note Comments, badges, images and blockquote markers inside code are left unchanged
       def transform(content, options = {})
         result = content.dup
 
         result = remove_frontmatter(result) if options[:remove_frontmatter]
-        result = remove_comments(result) if options[:remove_comments]
-        result = remove_badges(result) if options[:remove_badges]
+        result = clean_outside_code(result, options.slice(:remove_comments, :remove_badges))
         result = remove_code_examples(result) if options[:remove_code_examples]
-        result = remove_images(result) if options[:remove_images]
-        result = remove_blockquotes(result) if options[:remove_blockquotes]
-
-        result
+        clean_outside_code(result, options.slice(:remove_images, :remove_blockquotes))
       end
 
       private
+
+      # Code block lines inside a blockquote start with this marker
+      QUOTED_CODE_MARKER = /^> ?/
+
+      # Badge image; its destination never crosses a code placeholder
+      BADGE_PATTERN = /!\[[^\]]*\]\([^)\u0000]*(?:badge|shield|svg|travis|coveralls|fury)[^)\u0000]*\)/i
+
+      # Badge image wrapped in a link
+      LINKED_BADGE_PATTERN = /\[#{BADGE_PATTERN}\]\([^)\u0000]*\)/
+
+      private_constant :QUOTED_CODE_MARKER, :BADGE_PATTERN, :LINKED_BADGE_PATTERN
+
+      # Run removals on content outside code
+      #
+      # With blockquote removal, code blocks inside a blockquote lose one level of quote markers, like the text
+      # around them.
+      #
+      # @param content [String] markdown content
+      # @param options [Hash] removal options
+      # @option options [Boolean] :remove_comments remove HTML comments
+      # @option options [Boolean] :remove_badges remove badge images
+      # @option options [Boolean] :remove_images remove image syntax
+      # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+      # @return [String] cleaned content
+      def clean_outside_code(content, options)
+        return content unless options.values.any?
+
+        unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
+
+        outside_code(content, block_code: (unquote if options[:remove_blockquotes])) do |text|
+          text = remove_comments(text) if options[:remove_comments]
+          text = remove_badges(text) if options[:remove_badges]
+          text = remove_images(text) if options[:remove_images]
+          text = remove_blockquotes(text) if options[:remove_blockquotes]
+          text
+        end
+      end
 
       # Remove YAML or TOML frontmatter
       #
@@ -61,11 +95,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without badges
       def remove_badges(content)
-        # Remove linked badges
-        content = content.gsub(/\[\!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)\]\([^\)]*\)/i, '')
-        # Remove standalone badges
-        content = content.gsub(/!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)/i, '')
-        content
+        content.gsub(LINKED_BADGE_PATTERN, '').gsub(BADGE_PATTERN, '')
       end
 
       # Remove code blocks and inline code
@@ -85,7 +115,7 @@ module LlmDocsBuilder
       # @return [String] content without images
       def remove_images(content)
         # Remove inline images
-        content = content.gsub(/!\[([^\]]*)\]\([^\)]+\)/, '')
+        content = content.gsub(/!\[([^\]]*)\]\([^)\u0000]+\)/, '')
         # Remove reference-style images
         content = content.gsub(/!\[([^\]]*)\]\[[^\]]+\]/, '')
         content

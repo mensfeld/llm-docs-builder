@@ -41,12 +41,6 @@ module LlmDocsBuilder
       URI_SCHEME_PATTERN = /\A[a-z][a-z0-9+.-]*:/i
       private_constant :URI_SCHEME_PATTERN
 
-      # Placeholder that stands in for a protected code fragment; a code block's ends with `b`
-      CODE_PLACEHOLDER = /\u0000(\d+)b?\u0000/
-
-      # Inline code span: a backtick run closed by a run of the same length, within one paragraph
-      INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
-
       # Contents of a bracket pair in a link text: plain text, images and brackets that do not open a link
       # (links do not nest)
       BRACKET_CONTENT_PATTERN = /(?:[^\[\]]|!\[[^\[\]]*\]|\[[^\[\]]*\](?!\())*/
@@ -95,30 +89,11 @@ module LlmDocsBuilder
       FOLLOWING_REFERENCE_DEFINITIONS_PATTERN =
         /\n#{REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN}\n\K#{REFERENCE_DEFINITIONS_PATTERN}/
 
-      private_constant :CODE_PLACEHOLDER, :INLINE_CODE, :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN,
+      private_constant :BRACKET_CONTENT_PATTERN, :LINK_TEXT_PART_PATTERN,
         :LINK_DESTINATION_PATTERN, :LINK_PATTERN, :NESTED_LINK_PATTERN, :REFERENCE_DEFINITION_PATTERN,
         :REFERENCE_DEFINITIONS_PATTERN,
         :REFERENCE_DEFINITIONS_PRECEDING_LINE_PATTERN, :LEADING_REFERENCE_DEFINITIONS_PATTERN,
         :FOLLOWING_REFERENCE_DEFINITIONS_PATTERN
-
-      # Run a transformation on content with code replaced by placeholders, then restore the code
-      #
-      # @param content [String] markdown content
-      # @yieldparam text [String] content with code fragments replaced by placeholders
-      # @yieldreturn [String] transformed content
-      # @return [String] transformed content with the original code restored
-      def outside_code(content)
-        codes = []
-        protect = lambda do |code, block: false|
-          codes << code
-          "\u0000#{codes.size - 1}#{'b' if block}\u0000"
-        end
-
-        text = replace_code_blocks(content) { |code| protect.call(code, block: true) }
-        text = text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
-
-        yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
-      end
 
       # Expand relative links and link reference definitions to absolute URLs
       #
