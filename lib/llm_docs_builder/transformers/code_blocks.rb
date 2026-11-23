@@ -46,7 +46,7 @@ module LlmDocsBuilder
       #
       # @param content [String] markdown content
       # @param block_code [Proc, nil] maps each code block before it is protected
-      # @param comments_first [Boolean] leave backticks inside HTML comments in place, as a comment that starts
+      # @param comments_first [Boolean, nil] leave backticks inside HTML comments in place, as a comment that starts
       #   first hides them
       # @yieldparam text [String] content with code fragments replaced by placeholders
       # @yieldreturn [String] transformed content
