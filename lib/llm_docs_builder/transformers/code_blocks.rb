@@ -2,7 +2,10 @@
 
 module LlmDocsBuilder
   module Transformers
-    # Detection of fenced and indented code blocks shared by transformers
+    # Detection of code shared by transformers
+    #
+    # Finds fenced and indented code blocks and inline code spans, and runs transformations on content with the
+    # code replaced by placeholders, optionally leaving backticks inside HTML comments in place.
     #
     # @api private
     module CodeBlocks
@@ -25,20 +28,19 @@ module LlmDocsBuilder
       INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
 
       # Start of an HTML comment or of an inline code span
-      COMMENT_OR_BACKTICK = /<!--|`/
+      COMMENT_OR_BACKTICK_PATTERN = /<!--|`/
 
       # Start of an inline code span
-      BACKTICK = /`/
+      BACKTICK_PATTERN = /`/
 
       # Byte of a backtick
       BACKTICK_BYTE = '`'.ord
 
       # End of an HTML comment
-      COMMENT_END = /-->/
+      COMMENT_END_PATTERN = /-->/
 
       private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN, :CODE_PLACEHOLDER,
-        :INLINE_CODE, :COMMENT_OR_BACKTICK, :BACKTICK, :BACKTICK_BYTE,
-        :COMMENT_END
+        :INLINE_CODE, :COMMENT_OR_BACKTICK_PATTERN, :BACKTICK_PATTERN, :BACKTICK_BYTE, :COMMENT_END_PATTERN
 
       private
 
@@ -83,7 +85,7 @@ module LlmDocsBuilder
         scanner = StringScanner.new(text, fixed_anchor: true)
         out = +''
         copied = 0
-        start_pattern = COMMENT_OR_BACKTICK
+        start_pattern = COMMENT_OR_BACKTICK_PATTERN
 
         while scanner.skip_until(start_pattern)
           if text.getbyte(scanner.pos - 1) == BACKTICK_BYTE
@@ -93,8 +95,8 @@ module LlmDocsBuilder
 
             out << text.byteslice(copied, start - copied) << yield(text.byteslice(start, length))
             copied = scanner.pos
-          elsif !scanner.skip_until(COMMENT_END)
-            start_pattern = BACKTICK
+          elsif !scanner.skip_until(COMMENT_END_PATTERN)
+            start_pattern = BACKTICK_PATTERN
           end
         end
 

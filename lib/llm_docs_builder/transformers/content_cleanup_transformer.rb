@@ -42,7 +42,7 @@ module LlmDocsBuilder
       private
 
       # Code block lines inside a blockquote start with this marker
-      QUOTED_CODE_MARKER = /^> ?/
+      QUOTED_CODE_MARKER_PATTERN = /^> ?/
 
       # HTML comment
       COMMENT_PATTERN = /<!--.*?-->/m
@@ -71,8 +71,8 @@ module LlmDocsBuilder
         remove_blockquotes: /^>/
       }.freeze
 
-      private_constant :QUOTED_CODE_MARKER, :COMMENT_PATTERN, :ALT_TEXT_PATTERN,
-        :IMAGE_PATTERN, :REFERENCE_IMAGE_PATTERN, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
+      private_constant :QUOTED_CODE_MARKER_PATTERN, :COMMENT_PATTERN, :ALT_TEXT_PATTERN, :IMAGE_PATTERN,
+        :REFERENCE_IMAGE_PATTERN, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
 
       # Run removals on content outside code
       #
@@ -94,7 +94,7 @@ module LlmDocsBuilder
         return content if removals.empty? && !block_given?
 
         if removals.key?(:remove_blockquotes)
-          unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
+          unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER_PATTERN, '') : code }
         end
 
         outside_code(content, block_code: unquote, comments_first: removals.key?(:remove_comments)) do |text|
