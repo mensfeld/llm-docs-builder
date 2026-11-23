@@ -190,6 +190,13 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
         expect(result).to eq("- a\n## H\n\n\n\nAfter.\n")
       end
 
+      it 'keeps an indented line after a hash tag line in a list item' do
+        content = "- a\n#tag\n\n    para in item\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
       it 'removes indented code after a fenced block that ends a list' do
         content = "- a\n\n```\nx\n```\n\n    code\n\nAfter.\n"
         result = transformer.transform(content, remove_code_examples: true)
