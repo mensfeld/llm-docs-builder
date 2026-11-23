@@ -440,6 +440,14 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
         expect(result).to eq(content)
       end
 
+      it 'removes comments outside code before code examples' do
+        content = "Use `<!--` here.\n\nKeep this.\n\n```\n-->\n```\n\n<!-- c -->\nEnd.\n"
+
+        result = transformer.transform(content, remove_comments: true, remove_code_examples: true)
+
+        expect(result).to eq("Use  here.\n\nKeep this.\n\n\n\n\nEnd.\n")
+      end
+
       it 'removes a comment around a code block with the code' do
         content = "<!--\n```\ncode\n```\n-->\nText.\n"
 

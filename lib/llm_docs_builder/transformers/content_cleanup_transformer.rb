@@ -33,9 +33,10 @@ module LlmDocsBuilder
         result = remove_frontmatter(result) if options[:remove_frontmatter]
         return clean_outside_code(result, options, &) unless options[:remove_code_examples]
 
-        result = clean_outside_code(result, options.slice(:remove_comments, :remove_badges))
-        result = remove_code_examples(result)
-        clean_outside_code(result, options.slice(:remove_images, :remove_blockquotes), &)
+        result = remove_code_examples(result, options)
+        result = remove_images(result) if options[:remove_images]
+        result = remove_blockquotes(result) if options[:remove_blockquotes]
+        block_given? ? yield(result) : result
       end
 
       private
@@ -119,13 +120,22 @@ module LlmDocsBuilder
 
       # Remove code blocks and inline code
       #
+      # Comments and badges are removed in the same code scan, before the code, so that code holding a comment
+      # marker does not end or start a comment.
+      #
       # @param content [String] markdown content
+      # @param options [Hash] removal options
+      # @option options [Boolean] :remove_comments remove HTML comments
+      # @option options [Boolean] :remove_badges remove badge images
       # @return [String] content without code
-      def remove_code_examples(content)
-        content = replace_code_blocks(content) { '' }
+      def remove_code_examples(content, options)
+        content = outside_code(content, block_code: ->(_code) { '' }) do |text|
+          text = remove_comments(text) if options[:remove_comments]
+          text = remove_badges(text) if options[:remove_badges]
+          text
+        end
         # Remove inline code
-        content = content.gsub(/`[^`]+`/, '')
-        content
+        content.gsub(/`[^`]+`/, '')
       end
 
       # Remove image syntax
