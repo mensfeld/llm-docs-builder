@@ -30,11 +30,15 @@ module LlmDocsBuilder
       # Start of an inline code span
       BACKTICK = /`/
 
+      # Byte of a backtick
+      BACKTICK_BYTE = '`'.ord
+
       # End of an HTML comment
       COMMENT_END = /-->/
 
       private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN, :CODE_PLACEHOLDER,
-        :INLINE_CODE, :COMMENT_OR_BACKTICK, :BACKTICK, :COMMENT_END
+        :INLINE_CODE, :COMMENT_OR_BACKTICK, :BACKTICK, :BACKTICK_BYTE,
+        :COMMENT_END
 
       private
 
@@ -78,25 +82,23 @@ module LlmDocsBuilder
       def replace_inline_code_outside_comments(text)
         scanner = StringScanner.new(text, fixed_anchor: true)
         out = +''
+        copied = 0
         start_pattern = COMMENT_OR_BACKTICK
 
-        while (chunk = scanner.scan_until(start_pattern))
-          if scanner.matched == '`'
-            scanner.pos -= 1
-            span = scanner.scan(INLINE_CODE)
-            next out << chunk.chop << yield(span) if span
+        while scanner.skip_until(start_pattern)
+          if text.getbyte(scanner.pos - 1) == BACKTICK_BYTE
+            start = scanner.pos -= 1
+            length = scanner.skip(INLINE_CODE)
+            next scanner.pos += 1 unless length
 
-            scanner.pos += 1
-            out << chunk
-          elsif (comment = scanner.scan_until(COMMENT_END))
-            out << chunk << comment
-          else
+            out << text.byteslice(copied, start - copied) << yield(text.byteslice(start, length))
+            copied = scanner.pos
+          elsif !scanner.skip_until(COMMENT_END)
             start_pattern = BACKTICK
-            out << chunk
           end
         end
 
-        out << scanner.rest
+        out << text.byteslice(copied, text.bytesize - copied)
       end
 
       # Replace fenced and indented code blocks
