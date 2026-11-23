@@ -139,6 +139,97 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
 
         expect(result).not_to include('def hello')
         expect(result).to include('# Code')
+        expect(result).to include('Text after.')
+      end
+
+      it 'keeps nested list items and the content after them' do
+        content = <<~MD
+          - Topics
+              - Consumers
+              - Producers
+
+          ## Next section
+
+          Important text.
+        MD
+
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps an indented line inside a numbered list and the content after it' do
+        content = <<~MD
+          1. Install the gem:
+
+              gem install karafka
+
+          2. Configure it.
+
+          ## Usage
+
+          Text after.
+        MD
+
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'removes only the indented code block, not the rest of the document' do
+        content = "Intro.\n\n    code line\n\n- Item\n    continuation\n\nText after."
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("Intro.\n\n\n\n- Item\n    continuation\n\nText after.")
+      end
+
+      it 'removes indented code after a heading that ends a list' do
+        content = "- a\n## H\n\n    code\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("- a\n## H\n\n\n\nAfter.\n")
+      end
+
+      it 'keeps an indented line after a hash tag line in a list item' do
+        content = "- a\n#tag\n\n    para in item\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'removes indented code after a fenced block that ends a list' do
+        content = "- a\n\n```\nx\n```\n\n    code\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("- a\n\n\n\n\n\nAfter.\n")
+      end
+
+      it 'removes indented code after a fenced block right after a list item' do
+        content = "- a\n```\nx\n```\n\n    code\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("- a\n\n\n\n\nAfter.\n")
+      end
+
+      it 'keeps a shorter fence inside a fenced block as code' do
+        content = "```\nx\n``\ny\n```\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("\nAfter.\n")
+      end
+
+      it 'closes a fenced block with a longer fence' do
+        content = "```\nx\n````\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("\nAfter.\n")
+      end
+
+      it 'removes a fenced block in a blockquote indented by spaces' do
+        content = " > ```\n > x\n > ```\n\nAfter.\n"
+        result = transformer.transform(content, remove_code_examples: true)
+
+        expect(result).to eq("\n\nAfter.\n")
       end
 
       it 'removes inline code' do

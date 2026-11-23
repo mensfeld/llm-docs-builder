@@ -10,6 +10,7 @@ module LlmDocsBuilder
     # @api public
     class ContentCleanupTransformer
       include BaseTransformer
+      include CodeBlocks
 
       # Transform content by removing unwanted elements
       #
@@ -72,11 +73,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without code
       def remove_code_examples(content)
-        # Remove fenced code blocks
-        content = content.gsub(/^```.*?^```/m, '')
-        content = content.gsub(/^~~~.*?^~~~/m, '')
-        # Remove indented code blocks
-        content = content.gsub(/^([ ]{4,}|\t).+$/m, '')
+        content = replace_code_blocks(content) { '' }
         # Remove inline code
         content = content.gsub(/`[^`]+`/, '')
         content

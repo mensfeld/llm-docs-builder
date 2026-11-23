@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
+  - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.
 - [Fix] **`parse` and `validate` Read `llms.txt` by Default** - Without `--docs`, both commands now read `llms.txt` in the current directory, as documented. Before, they took the config's `docs` setting (the docs directory for `generate`, `.` by default) and failed with "Is a directory".
 - [Fix] **`bulk-transform` Skips Nested Excludes and Hidden Directories** - `bulk-transform` now picks files like `generate` does.
   - A trailing `/**` in `excludes` matches files at any depth (`**/private/**` now skips `private/sub/b.md`), and patterns also match the path relative to the docs directory.
