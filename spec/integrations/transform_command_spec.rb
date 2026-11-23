@@ -151,6 +151,43 @@ RSpec.describe 'transform command' do
     MD
   end
 
+  it 'cleans and expands links outside code with base_url' do
+    input_file = File.join(temp_dir, 'test.md')
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      <!-- outside -->
+      See [guide](guide.md).
+
+      ```markdown
+      <!-- inside -->
+      See [guide](guide.md).
+      ```
+    MD
+
+    File.write(config_file, <<~YAML)
+      base_url: https://mysite.com
+    YAML
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file,
+      '--config', config_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      See [guide](https://mysite.com/guide.md).
+
+      ```markdown
+      <!-- inside -->
+      See [guide](guide.md).
+      ```
+    MD
+  end
+
   it 'matches the README simplify_links example' do
     input_file = File.join(temp_dir, 'test.md')
     config_file = File.join(temp_dir, 'config.yml')

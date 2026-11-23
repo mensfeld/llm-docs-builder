@@ -22,17 +22,20 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_code_examples remove code blocks
       # @option options [Boolean] :remove_images remove image syntax
       # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+      # @yieldparam text [String] cleaned content with code replaced by placeholders, so that a later step can
+      #   skip code without detecting it again
+      # @yieldreturn [String] content to restore the code into
       # @return [String] transformed content
       # @note Comments, badges, images and blockquote markers inside code are left unchanged
-      def transform(content, options = {})
+      def transform(content, options = {}, &)
         result = content.dup
 
         result = remove_frontmatter(result) if options[:remove_frontmatter]
-        return clean_outside_code(result, options) unless options[:remove_code_examples]
+        return clean_outside_code(result, options, &) unless options[:remove_code_examples]
 
         result = clean_outside_code(result, options.slice(:remove_comments, :remove_badges))
         result = remove_code_examples(result)
-        clean_outside_code(result, options.slice(:remove_images, :remove_blockquotes))
+        clean_outside_code(result, options.slice(:remove_images, :remove_blockquotes), &)
       end
 
       private
@@ -67,11 +70,13 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_badges remove badge images
       # @option options [Boolean] :remove_images remove image syntax
       # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+      # @yieldparam text [String] cleaned content with code replaced by placeholders
+      # @yieldreturn [String] content to restore the code into
       # @return [String] cleaned content
-      # @note Code is detected only when a removal can change the content
+      # @note Without a block, code is detected only when a removal can change the content
       def clean_outside_code(content, options)
         removals = REMOVABLE_PATTERNS.select { |option, pattern| options[option] && content.match?(pattern) }
-        return content if removals.empty?
+        return content if removals.empty? && !block_given?
 
         if removals.key?(:remove_blockquotes)
           unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
@@ -82,7 +87,7 @@ module LlmDocsBuilder
           text = remove_badges(text) if removals.key?(:remove_badges)
           text = remove_images(text) if removals.key?(:remove_images)
           text = remove_blockquotes(text) if removals.key?(:remove_blockquotes)
-          text
+          block_given? ? yield(text) : text
         end
       end
 

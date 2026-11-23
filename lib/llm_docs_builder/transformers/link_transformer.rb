@@ -22,17 +22,30 @@ module LlmDocsBuilder
       # @return [String] transformed content
       # @note Code (fenced and indented code blocks, inline code spans) is left unchanged
       def transform(content, options = {})
-        outside_code(content) do |result|
-          if options[:base_url]
-            result = expand_relative_links(
-              result, options[:base_url], options[:source_path], convert_urls: options[:convert_urls]
-            )
-          end
-          result = convert_html_urls(result, convert_definitions: !options[:base_url]) if options[:convert_urls]
-          result = simplify_links(result) if options[:simplify_links]
+        outside_code(content) { |text| transform_outside_code(text, options) }
+      end
 
-          result
+      # Transform links in content whose code is already replaced by placeholders
+      #
+      # @param text [String] content with code replaced by {CodeBlocks} placeholders
+      # @param options [Hash] transformation options
+      # @option options [String] :base_url base URL for expanding relative links
+      # @option options [String] :source_path path of the transformed file relative to the docs root
+      # @option options [Boolean] :convert_urls convert HTML URLs to markdown format
+      # @option options [Boolean] :simplify_links shorten verbose link text
+      # @return [String] transformed content, still with placeholders
+      # @api private
+      def transform_outside_code(text, options = {})
+        result = text
+        if options[:base_url]
+          result = expand_relative_links(
+            result, options[:base_url], options[:source_path], convert_urls: options[:convert_urls]
+          )
         end
+        result = convert_html_urls(result, convert_definitions: !options[:base_url]) if options[:convert_urls]
+        result = simplify_links(result) if options[:simplify_links]
+
+        result
       end
 
       private

@@ -457,6 +457,34 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
       end
     end
 
+    context 'with a block' do
+      let(:content) { "<!-- c -->\n[a](a.md)\n\n```\n<!-- kept --> [b](b.md)\n```\n" }
+
+      it 'runs the block on cleaned content with code hidden and restores the code' do
+        seen = nil
+
+        result = transformer.transform(content, remove_comments: true) do |text|
+          seen = text
+          text.sub('a.md', 'x.md')
+        end
+
+        expect(seen).not_to include('<!--', 'b.md')
+        expect(result).to eq("\n[a](x.md)\n\n```\n<!-- kept --> [b](b.md)\n```\n")
+      end
+
+      it 'runs the block when no removal applies' do
+        result = transformer.transform(content) { |text| text.sub('a.md', 'x.md') }
+
+        expect(result).to eq(content.sub('a.md', 'x.md'))
+      end
+
+      it 'runs the block after code examples are removed' do
+        result = transformer.transform(content, remove_code_examples: true) { |text| "#{text}end\n" }
+
+        expect(result).to eq("<!-- c -->\n[a](a.md)\n\n\nend\n")
+      end
+    end
+
     context 'with no options' do
       it 'returns content unchanged' do
         content = <<~MD
