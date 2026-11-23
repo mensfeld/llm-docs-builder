@@ -16,9 +16,9 @@ module LlmDocsBuilder
       LIST_ITEM = /\A {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|\s*\z)/
 
       # ATX heading line
-      ATX_HEADING = /\A\#{1,6}(?:[ \t]|\s*\z)/
+      ATX_HEADING_PATTERN = /\A\#{1,6}(?:[ \t]|\s*\z)/
 
-      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING
+      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN
 
       private
 
@@ -116,7 +116,7 @@ module LlmDocsBuilder
       def in_list_after?(line, in_list, prev_blank)
         return true if line.match?(LIST_ITEM)
         return in_list if !in_list || line.strip.empty? || line.match?(/\A[ \t]/)
-        return in_list unless prev_blank || line.match?(ATX_HEADING) || fence_opening(line)
+        return in_list unless prev_blank || line.match?(ATX_HEADING_PATTERN) || fence_opening(line)
 
         false
       end
