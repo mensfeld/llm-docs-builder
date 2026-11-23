@@ -28,8 +28,10 @@ module LlmDocsBuilder
         result = content.dup
 
         result = remove_frontmatter(result) if options[:remove_frontmatter]
+        return clean_outside_code(result, options) unless options[:remove_code_examples]
+
         result = clean_outside_code(result, options.slice(:remove_comments, :remove_badges))
-        result = remove_code_examples(result) if options[:remove_code_examples]
+        result = remove_code_examples(result)
         clean_outside_code(result, options.slice(:remove_images, :remove_blockquotes))
       end
 
@@ -44,7 +46,15 @@ module LlmDocsBuilder
       # Badge image wrapped in a link
       LINKED_BADGE_PATTERN = /\[#{BADGE_PATTERN}\]\([^)\u0000]*\)/
 
-      private_constant :QUOTED_CODE_MARKER, :BADGE_PATTERN, :LINKED_BADGE_PATTERN
+      # Text that each removal outside code can change
+      REMOVABLE_PATTERNS = {
+        remove_comments: /<!--/,
+        remove_badges: BADGE_PATTERN,
+        remove_images: /!\[/,
+        remove_blockquotes: /^>/
+      }.freeze
+
+      private_constant :QUOTED_CODE_MARKER, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
 
       # Run removals on content outside code
       #
@@ -58,16 +68,20 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_images remove image syntax
       # @option options [Boolean] :remove_blockquotes remove blockquote formatting
       # @return [String] cleaned content
+      # @note Code is detected only when a removal can change the content
       def clean_outside_code(content, options)
-        return content unless options.values.any?
+        removals = REMOVABLE_PATTERNS.select { |option, pattern| options[option] && content.match?(pattern) }
+        return content if removals.empty?
 
-        unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
+        if removals.key?(:remove_blockquotes)
+          unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER, '') : code }
+        end
 
-        outside_code(content, block_code: (unquote if options[:remove_blockquotes])) do |text|
-          text = remove_comments(text) if options[:remove_comments]
-          text = remove_badges(text) if options[:remove_badges]
-          text = remove_images(text) if options[:remove_images]
-          text = remove_blockquotes(text) if options[:remove_blockquotes]
+        outside_code(content, block_code: unquote) do |text|
+          text = remove_comments(text) if removals.key?(:remove_comments)
+          text = remove_badges(text) if removals.key?(:remove_badges)
+          text = remove_images(text) if removals.key?(:remove_images)
+          text = remove_blockquotes(text) if removals.key?(:remove_blockquotes)
           text
         end
       end
