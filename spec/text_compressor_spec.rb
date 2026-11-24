@@ -126,6 +126,21 @@ RSpec.describe LlmDocsBuilder::TextCompressor do
         expect(result).to eq('See https://example.com/how-to/use-the-api-in-a-minute   details.')
       end
 
+      it 'preserves bare URLs right after a word character' do
+        content = 'See _https://example.com/how-to/use-the-api_ in the docs.'
+        result = compressor.compress(content, remove_stopwords: true)
+
+        expect(result).to eq('See _https://example.com/how-to/use-the-api_   docs.')
+      end
+
+      it 'preserves inline code when a custom stopword is a digit' do
+        compressor = described_class.new(custom_stopwords: %w[0 1])
+        content = 'Run `make` and `test` now.'
+        result = compressor.compress(content, remove_stopwords: true)
+
+        expect(result).to eq('Run `make`  `test` now.')
+      end
+
       it 'handles content with only stopwords' do
         content = 'the a an is are was were'
         result = compressor.compress(content, remove_stopwords: true)

@@ -38,7 +38,7 @@ module LlmDocsBuilder
     ].freeze
 
     # Word, or a code placeholder or bare URL that stopword removal leaves unchanged
-    WORD_PATTERN = %r{#{CODE_PLACEHOLDER}|https?://\S+|[[:word:]]+}
+    WORD_PATTERN = %r{#{CODE_PLACEHOLDER}|https?://\S+|(?:(?!https?://)[[:word:]])+}
 
     private_constant :WORD_PATTERN
 
