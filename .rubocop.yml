@@ -40,6 +40,11 @@ Style/MultilineBlockChain:
   Exclude:
     - 'spec/**/*'
 
+# CLI errors must reach stderr even with warnings disabled (-W0), which silences warn
+Style/StderrPuts:
+  Exclude:
+    - 'lib/llm_docs_builder/cli.rb'
+
 # Disable predicate method naming rule
 Naming/PredicateMethod:
   Enabled: false
