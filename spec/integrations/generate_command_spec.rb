@@ -14,6 +14,13 @@ RSpec.describe 'generate command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
   it 'generates llms.txt from documentation directory' do
     # Create sample documentation
     File.write(File.join(temp_dir, 'README.md'), <<~MD)
@@ -582,5 +589,15 @@ RSpec.describe 'generate command' do
     expect(status.success?).to be true
     links = File.readlines(output_file, chomp: true).grep(/\A- \[/)
     expect(links).to eq(['- [README](README.md): Content'])
+  end
+
+  it 'fails without writing llms.txt when the config file does not exist' do
+    File.write(File.join(temp_dir, 'README.md'), "# README\n\nContent")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'generate', '--config', 'missing.yml')
+
+    expect(status.exitstatus).to eq(1)
+    expect(stdout).to include('Config file not found: missing.yml')
+    expect(File.exist?(File.join(temp_dir, 'llms.txt'))).to be false
   end
 end

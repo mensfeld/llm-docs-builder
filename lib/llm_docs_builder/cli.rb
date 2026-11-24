@@ -139,7 +139,7 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if docs path not found
     def generate(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
@@ -182,7 +182,7 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if file not found or -d flag missing
     def transform(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       url = options[:url]
@@ -245,7 +245,7 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if directory not found or transformation fails
     def bulk_transform(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
@@ -387,6 +387,19 @@ module LlmDocsBuilder
         end
         exit 1
       end
+    end
+
+    # Load the config file given with --config, or the auto-discovered one
+    #
+    # @param config_path [String, nil] path given with --config, or nil to auto-find
+    # @return [LlmDocsBuilder::Config] loaded configuration
+    # @raise [LlmDocsBuilder::Errors::GenerationError] if the given config file does not exist
+    def load_config(config_path)
+      if config_path && !File.exist?(config_path)
+        raise LlmDocsBuilder::Errors::GenerationError, "Config file not found: #{config_path}"
+      end
+
+      LlmDocsBuilder::Config.new(config_path)
     end
 
     # Display version information

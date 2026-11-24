@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **Missing `--config` File Fails the Run** - `generate`, `transform` and `bulk-transform` now exit 1 with `Config file not found: <path>` when the file given with `--config` does not exist, and write nothing. Before, they ran with the defaults (`docs: .`), so `bulk-transform` wrote `*.llm.md` next to every Markdown file under the current directory. Without `--config`, a missing `llm-docs-builder.yml` still means the defaults. `Config.new` with a missing file is unchanged.
 - [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
   - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.
 - [Fix] **`parse` and `validate` Read `llms.txt` by Default** - Without `--docs`, both commands now read `llms.txt` in the current directory, as documented. Before, they took the config's `docs` setting (the docs directory for `generate`, `.` by default) and failed with "Is a directory".
