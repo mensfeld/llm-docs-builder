@@ -12,6 +12,8 @@ module LlmDocsBuilder
   #
   # @api public
   class TextCompressor
+    include Transformers::CodeBlocks
+
     # Common English stopwords that can be safely removed from documentation
     # Excludes words that might be important in technical contexts (like "not", "no")
     STOPWORDS = %w[
@@ -35,6 +37,11 @@ module LlmDocsBuilder
       throughout under until up upon within without
     ].freeze
 
+    # Code placeholder or bare URL, left unchanged by stopword removal
+    PROTECTED_PATTERN = %r{(\u0000\d+b?\u0000|https?://\S+)}
+
+    private_constant :PROTECTED_PATTERN
+
     # @return [Hash] compression options
     attr_reader :options
 
@@ -57,19 +64,21 @@ module LlmDocsBuilder
     # @option methods [Boolean] :remove_stopwords remove common filler words
     # @option methods [Boolean] :remove_duplicates remove duplicate sentences/paragraphs
     # @return [String] compressed text
+    # @note Code (fenced and indented code blocks, inline code spans) is left unchanged
     def compress(content, methods = {})
-      result = content.dup
+      return content.dup unless methods[:remove_stopwords] || methods[:remove_duplicates]
 
-      result = remove_stopwords(result) if methods[:remove_stopwords]
-      result = remove_duplicate_paragraphs(result) if methods[:remove_duplicates]
-
-      result
+      outside_code(content) do |text|
+        text = strip_stopwords(text) if methods[:remove_stopwords]
+        text = drop_duplicate_paragraphs(text) if methods[:remove_duplicates]
+        text
+      end
     end
 
     # Remove stopwords from text while preserving technical content
     #
     # Removes common English stopwords that don't carry significant meaning.
-    # Preserves code blocks, inline code, and technical terms.
+    # Preserves code blocks, inline code, bare URLs and technical terms.
     #
     # @deprecated This is an aggressive optimization that may affect readability.
     #   Use with caution and test results carefully.
@@ -77,64 +86,58 @@ module LlmDocsBuilder
     # @param content [String] text to process
     # @return [String] text with stopwords removed
     def remove_stopwords(content)
-      # Preserve code blocks by temporarily replacing them
-      code_blocks = {}
-      code_counter = 0
-
-      # Extract and preserve fenced code blocks
-      content = content.gsub(/^```.*?^```/m) do |match|
-        placeholder = "___CODE_BLOCK_#{code_counter}___"
-        code_blocks[placeholder] = match
-        code_counter += 1
-        placeholder
-      end
-
-      # Extract and preserve inline code
-      content = content.gsub(/`[^`]+`/) do |match|
-        placeholder = "___INLINE_CODE_#{code_counter}___"
-        code_blocks[placeholder] = match
-        code_counter += 1
-        placeholder
-      end
-
-      # Get combined stopwords list
-      stopwords_list = STOPWORDS + options[:custom_stopwords]
-
-      # Process each line
-      content = content.split("\n").map do |line|
-        # Skip markdown headers, lists, and links
-        if line.match?(/^#+\s/) || line.match?(/^[\*\-]\s/) || line.match?(/\[[^\]]+\]\([^)]+\)/)
-          line
-        else
-          # Remove stopwords from regular text
-          words = line.split(/\b/)
-          words.map do |word|
-            # Preserve the word if it's not a stopword or if we should preserve technical terms
-            if stopwords_list.include?(word.downcase) && !word.match?(/^[A-Z]/) # Don't remove capitalized words
-              ''
-            else
-              word
-            end
-          end.join
-        end
-      end.join("\n")
-
-      # Restore code blocks
-      code_blocks.each do |placeholder, original|
-        content = content.gsub(placeholder, original)
-      end
-
-      content
+      outside_code(content) { |text| strip_stopwords(text) }
     end
 
     # Remove duplicate paragraphs from text
     #
-    # Detects and removes paragraphs that are duplicates or near-duplicates.
-    # Documentation often repeats concepts across different sections.
+    # Detects and removes paragraphs that are the same after whitespace and case normalization.
+    # Documentation often repeats concepts across different sections. Paragraphs with code are always kept.
     #
     # @param content [String] text to process
     # @return [String] text with duplicate paragraphs removed
     def remove_duplicate_paragraphs(content)
+      outside_code(content) { |text| drop_duplicate_paragraphs(text) }
+    end
+
+    private
+
+    # Remove stopwords from text whose code is replaced by placeholders
+    #
+    # @param content [String] text with code replaced by {Transformers::CodeBlocks} placeholders
+    # @return [String] text with stopwords removed
+    def strip_stopwords(content)
+      # Get combined stopwords list
+      stopwords_list = STOPWORDS + options[:custom_stopwords]
+
+      # Process each line
+      content.split("\n").map do |line|
+        # Skip markdown headers, lists, and links
+        if line.match?(/^#+\s/) || line.match?(/^[\*\-]\s/) || line.match?(/\[[^\]]+\]\([^)]+\)/)
+          line
+        else
+          line.split(PROTECTED_PATTERN).map do |part|
+            next part if part.match?(PROTECTED_PATTERN)
+
+            # Remove stopwords from regular text
+            part.split(/\b/).map do |word|
+              # Preserve the word if it's not a stopword or if we should preserve technical terms
+              if stopwords_list.include?(word.downcase) && !word.match?(/^[A-Z]/) # Don't remove capitalized words
+                ''
+              else
+                word
+              end
+            end.join
+          end.join
+        end
+      end.join("\n")
+    end
+
+    # Remove duplicate paragraphs from text whose code is replaced by placeholders
+    #
+    # @param content [String] text with code replaced by {Transformers::CodeBlocks} placeholders
+    # @return [String] text with duplicate paragraphs removed
+    def drop_duplicate_paragraphs(content)
       # Split into paragraphs (separated by blank lines)
       paragraphs = content.split(/\n\s*\n/)
 
@@ -149,7 +152,7 @@ module LlmDocsBuilder
         # Skip empty paragraphs
         next if normalized.empty?
 
-        # Check if we've seen this or similar paragraph
+        # Code placeholders are unique, so a paragraph with code is never a duplicate
         unless seen[normalized]
           seen[normalized] = true
           unique_paragraphs << para
@@ -158,6 +161,5 @@ module LlmDocsBuilder
 
       unique_paragraphs.join("\n\n")
     end
-
   end
 end

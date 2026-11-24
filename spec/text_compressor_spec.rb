@@ -79,6 +79,53 @@ RSpec.describe LlmDocsBuilder::TextCompressor do
         expect(result).to eq('')
       end
 
+      it 'preserves tilde fenced code blocks' do
+        content = <<~MD
+          Run the code.
+
+          ~~~ruby
+          puts "this is not the end"
+          ~~~
+        MD
+
+        result = compressor.compress(content, remove_stopwords: true)
+
+        expect(result).to eq(<<~MD.chomp)
+          Run  code.
+
+          ~~~ruby
+          puts "this is not the end"
+          ~~~
+        MD
+      end
+
+      it 'preserves indented code blocks' do
+        content = <<~MD
+          Run the code.
+
+              if a and the
+                puts it
+              end
+        MD
+
+        result = compressor.compress(content, remove_stopwords: true)
+
+        expect(result).to eq(<<~MD.chomp)
+          Run  code.
+
+              if a and the
+                puts it
+              end
+        MD
+      end
+
+      it 'preserves bare URLs' do
+        content = 'See https://example.com/how-to/use-the-api-in-a-minute for the details.'
+        result = compressor.compress(content, remove_stopwords: true)
+
+        expect(result).to eq('See https://example.com/how-to/use-the-api-in-a-minute   details.')
+      end
+
       it 'handles content with only stopwords' do
         content = 'the a an is are was were'
         result = compressor.compress(content, remove_stopwords: true)
@@ -158,6 +205,70 @@ RSpec.describe LlmDocsBuilder::TextCompressor do
 
         occurrences = result.scan(/Content 1/).length
         expect(occurrences).to eq(1)
+      end
+
+      it 'keeps code blocks that end with the same lines' do
+        content = <<~MD
+          Define a consumer:
+
+          ```ruby
+          class EventsConsumer
+            def consume
+
+            end
+          end
+          ```
+
+          Define another one:
+
+          ```ruby
+          class OrdersConsumer
+            def consume
+
+            end
+          end
+          ```
+
+          ## After
+
+          This text must stay prose.
+        MD
+
+        result = compressor.compress(content, remove_duplicates: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps duplicate code blocks' do
+        content = <<~MD
+          ~~~
+          bundle install
+          ~~~
+
+              bundle install
+
+          ~~~
+          bundle install
+          ~~~
+
+              bundle install
+        MD
+
+        result = compressor.compress(content, remove_duplicates: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'keeps duplicate paragraphs with inline code' do
+        content = <<~MD
+          Run `make` first.
+
+          Run `make` first.
+        MD
+
+        result = compressor.compress(content, remove_duplicates: true)
+
+        expect(result).to eq(content)
       end
 
       it 'preserves unique paragraphs' do
@@ -251,6 +362,22 @@ RSpec.describe LlmDocsBuilder::TextCompressor do
 
         expect(result).to eq(content)
       end
+    end
+  end
+
+  describe '#remove_stopwords' do
+    it 'preserves code' do
+      content = "the `a` value:\n\n~~~\nthe a\n~~~"
+
+      expect(compressor.remove_stopwords(content)).to eq(" `a` value:\n\n~~~\nthe a\n~~~")
+    end
+  end
+
+  describe '#remove_duplicate_paragraphs' do
+    it 'keeps duplicate code blocks' do
+      content = "Text.\n\nText.\n\n~~~\nend\n~~~\n\n~~~\nend\n~~~"
+
+      expect(compressor.remove_duplicate_paragraphs(content)).to eq("Text.\n\n~~~\nend\n~~~\n\n~~~\nend\n~~~")
     end
   end
 end

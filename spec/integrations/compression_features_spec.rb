@@ -241,6 +241,73 @@ RSpec.describe 'Compression Features Integration' do
       expect(result).to include('```ruby')
       expect(result).to include('api = API.new')
     end
+    it 'keeps code blocks with the same ending when removing duplicates' do
+      File.write(test_file, <<~MD)
+        # Consumers
+
+        Define a consumer:
+
+        ```ruby
+        class EventsConsumer < Karafka::BaseConsumer
+          def consume
+            messages.each { |m| puts m.payload }
+
+          end
+        end
+        ```
+
+        Define another one:
+
+        ```ruby
+        class OrdersConsumer < Karafka::BaseConsumer
+          def consume
+            messages.each { |m| Order.create!(m.payload) }
+
+          end
+        end
+        ```
+
+        ## After
+
+        This text must stay prose, not code.
+      MD
+
+      result = LlmDocsBuilder.transform_markdown(test_file, remove_duplicates: true)
+
+      expect(result).to eq(File.read(test_file).chomp)
+    end
+
+    it 'keeps code and URLs unchanged when removing stopwords' do
+      File.write(test_file, <<~MD)
+        # Setup
+
+        See https://example.com/how-to/use-the-api-in-a-minute for details.
+
+        ~~~ruby
+        puts "this is not the end"
+        ~~~
+
+            if a and the
+              puts it
+            end
+      MD
+
+      result = LlmDocsBuilder.transform_markdown(test_file, remove_stopwords: true)
+
+      expect(result).to eq(<<~MD.chomp)
+        # Setup
+
+        See https://example.com/how-to/use-the-api-in-a-minute  details.
+
+        ~~~ruby
+        puts "this is not the end"
+        ~~~
+
+            if a and the
+              puts it
+            end
+      MD
+    end
   end
 
   describe 'Bulk Transformation with Compression' do

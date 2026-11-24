@@ -1,6 +1,9 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **Compression Options Keep Code Unchanged** - `remove_duplicates` and `remove_stopwords` no longer edit fenced code, indented code or inline code.
+  - `remove_duplicates` no longer drops the last lines and the closing fence of a code block that ends like an earlier one, so the rest of the document no longer turns into code.
+  - `remove_stopwords` also keeps `~~~` and indented code blocks and bare URLs (`https://example.com/how-to/use-the-api`) unchanged.
 - [Fix] **Cleanup Options Keep Code Unchanged** - `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` no longer edit fenced code, indented code or inline code, so HTML and Markdown examples stay intact. With `remove_blockquotes`, code inside a blockquote loses its quote markers like the text around it.
 - [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
   - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.

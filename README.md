@@ -422,8 +422,8 @@ All compression features can be used individually for fine-grained control:
 - `remove_images: true` - Remove all image syntax
 - `remove_code_examples: true` - Remove fenced code blocks, indented code, and inline code
 - `remove_blockquotes: true` - Remove blockquote formatting (preserves content)
-- `remove_duplicates: true` - Remove duplicate paragraphs using fuzzy matching
-- `remove_stopwords: true` - Remove common stopwords from prose (preserves code blocks)
+- `remove_duplicates: true` - Remove paragraphs that repeat an earlier one after whitespace and case normalization (paragraphs with code are kept)
+- `remove_stopwords: true` - Remove common stopwords from prose (preserves code blocks, inline code and bare URLs)
 
 `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` leave code (fenced, indented and inline) unchanged.
 
