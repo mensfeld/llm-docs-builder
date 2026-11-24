@@ -139,14 +139,16 @@ module LlmDocsBuilder
 
     private
 
-    # Merges config file values into options, unless the options are already merged
+    # Merges config file values into options, unless the options are already merged and
+    # name no config file
     #
     # @param options [Hash] options, possibly already merged by Config#merge_with_options
     # @option options [String] :config_file path to YAML config file (auto-finds llm-docs-builder.yml)
     # @option options [Boolean] :config_merged set by Config#merge_with_options, skips loading
+    #   when no :config_file is given
     # @return [Hash] merged options
     def merge_config(options)
-      return options if options[:config_merged]
+      return options if options[:config_merged] && !options.key?(:config_file)
 
       Config.new(options[:config_file]).merge_with_options(options)
     end
