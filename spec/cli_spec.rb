@@ -159,6 +159,34 @@ RSpec.describe LlmDocsBuilder::CLI do
         end.to output(/File not found/).to_stderr
       end
 
+      it 'fails when the --config file does not exist' do
+        cli = described_class.new
+
+        expect do
+          expect do
+            cli.run(['transform', '-d', temp_file.path, '-c', 'missing.yml', '-o', output_file.path])
+          end.to output(/Config file not found: missing\.yml/).to_stdout
+        end.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
+
+        expect(File.read(output_file.path)).to be_empty
+      end
+
+      it 'runs with defaults when no --config is given and no config file is found' do
+        cli = described_class.new
+
+        Dir.mktmpdir do |dir|
+          Dir.chdir(dir) do
+            expect do
+              expect do
+                cli.run(['transform', '-d', temp_file.path])
+              end.to output(/# Test/).to_stdout
+            end.not_to raise_error
+          end
+        end
+      end
+
       it 'outputs to stdout when no output file specified' do
         cli = described_class.new
 
