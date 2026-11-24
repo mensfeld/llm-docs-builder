@@ -68,11 +68,21 @@ module LlmDocsBuilder
     def compress(content, methods = {})
       return content.dup unless methods[:remove_stopwords] || methods[:remove_duplicates]
 
-      outside_code(content) do |text|
-        text = strip_stopwords(text) if methods[:remove_stopwords]
-        text = drop_duplicate_paragraphs(text) if methods[:remove_duplicates]
-        text
-      end
+      outside_code(content) { |text| compress_outside_code(text, methods) }
+    end
+
+    # Compress text whose code is already replaced by placeholders
+    #
+    # @param text [String] text with code replaced by {Transformers::CodeBlocks} placeholders
+    # @param methods [Hash] compression methods to apply
+    # @option methods [Boolean] :remove_stopwords remove common filler words
+    # @option methods [Boolean] :remove_duplicates remove duplicate sentences/paragraphs
+    # @return [String] compressed text, still with placeholders
+    # @api private
+    def compress_outside_code(text, methods = {})
+      text = strip_stopwords(text) if methods[:remove_stopwords]
+      text = drop_duplicate_paragraphs(text) if methods[:remove_duplicates]
+      text
     end
 
     # Remove stopwords from text while preserving technical content

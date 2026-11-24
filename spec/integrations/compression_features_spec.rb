@@ -310,6 +310,48 @@ RSpec.describe 'Compression Features Integration' do
     end
   end
 
+  describe 'Heading Normalization' do
+    it 'keeps heading-like lines in code unchanged' do
+      File.write(test_file, <<~MD)
+        # Guide
+
+        ## Setup
+
+        ~~~bash
+        # install the gem
+        ~~~
+
+            # configure it
+
+        ```ruby
+        ## not a heading
+        ```
+
+        ### Run
+      MD
+
+      result = LlmDocsBuilder.transform_markdown(test_file, normalize_headings: true, remove_duplicates: true)
+
+      expect(result).to eq(<<~MD.chomp)
+        # Guide
+
+        ## Guide / Setup
+
+        ~~~bash
+        # install the gem
+        ~~~
+
+            # configure it
+
+        ```ruby
+        ## not a heading
+        ```
+
+        ### Guide / Setup / Run
+      MD
+    end
+  end
+
   describe 'Bulk Transformation with Compression' do
     before do
       # Create multiple files
