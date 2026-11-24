@@ -18,6 +18,10 @@ Metrics/ClassLength:
 Metrics/MethodLength:
   Max: 35
 
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/llm_docs_builder/transformers/code_blocks.rb'
+
 Metrics/AbcSize:
   Max: 40
 

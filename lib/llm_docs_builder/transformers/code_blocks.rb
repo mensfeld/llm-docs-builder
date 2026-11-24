@@ -2,7 +2,10 @@
 
 module LlmDocsBuilder
   module Transformers
-    # Detection of fenced and indented code blocks shared by transformers
+    # Detection of code shared by transformers
+    #
+    # Finds fenced and indented code blocks and inline code spans, and runs transformations on content with the
+    # code replaced by placeholders, optionally leaving backticks inside HTML comments in place.
     #
     # @api private
     module CodeBlocks
@@ -18,9 +21,87 @@ module LlmDocsBuilder
       # ATX heading line
       ATX_HEADING_PATTERN = /\A\#{1,6}(?:[ \t]|\s*\z)/
 
-      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN
+      # Placeholder that stands in for a protected code fragment; a code block's ends with `b`
+      CODE_PLACEHOLDER = /\u0000(\d+)b?\u0000/
+
+      # Inline code span: a backtick run closed by a run of the same length, within one paragraph
+      INLINE_CODE = /(?<![`\\])(`+)(?!`)(?:(?!\n[ \t]*\n)[^\u0000])+?(?<!`)\1(?!`)/m
+
+      # Start of an HTML comment or of an inline code span
+      COMMENT_OR_BACKTICK_PATTERN = /<!--|`/
+
+      # Start of an inline code span
+      BACKTICK_PATTERN = /`/
+
+      # Byte of a backtick
+      BACKTICK_BYTE = '`'.ord
+
+      # End of an HTML comment
+      COMMENT_END_PATTERN = /-->/
+
+      private_constant :FENCE_OPENING, :BLOCKQUOTE_PREFIX, :LIST_ITEM, :ATX_HEADING_PATTERN, :CODE_PLACEHOLDER,
+        :INLINE_CODE, :COMMENT_OR_BACKTICK_PATTERN, :BACKTICK_PATTERN, :BACKTICK_BYTE, :COMMENT_END_PATTERN
 
       private
+
+      # Run a transformation on content with code replaced by placeholders, then restore the code
+      #
+      # @param content [String] markdown content
+      # @param block_code [Proc, nil] maps each code block before it is protected
+      # @param comments_first [Boolean, nil] leave backticks inside HTML comments in place, as a comment that starts
+      #   first hides them
+      # @yieldparam text [String] content with code fragments replaced by placeholders
+      # @yieldreturn [String] transformed content
+      # @return [String] transformed content with the original code restored
+      def outside_code(content, block_code: nil, comments_first: false)
+        codes = []
+        protect = lambda do |code, block: false|
+          codes << code
+          "\u0000#{codes.size - 1}#{'b' if block}\u0000"
+        end
+
+        text = replace_code_blocks(content) do |code|
+          protect.call(block_code ? block_code.call(code) : code, block: true)
+        end
+        text = if comments_first
+                 replace_inline_code_outside_comments(text) { |span| protect.call(span) }
+               else
+                 text.gsub(INLINE_CODE) { protect.call(::Regexp.last_match(0)) }
+               end
+
+        yield(text).gsub(CODE_PLACEHOLDER) { codes[::Regexp.last_match(1).to_i] }
+      end
+
+      # Replace inline code spans that do not start inside an HTML comment
+      #
+      # Scans once: a comment is skipped up to its first `-->`, and an unclosed comment ends the search for
+      # comments, as no later `<!--` can be closed either.
+      #
+      # @param text [String] markdown content
+      # @yieldparam span [String] inline code span
+      # @yieldreturn [String] replacement for the span
+      # @return [String] content with inline code spans replaced
+      def replace_inline_code_outside_comments(text)
+        scanner = StringScanner.new(text, fixed_anchor: true)
+        out = +''
+        copied = 0
+        start_pattern = COMMENT_OR_BACKTICK_PATTERN
+
+        while scanner.skip_until(start_pattern)
+          if text.getbyte(scanner.pos - 1) == BACKTICK_BYTE
+            start = scanner.pos -= 1
+            length = scanner.skip(INLINE_CODE)
+            next scanner.pos += 1 unless length
+
+            out << text.byteslice(copied, start - copied) << yield(text.byteslice(start, length))
+            copied = scanner.pos
+          elsif !scanner.skip_until(COMMENT_END_PATTERN)
+            start_pattern = BACKTICK_PATTERN
+          end
+        end
+
+        out << text.byteslice(copied, text.bytesize - copied)
+      end
 
       # Replace fenced and indented code blocks
       #

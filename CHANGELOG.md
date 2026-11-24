@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **Cleanup Options Keep Code Unchanged** - `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` no longer edit fenced code, indented code or inline code, so HTML and Markdown examples stay intact. With `remove_blockquotes`, code inside a blockquote loses its quote markers like the text around it.
 - [Fix] **Missing `--config` File Fails the Run** - `generate`, `transform` and `bulk-transform` now exit 1 with `Config file not found: <path>` when the file given with `--config` does not exist, and write nothing. Before, they ran with the defaults (`docs: .`), so `bulk-transform` wrote `*.llm.md` next to every Markdown file under the current directory. Without `--config`, a missing `llm-docs-builder.yml` still means the defaults. `Config.new` with a missing file is unchanged.
 - [Fix] **CLI Errors Go to stderr** - Error messages are now printed to stderr instead of stdout, so `transform -d missing.md > out.md` no longer writes the error into `out.md`. The `validate` report ("Invalid llms.txt file" and its errors) stays on stdout, as the command's result. Only CLI output changes, not the Ruby API.
 - [Fix] **Unknown Options Are Usage Errors** - An unknown option (e.g. `transform --foo`) now prints `Error: invalid option: --foo` and a pointer to `--help` instead of `Unexpected error: ...`.

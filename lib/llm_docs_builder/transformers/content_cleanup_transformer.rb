@@ -22,21 +22,89 @@ module LlmDocsBuilder
       # @option options [Boolean] :remove_code_examples remove code blocks
       # @option options [Boolean] :remove_images remove image syntax
       # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+      # @yieldparam text [String] cleaned content with code replaced by placeholders, so that a later step can
+      #   skip code without detecting it again
+      # @yieldreturn [String] content to restore the code into
       # @return [String] transformed content
-      def transform(content, options = {})
+      # @note Comments, badges, images and blockquote markers inside code are left unchanged
+      def transform(content, options = {}, &)
         result = content.dup
 
         result = remove_frontmatter(result) if options[:remove_frontmatter]
-        result = remove_comments(result) if options[:remove_comments]
-        result = remove_badges(result) if options[:remove_badges]
-        result = remove_code_examples(result) if options[:remove_code_examples]
+        return clean_outside_code(result, options, &) unless options[:remove_code_examples]
+
+        result = remove_code_examples(result, options)
         result = remove_images(result) if options[:remove_images]
         result = remove_blockquotes(result) if options[:remove_blockquotes]
-
-        result
+        block_given? ? yield(result) : result
       end
 
       private
+
+      # Code block lines inside a blockquote start with this marker
+      QUOTED_CODE_MARKER_PATTERN = /^> ?/
+
+      # HTML comment
+      COMMENT_PATTERN = /<!--.*?-->/m
+
+      # Image alt text; it may hold inline code but never crosses a code block placeholder
+      ALT_TEXT_PATTERN = /(?:[^\]\u0000]|\u0000\d+\u0000)*/
+
+      # Inline image; its destination never crosses a code placeholder
+      IMAGE_PATTERN = /!\[#{ALT_TEXT_PATTERN}\]\([^)\u0000]+\)/
+
+      # Reference-style image
+      REFERENCE_IMAGE_PATTERN = /!\[#{ALT_TEXT_PATTERN}\]\[[^\]\u0000]+\]/
+
+      # Badge image
+      BADGE_PATTERN =
+        /!\[#{ALT_TEXT_PATTERN}\]\([^)\u0000]*(?:badge|shield|svg|travis|coveralls|fury)[^)\u0000]*\)/i
+
+      # Badge image wrapped in a link
+      LINKED_BADGE_PATTERN = /\[#{BADGE_PATTERN}\]\([^)\u0000]*\)/
+
+      # Text that each removal outside code can change
+      REMOVABLE_PATTERNS = {
+        remove_comments: /<!--/,
+        remove_badges: BADGE_PATTERN,
+        remove_images: /!\[/,
+        remove_blockquotes: /^>/
+      }.freeze
+
+      private_constant :QUOTED_CODE_MARKER_PATTERN, :COMMENT_PATTERN, :ALT_TEXT_PATTERN, :IMAGE_PATTERN,
+        :REFERENCE_IMAGE_PATTERN, :BADGE_PATTERN, :LINKED_BADGE_PATTERN, :REMOVABLE_PATTERNS
+
+      # Run removals on content outside code
+      #
+      # With blockquote removal, code blocks inside a blockquote lose one level of quote markers, like the text
+      # around them.
+      #
+      # @param content [String] markdown content
+      # @param options [Hash] removal options
+      # @option options [Boolean] :remove_comments remove HTML comments
+      # @option options [Boolean] :remove_badges remove badge images
+      # @option options [Boolean] :remove_images remove image syntax
+      # @option options [Boolean] :remove_blockquotes remove blockquote formatting
+      # @yieldparam text [String] cleaned content with code replaced by placeholders
+      # @yieldreturn [String] content to restore the code into
+      # @return [String] cleaned content
+      # @note Without a block, code is detected only when a removal can change the content
+      def clean_outside_code(content, options)
+        removals = REMOVABLE_PATTERNS.select { |option, pattern| options[option] && content.match?(pattern) }
+        return content if removals.empty? && !block_given?
+
+        if removals.key?(:remove_blockquotes)
+          unquote = ->(code) { code.start_with?('>') ? code.gsub(QUOTED_CODE_MARKER_PATTERN, '') : code }
+        end
+
+        outside_code(content, block_code: unquote, comments_first: removals.key?(:remove_comments)) do |text|
+          text = remove_comments(text) if removals.key?(:remove_comments)
+          text = remove_badges(text) if removals.key?(:remove_badges)
+          text = remove_images(text) if removals.key?(:remove_images)
+          text = remove_blockquotes(text) if removals.key?(:remove_blockquotes)
+          block_given? ? yield(text) : text
+        end
+      end
 
       # Remove YAML or TOML frontmatter
       #
@@ -53,7 +121,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without comments
       def remove_comments(content)
-        content.gsub(/<!--.*?-->/m, '')
+        content.gsub(COMMENT_PATTERN, '')
       end
 
       # Remove badge images
@@ -61,22 +129,29 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without badges
       def remove_badges(content)
-        # Remove linked badges
-        content = content.gsub(/\[\!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)\]\([^\)]*\)/i, '')
-        # Remove standalone badges
-        content = content.gsub(/!\[([^\]]*)\]\([^\)]*(?:badge|shield|svg|travis|coveralls|fury)[^\)]*\)/i, '')
-        content
+        content.gsub(LINKED_BADGE_PATTERN, '').gsub(BADGE_PATTERN, '')
       end
 
       # Remove code blocks and inline code
       #
+      # Comments and badges are removed in the same code scan, before the code, so that code holding a comment
+      # marker does not end or start a comment.
+      #
       # @param content [String] markdown content
+      # @param options [Hash] removal options
+      # @option options [Boolean] :remove_comments remove HTML comments
+      # @option options [Boolean] :remove_badges remove badge images
       # @return [String] content without code
-      def remove_code_examples(content)
-        content = replace_code_blocks(content) { '' }
+      def remove_code_examples(content, options)
+        removed = ->(_code) { '' }
+
+        content = outside_code(content, block_code: removed, comments_first: options[:remove_comments]) do |text|
+          text = remove_comments(text) if options[:remove_comments]
+          text = remove_badges(text) if options[:remove_badges]
+          text
+        end
         # Remove inline code
-        content = content.gsub(/`[^`]+`/, '')
-        content
+        content.gsub(/`[^`]+`/, '')
       end
 
       # Remove image syntax
@@ -84,11 +159,7 @@ module LlmDocsBuilder
       # @param content [String] markdown content
       # @return [String] content without images
       def remove_images(content)
-        # Remove inline images
-        content = content.gsub(/!\[([^\]]*)\]\([^\)]+\)/, '')
-        # Remove reference-style images
-        content = content.gsub(/!\[([^\]]*)\]\[[^\]]+\]/, '')
-        content
+        content.gsub(IMAGE_PATTERN, '').gsub(REFERENCE_IMAGE_PATTERN, '')
       end
 
       # Remove blockquote formatting
