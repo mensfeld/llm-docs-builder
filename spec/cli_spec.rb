@@ -721,7 +721,7 @@ RSpec.describe LlmDocsBuilder::CLI do
           expect do
             cli.run(['generate', '--docs', '.'])
           end.to raise_error(SystemExit)
-        end.to output(/Unexpected error: Unexpected/).to_stderr
+        end.to output("Unexpected error: Unexpected\n").to_stderr
       end
 
       it 'displays backtrace when verbose is enabled' do
@@ -732,7 +732,7 @@ RSpec.describe LlmDocsBuilder::CLI do
           expect do
             cli.run(['generate', '--docs', '.', '-v'])
           end.to raise_error(SystemExit)
-        end.to output(/Unexpected error: Unexpected/).to_stderr
+        end.to output(/\AUnexpected error: Unexpected\n.*cli\.rb:\d+/m).to_stderr
       end
     end
   end

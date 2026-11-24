@@ -147,6 +147,17 @@ RSpec.describe 'transform command' do
     expect(stdout).to be_empty
   end
 
+  it 'fails when both --docs and --url are given' do
+    input_file = File.join(temp_dir, 'test.md')
+    File.write(input_file, "# Title\n")
+
+    stdout, stderr, status = run_cli('transform', '--docs', input_file, '--url', 'https://example.com/doc.md')
+
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to include('Cannot use both --docs and --url for transform command')
+    expect(stdout).to be_empty
+  end
+
   it 'keeps errors out of redirected stdout' do
     stdout, stderr, status = run_cli('transform', '--docs', File.join(temp_dir, 'missing.md'))
 
