@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
-- [Fix] **CLI Errors Go to stderr** - Error messages are now printed to stderr instead of stdout, so `transform -d missing.md > out.md` no longer writes the error into `out.md`. Only CLI output changes, not the Ruby API.
+- [Fix] **CLI Errors Go to stderr** - Error messages are now printed to stderr instead of stdout, so `transform -d missing.md > out.md` no longer writes the error into `out.md`. The `validate` report ("Invalid llms.txt file" and its errors) stays on stdout, as the command's result. Only CLI output changes, not the Ruby API.
 - [Fix] **Unknown Options Are Usage Errors** - An unknown option (e.g. `transform --foo`) now prints `Error: invalid option: --foo` and a pointer to `--help` instead of `Unexpected error: ...`.
 - [Fix] **`parse` Prints Its Summary Without `--verbose`** - `parse` now always prints the title, description and link counts; `--verbose` also lists each link.
 - [Fix] **`transform --output` Ends the File With a Newline** - The output file now ends with `\n`; one is added only if the content lacks it.
