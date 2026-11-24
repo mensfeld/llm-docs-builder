@@ -57,12 +57,42 @@ RSpec.describe 'parse command' do
     expect(stdout).to include('Documentation Links:')
   end
 
+  it 'displays the summary without --verbose and lists links with it' do
+    llms_file = File.join(temp_dir, 'llms.txt')
+    File.write(llms_file, <<~CONTENT)
+      # Test Project
+
+      > A sample project for testing
+
+      ## Documentation
+
+      - [README](docs/README.md): Project overview
+    CONTENT
+
+    stdout, _stderr, status = run_cli('parse', '--docs', llms_file)
+
+    expect(status.success?).to be true
+    expect(stdout).to eq(<<~OUT)
+      Title: Test Project
+      Description: A sample project for testing
+      Documentation Links: 1
+      Example Links: 0
+      Optional Links: 0
+    OUT
+
+    verbose_stdout, _stderr, status = run_cli('parse', '--docs', llms_file, '--verbose')
+
+    expect(status.success?).to be true
+    expect(verbose_stdout).to include("Documentation Links: 1\n  - README: docs/README.md\n")
+  end
+
   it 'fails when file does not exist' do
-    stdout, _stderr, status = run_cli('parse', '--docs', '/nonexistent/llms.txt')
+    stdout, stderr, status = run_cli('parse', '--docs', '/nonexistent/llms.txt')
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('File not found')
+    expect(stderr).to include('File not found')
+    expect(stdout).to be_empty
   end
 
   it 'reads llms.txt from the current directory without --docs' do

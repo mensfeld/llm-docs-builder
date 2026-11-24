@@ -124,7 +124,7 @@ RSpec.describe 'transform command' do
   it 'fails when file does not exist' do
     output_file = File.join(temp_dir, 'output.md')
 
-    stdout, _stderr, status = run_cli(
+    stdout, stderr, status = run_cli(
       'transform',
       '--docs', '/nonexistent/file.md',
       '--output', output_file
@@ -132,6 +132,15 @@ RSpec.describe 'transform command' do
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('File not found')
+    expect(stderr).to include('File not found')
+    expect(stdout).to be_empty
+  end
+
+  it 'keeps errors out of redirected stdout' do
+    stdout, stderr, status = run_cli('transform', '--docs', File.join(temp_dir, 'missing.md'))
+
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to include('File not found')
+    expect(stdout).to be_empty
   end
 end

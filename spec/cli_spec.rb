@@ -36,9 +36,9 @@ RSpec.describe LlmDocsBuilder::CLI do
 
         expect do
           expect do
-            cli.run(['generate', '--docs', 'nonexistent', '--output', 'test.txt'])
-          end.to output(/Error: Test generation error/).to_stdout
-        end.to raise_error(SystemExit)
+            cli.run(['generate', '--docs', '.', '--output', 'test.txt'])
+          end.to raise_error(SystemExit)
+        end.to output(/Error: Test generation error/).to_stderr
       end
     end
 
@@ -95,8 +95,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['bulk-transform', '--docs', temp_dir])
-          end.to output(/Error during bulk transformation: Bulk transformation failed/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Error during bulk transformation: Bulk transformation failed/).to_stderr
       end
     end
 
@@ -145,8 +145,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['transform', '-o', output_file.path])
-          end.to output(/File path required/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/File path required/).to_stderr
       end
 
       it 'displays error when file not found' do
@@ -155,8 +155,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['transform', '-d', 'nonexistent.md', '-o', output_file.path])
-          end.to output(/File not found/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/File not found/).to_stderr
       end
 
       it 'outputs to stdout when no output file specified' do
@@ -274,8 +274,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['bulk-transform', '--docs', 'nonexistent_dir'])
-          end.to output(/Documentation path not found/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Documentation path not found/).to_stderr
       end
 
       it 'displays error when path is not a directory' do
@@ -287,8 +287,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['bulk-transform', '--docs', file.path])
-          end.to output(/Path must be a directory/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Path must be a directory/).to_stderr
 
         file.unlink
       end
@@ -349,20 +349,26 @@ RSpec.describe LlmDocsBuilder::CLI do
         temp_file.unlink
       end
 
-      it 'displays verbose information' do
+      it 'lists the links in verbose mode' do
         cli = described_class.new
 
         expect do
-          cli.run(['parse', '--docs', temp_file.path, '-v'])
-        end.to output(/Title: Test/).to_stdout
+          expect do
+            cli.run(['parse', '--docs', temp_file.path, '-v'])
+          end.not_to raise_error
+        end.to output(%r{Title: Test\n.*Documentation Links: 1\n  - Link: http://example\.com\n}m).to_stdout
       end
 
-      it 'runs silently in non-verbose mode' do
+      it 'displays the summary without the links in non-verbose mode' do
         cli = described_class.new
 
         expect do
-          cli.run(['parse', '--docs', temp_file.path])
-        end.not_to output.to_stdout
+          expect do
+            cli.run(['parse', '--docs', temp_file.path])
+          end.not_to raise_error
+        end.to output(
+          "Title: Test\nDescription: \nDocumentation Links: 1\nExample Links: 0\nOptional Links: 0\n"
+        ).to_stdout
       end
 
       it 'defaults to llms.txt when no file specified' do
@@ -373,8 +379,8 @@ RSpec.describe LlmDocsBuilder::CLI do
             expect do
               expect do
                 cli.run(['parse'])
-              end.to output(/File not found: llms\.txt/).to_stdout
-            end.to raise_error(SystemExit)
+              end.to raise_error(SystemExit)
+            end.to output(/File not found: llms\.txt/).to_stderr
           end
         end
       end
@@ -437,8 +443,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['parse', '--docs', 'nonexistent.txt'])
-          end.to output(/File not found/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/File not found/).to_stderr
       end
     end
 
@@ -459,8 +465,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['compare'])
-          end.to output(/Examples:/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Examples:/).to_stderr
       end
 
       it 'handles comparison errors gracefully' do
@@ -473,8 +479,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['compare', '--url', 'https://example.com/page'])
-          end.to output(/Error during comparison: Network error/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Error during comparison: Network error/).to_stderr
       end
 
       it 'successfully compares with URL and local file' do
@@ -599,8 +605,8 @@ RSpec.describe LlmDocsBuilder::CLI do
             expect do
               expect do
                 cli.run(['validate'])
-              end.to output(/File not found: llms\.txt/).to_stdout
-            end.to raise_error(SystemExit)
+              end.to raise_error(SystemExit)
+            end.to output(/File not found: llms\.txt/).to_stderr
           end
         end
       end
@@ -663,8 +669,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['validate', '--docs', 'nonexistent.txt'])
-          end.to output(/File not found/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/File not found/).to_stderr
       end
     end
 
@@ -701,8 +707,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['invalid-command'])
-          end.to output(/Unknown command: invalid-command/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Unknown command: invalid-command/).to_stderr
       end
     end
 
@@ -714,8 +720,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['generate', '--docs', '.'])
-          end.to output(/Unexpected error: Unexpected/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Unexpected error: Unexpected/).to_stderr
       end
 
       it 'displays backtrace when verbose is enabled' do
@@ -725,8 +731,8 @@ RSpec.describe LlmDocsBuilder::CLI do
         expect do
           expect do
             cli.run(['generate', '--docs', '.', '-v'])
-          end.to output(/Unexpected error: Unexpected/).to_stdout
-        end.to raise_error(SystemExit)
+          end.to raise_error(SystemExit)
+        end.to output(/Unexpected error: Unexpected/).to_stderr
       end
     end
   end
