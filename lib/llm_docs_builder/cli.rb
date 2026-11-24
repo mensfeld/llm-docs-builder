@@ -229,7 +229,7 @@ module LlmDocsBuilder
         end
 
       if merged_options[:output] && merged_options[:output] != 'llms.txt'
-        File.write(merged_options[:output], content)
+        File.write(merged_options[:output], content.sub(/\n?\z/, "\n"))
         puts "Transformed content saved to #{merged_options[:output]}"
       else
         puts content

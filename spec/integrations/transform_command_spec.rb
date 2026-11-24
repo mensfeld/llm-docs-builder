@@ -79,7 +79,7 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       # API Documentation
 
 
@@ -114,11 +114,22 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       [docs](./docs.md)
 
       [complete API guide](./api.md)
     MD
+  end
+
+  it 'ends the output file with a newline' do
+    input_file = File.join(temp_dir, 'test.md')
+    output_file = File.join(temp_dir, 'output.md')
+    File.write(input_file, "# Title\n\nThe api.\n")
+
+    _stdout, _stderr, status = run_cli('transform', '--docs', input_file, '--output', output_file)
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to end_with("The api.\n")
   end
 
   it 'fails when file does not exist' do

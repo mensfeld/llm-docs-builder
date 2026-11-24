@@ -222,7 +222,7 @@ RSpec.describe LlmDocsBuilder::CLI do
           cli.run(['transform', '--url', 'https://example.com/doc.md', '--output', output_file.path])
         end.to output(/Transformed content saved to/).to_stdout
 
-        expect(File.read(output_file.path)).to eq('Transformed remote content')
+        expect(File.read(output_file.path)).to eq("Transformed remote content\n")
       end
     end
 
