@@ -11,7 +11,7 @@ base_url: https://myproject.io
 title: My Awesome Project
 description: A Ruby library that helps developers build amazing applications
 
-# Output file path (optional)
+# Output file path for generate (optional; transform writes a file only with -o)
 output: llms.txt
 
 # Transform options (optional)
