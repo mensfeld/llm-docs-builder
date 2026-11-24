@@ -241,6 +241,7 @@ RSpec.describe 'Compression Features Integration' do
       expect(result).to include('```ruby')
       expect(result).to include('api = API.new')
     end
+
     it 'keeps code blocks with the same ending when removing duplicates' do
       File.write(test_file, <<~MD)
         # Consumers

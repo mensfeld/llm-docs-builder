@@ -37,10 +37,10 @@ module LlmDocsBuilder
       throughout under until up upon within without
     ].freeze
 
-    # Code placeholder or bare URL, left unchanged by stopword removal
-    PROTECTED_PATTERN = %r{(\u0000\d+b?\u0000|https?://\S+)}
+    # Word, or a code placeholder or bare URL that stopword removal leaves unchanged
+    WORD_PATTERN = %r{#{CODE_PLACEHOLDER}|https?://\S+|[[:word:]]+}
 
-    private_constant :PROTECTED_PATTERN
+    private_constant :WORD_PATTERN
 
     # @return [Hash] compression options
     attr_reader :options
@@ -80,8 +80,8 @@ module LlmDocsBuilder
     # @return [String] compressed text, still with placeholders
     # @api private
     def compress_outside_code(text, methods = {})
-      text = strip_stopwords(text) if methods[:remove_stopwords]
-      text = drop_duplicate_paragraphs(text) if methods[:remove_duplicates]
+      text = remove_stopwords_outside_code(text) if methods[:remove_stopwords]
+      text = remove_duplicate_paragraphs_outside_code(text) if methods[:remove_duplicates]
       text
     end
 
@@ -96,7 +96,7 @@ module LlmDocsBuilder
     # @param content [String] text to process
     # @return [String] text with stopwords removed
     def remove_stopwords(content)
-      outside_code(content) { |text| strip_stopwords(text) }
+      outside_code(content) { |text| remove_stopwords_outside_code(text) }
     end
 
     # Remove duplicate paragraphs from text
@@ -107,7 +107,7 @@ module LlmDocsBuilder
     # @param content [String] text to process
     # @return [String] text with duplicate paragraphs removed
     def remove_duplicate_paragraphs(content)
-      outside_code(content) { |text| drop_duplicate_paragraphs(text) }
+      outside_code(content) { |text| remove_duplicate_paragraphs_outside_code(text) }
     end
 
     private
@@ -116,7 +116,7 @@ module LlmDocsBuilder
     #
     # @param content [String] text with code replaced by {Transformers::CodeBlocks} placeholders
     # @return [String] text with stopwords removed
-    def strip_stopwords(content)
+    def remove_stopwords_outside_code(content)
       # Get combined stopwords list
       stopwords_list = STOPWORDS + options[:custom_stopwords]
 
@@ -126,19 +126,15 @@ module LlmDocsBuilder
         if line.match?(/^#+\s/) || line.match?(/^[\*\-]\s/) || line.match?(/\[[^\]]+\]\([^)]+\)/)
           line
         else
-          line.split(PROTECTED_PATTERN).map do |part|
-            next part if part.match?(PROTECTED_PATTERN)
-
-            # Remove stopwords from regular text
-            part.split(/\b/).map do |word|
-              # Preserve the word if it's not a stopword or if we should preserve technical terms
-              if stopwords_list.include?(word.downcase) && !word.match?(/^[A-Z]/) # Don't remove capitalized words
-                ''
-              else
-                word
-              end
-            end.join
-          end.join
+          # Remove stopwords from regular text
+          line.gsub(WORD_PATTERN) do |word|
+            # Preserve the word if it's not a stopword or if we should preserve technical terms
+            if stopwords_list.include?(word.downcase) && !word.match?(/^[A-Z]/) # Don't remove capitalized words
+              ''
+            else
+              word
+            end
+          end
         end
       end.join("\n")
     end
@@ -147,7 +143,7 @@ module LlmDocsBuilder
     #
     # @param content [String] text with code replaced by {Transformers::CodeBlocks} placeholders
     # @return [String] text with duplicate paragraphs removed
-    def drop_duplicate_paragraphs(content)
+    def remove_duplicate_paragraphs_outside_code(content)
       # Split into paragraphs (separated by blank lines)
       paragraphs = content.split(/\n\s*\n/)
 
