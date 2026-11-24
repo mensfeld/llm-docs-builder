@@ -17,10 +17,23 @@ RSpec.describe 'version command' do
   end
 
   it 'shows error for unknown command' do
-    stdout, _stderr, status = run_cli('unknown-command')
+    stdout, stderr, status = run_cli('unknown-command')
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Unknown command: unknown-command')
+    expect(stderr).to include('Unknown command: unknown-command')
+    expect(stderr).to include("Run 'llm-docs-builder --help' for usage information")
+    expect(stdout).to be_empty
+  end
+
+  it 'shows a usage error for an unknown option' do
+    stdout, stderr, status = run_cli('transform', '--foo')
+
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to eq(<<~ERR)
+      Error: invalid option: --foo
+      Run 'llm-docs-builder --help' for usage information
+    ERR
+    expect(stdout).to be_empty
   end
 end

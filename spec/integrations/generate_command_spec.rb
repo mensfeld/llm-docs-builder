@@ -130,11 +130,12 @@ RSpec.describe 'generate command' do
       output: #{File.join(temp_dir, 'llms.txt')}
     YAML
 
-    stdout, _stderr, status = run_cli('generate', '--config', config_file)
+    stdout, stderr, status = run_cli('generate', '--config', config_file)
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Documentation path not found')
+    expect(stderr).to include('Documentation path not found')
+    expect(stdout).to be_empty
   end
 
   it 'excludes files based on config excludes patterns' do

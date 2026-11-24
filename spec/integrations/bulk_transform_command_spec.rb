@@ -493,14 +493,15 @@ RSpec.describe 'bulk-transform command' do
   end
 
   it 'fails when directory does not exist' do
-    stdout, _stderr, status = run_cli(
+    stdout, stderr, status = run_cli(
       'bulk-transform',
       '--docs', '/nonexistent/directory'
     )
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Documentation path not found')
+    expect(stderr).to include('Documentation path not found')
+    expect(stdout).to be_empty
   end
 
   it 'fails without writing files when the config file does not exist' do
