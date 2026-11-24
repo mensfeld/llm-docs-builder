@@ -121,6 +121,39 @@ RSpec.describe 'transform command' do
     MD
   end
 
+  context 'when the config sets output' do
+    let(:llms_txt) { File.join(temp_dir, 'out', 'llms.txt') }
+
+    before do
+      FileUtils.mkdir_p(File.dirname(llms_txt))
+      File.write(llms_txt, "# Site\n")
+      File.write(File.join(temp_dir, 'README.md'), "# Readme\n\nHello.\n")
+      File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "output: out/llms.txt\n")
+    end
+
+    def run_cli_in_temp_dir(*args)
+      gemfile = File.expand_path('../../Gemfile', __dir__)
+      Open3.capture3({ 'BUNDLE_GEMFILE' => gemfile }, 'bundle', 'exec', cli_path, *args, chdir: temp_dir)
+    end
+
+    it 'prints to stdout and leaves the generated llms.txt unchanged' do
+      stdout, _stderr, status = run_cli_in_temp_dir('transform', '-d', 'README.md')
+
+      expect(status.success?).to be true
+      expect(stdout).to eq("# Readme\n\nHello.\n")
+      expect(File.read(llms_txt)).to eq("# Site\n")
+    end
+
+    it 'writes llms.txt when given with -o' do
+      stdout, _stderr, status = run_cli_in_temp_dir('transform', '-d', 'README.md', '-o', 'llms.txt')
+
+      expect(status.success?).to be true
+      expect(stdout).to eq("Transformed content saved to llms.txt\n")
+      expect(File.read(File.join(temp_dir, 'llms.txt'))).to eq("# Readme\n\nHello.")
+      expect(File.read(llms_txt)).to eq("# Site\n")
+    end
+  end
+
   it 'fails when file does not exist' do
     output_file = File.join(temp_dir, 'output.md')
 

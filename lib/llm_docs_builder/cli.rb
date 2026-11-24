@@ -97,7 +97,7 @@ module LlmDocsBuilder
           options[:docs] = path
         end
 
-        opts.on('-o', '--output PATH', 'Output file path') do |path|
+        opts.on('-o', '--output PATH', 'Output file path (transform prints to stdout without it)') do |path|
           options[:output] = path
         end
 
@@ -175,7 +175,8 @@ module LlmDocsBuilder
     # @param options [Hash] command options from parse_options
     # @option options [String] :config path to config file
     # @option options [String] :docs path to markdown file (required)
-    # @option options [String] :output output file path
+    # @option options [String] :output output file path (prints to stdout when not given;
+    #   the config's output is not used)
     # @option options [String] :base_url base URL for link expansion
     # @option options [Boolean] :convert_urls convert .html to .md
     # @option options [Boolean] :verbose enable verbose output
@@ -222,9 +223,10 @@ module LlmDocsBuilder
           LlmDocsBuilder.transform_markdown(file_path, merged_options)
         end
 
-      if merged_options[:output] && merged_options[:output] != 'llms.txt'
-        File.write(merged_options[:output], content)
-        puts "Transformed content saved to #{merged_options[:output]}"
+      # The config's output names the generate target, so only -o writes a file here
+      if options[:output]
+        File.write(options[:output], content)
+        puts "Transformed content saved to #{options[:output]}"
       else
         puts content
       end
