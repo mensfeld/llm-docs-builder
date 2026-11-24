@@ -14,6 +14,13 @@ RSpec.describe 'generate command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
   it 'generates llms.txt from documentation directory' do
     # Create sample documentation
     File.write(File.join(temp_dir, 'README.md'), <<~MD)
@@ -600,11 +607,7 @@ RSpec.describe 'generate command' do
       output: other-llms.txt
     YAML
 
-    _, _stderr, status = Open3.capture3(
-      { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) },
-      "bundle exec #{cli_path} generate --config other.yml",
-      chdir: temp_dir
-    )
+    _, _stderr, status = run_cli_in(temp_dir, 'generate', '--config', 'other.yml')
 
     expect(status.success?).to be true
     content = File.read(File.join(temp_dir, 'other-llms.txt'))

@@ -14,6 +14,13 @@ RSpec.describe 'transform command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
   it 'transforms markdown file with base URL expansion' do
     # Create markdown file with relative links
     input_file = File.join(temp_dir, 'test.md')
@@ -146,11 +153,7 @@ RSpec.describe 'transform command' do
       remove_badges: true
     YAML
 
-    stdout, _stderr, status = Open3.capture3(
-      { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) },
-      "bundle exec #{cli_path} transform --config other.yml --docs api.md",
-      chdir: temp_dir
-    )
+    stdout, _stderr, status = run_cli_in(temp_dir, 'transform', '--config', 'other.yml', '--docs', 'api.md')
 
     expect(status.success?).to be true
     expect(stdout).not_to include('MAIN-ONLY INSTRUCTION')

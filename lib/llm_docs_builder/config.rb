@@ -87,7 +87,7 @@ module LlmDocsBuilder
     # @option options [String] :content raw markdown content
     # @option options [String] :source_url source URL for content
     # @return [Hash] merged configuration with CLI overrides applied, marked with
-    #   `config_merged: true` so the library does not load a config file again
+    #   `config_merged: true`; the library loads no config file for it unless `:config_file` is given
     def merge_with_options(options)
       # CLI options override config file, config file provides defaults
       {
