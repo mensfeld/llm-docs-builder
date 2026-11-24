@@ -134,4 +134,27 @@ RSpec.describe 'transform command' do
     expect(status.exitstatus).to eq(1)
     expect(stdout).to include('File not found')
   end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    File.write(File.join(temp_dir, 'api.md'), "# API\n\nSee [setup](setup.md).\n")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      base_url: https://main.example
+      custom_instruction: MAIN-ONLY INSTRUCTION
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      remove_badges: true
+    YAML
+
+    stdout, _stderr, status = Open3.capture3(
+      { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) },
+      "bundle exec #{cli_path} transform --config other.yml --docs api.md",
+      chdir: temp_dir
+    )
+
+    expect(status.success?).to be true
+    expect(stdout).not_to include('MAIN-ONLY INSTRUCTION')
+    expect(stdout).not_to include('main.example')
+    expect(stdout).to include('See [setup](setup.md).')
+  end
 end

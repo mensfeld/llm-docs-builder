@@ -495,4 +495,30 @@ RSpec.describe 'bulk-transform command' do
     expect(status.exitstatus).to eq(1)
     expect(stdout).to include('Documentation path not found')
   end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'docs', 'api.md'), "# API\n\nSee [setup](setup.md).\n")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      docs: ./docs
+      base_url: https://main.example
+      custom_instruction: MAIN-ONLY INSTRUCTION
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      docs: ./docs
+    YAML
+
+    _, _stderr, status = Open3.capture3(
+      { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) },
+      "bundle exec #{cli_path} bulk-transform --config other.yml",
+      chdir: temp_dir
+    )
+
+    expect(status.success?).to be true
+    content = File.read(File.join(temp_dir, 'docs', 'api.llm.md'))
+    expect(content).not_to include('MAIN-ONLY INSTRUCTION')
+    expect(content).not_to include('main.example')
+    expect(content).to include('See [setup](setup.md).')
+  end
 end

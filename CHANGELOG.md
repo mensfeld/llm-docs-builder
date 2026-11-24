@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **`--config` No Longer Mixes In `llm-docs-builder.yml`** - With `--config other.yml`, keys that `other.yml` leaves out (`title`, `description`, `base_url`, `body`, `custom_instruction`) are no longer taken from `llm-docs-builder.yml` in the current directory. The config is now loaded once.
 - [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
   - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.
 - [Fix] **`parse` and `validate` Read `llms.txt` by Default** - Without `--docs`, both commands now read `llms.txt` in the current directory, as documented. Before, they took the config's `docs` setting (the docs directory for `generate`, `.` by default) and failed with "Is a directory".

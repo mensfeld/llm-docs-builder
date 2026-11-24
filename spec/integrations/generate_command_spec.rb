@@ -583,4 +583,33 @@ RSpec.describe 'generate command' do
     links = File.readlines(output_file, chomp: true).grep(/\A- \[/)
     expect(links).to eq(['- [README](README.md): Content'])
   end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'docs', 'api.md'), "# API\n\nThe api.")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      docs: ./docs
+      title: Main Site
+      description: Main docs
+      base_url: https://main.example
+      body: Main body
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      docs: ./docs
+      output: other-llms.txt
+    YAML
+
+    _, _stderr, status = Open3.capture3(
+      { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) },
+      "bundle exec #{cli_path} generate --config other.yml",
+      chdir: temp_dir
+    )
+
+    expect(status.success?).to be true
+    content = File.read(File.join(temp_dir, 'other-llms.txt'))
+    expect(content).to start_with("# #{File.basename(temp_dir)}\n")
+    expect(content).not_to include('Main')
+    expect(content).to include('- [API](api.md): The api.')
+  end
 end

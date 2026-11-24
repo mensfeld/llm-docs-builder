@@ -86,7 +86,8 @@ module LlmDocsBuilder
     # @option options [Boolean] :calculate_compression calculate compression ratios
     # @option options [String] :content raw markdown content
     # @option options [String] :source_url source URL for content
-    # @return [Hash] merged configuration with CLI overrides applied
+    # @return [Hash] merged configuration with CLI overrides applied, marked with
+    #   `config_merged: true` so the library does not load a config file again
     def merge_with_options(options)
       # CLI options override config file, config file provides defaults
       {
@@ -209,6 +210,7 @@ module LlmDocsBuilder
                                  self['calculate_compression'] || false
                                end
       }.tap do |merged|
+        merged[:config_merged] = true
         merged[:content] = options[:content] if options.key?(:content)
         merged[:source_url] = options[:source_url] if options.key?(:source_url)
       end

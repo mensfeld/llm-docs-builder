@@ -56,8 +56,7 @@ module LlmDocsBuilder
         docs_path = nil
       end
 
-      config = Config.new(options[:config_file])
-      merged_options = config.merge_with_options(options)
+      merged_options = merge_config(options)
 
       # Use docs_path param or config file docs setting
       final_docs_path = docs_path || merged_options[:docs]
@@ -85,8 +84,7 @@ module LlmDocsBuilder
     # @example Transform using config file
     #   LlmDocsBuilder.transform_markdown('README.md', config_file: 'llm-docs-builder.yml')
     def transform_markdown(file_path, options = {})
-      config = Config.new(options[:config_file])
-      merged_options = config.merge_with_options(options)
+      merged_options = merge_config(options)
 
       MarkdownTransformer.new(file_path, merged_options).transform
     end
@@ -118,8 +116,7 @@ module LlmDocsBuilder
     # @example Bulk transform using config file
     #   LlmDocsBuilder.bulk_transform('./docs', config_file: 'llm-docs-builder.yml')
     def bulk_transform(docs_path, options = {})
-      config = Config.new(options[:config_file])
-      merged_options = config.merge_with_options(options)
+      merged_options = merge_config(options)
 
       BulkTransformer.new(docs_path, merged_options).transform_all
     end
@@ -138,6 +135,20 @@ module LlmDocsBuilder
     # @return [Boolean] true if content is valid, false otherwise
     def validate(content)
       Validator.new(content).valid?
+    end
+
+    private
+
+    # Merges config file values into options, unless the options are already merged
+    #
+    # @param options [Hash] options, possibly already merged by Config#merge_with_options
+    # @option options [String] :config_file path to YAML config file (auto-finds llm-docs-builder.yml)
+    # @option options [Boolean] :config_merged set by Config#merge_with_options, skips loading
+    # @return [Hash] merged options
+    def merge_config(options)
+      return options if options[:config_merged]
+
+      Config.new(options[:config_file]).merge_with_options(options)
     end
   end
 end
