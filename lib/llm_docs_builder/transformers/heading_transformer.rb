@@ -55,7 +55,8 @@ module LlmDocsBuilder
 
           if heading_match && heading_match[1].length.between?(1, 6)
             level = heading_match[1].length
-            title = heading_match[2].strip
+            # String#strip also removes NUL, which would cut a code placeholder at either end
+            title = heading_match[2].gsub(/\A\s+|\s+\z/, '')
 
             # Update heading stack to current level
             heading_stack = heading_stack[0...level - 1]

@@ -350,6 +350,41 @@ RSpec.describe 'Compression Features Integration' do
         ### Guide / Setup / Run
       MD
     end
+
+    it 'keeps inline code at the start and end of headings' do
+      File.write(test_file, <<~MD)
+        # Guide
+
+        ## Using `compress`
+
+        ## `foo` option ##
+      MD
+
+      result = LlmDocsBuilder.transform_markdown(test_file, normalize_headings: true)
+
+      expect(result).to eq(<<~MD.chomp)
+        # Guide
+
+        ## Guide / Using `compress`
+
+        ## Guide / `foo` option
+      MD
+    end
+
+    it 'keeps inline code in headings and the table of contents' do
+      File.write(test_file, <<~MD)
+        # Guide
+
+        ## Using `compress`
+      MD
+
+      result = LlmDocsBuilder.transform_markdown(
+        test_file, normalize_headings: true, generate_toc: true, remove_duplicates: true, remove_stopwords: true
+      )
+
+      expect(result).to include('## Guide / Using `compress`')
+      expect(result).not_to include("\u0000")
+    end
   end
 
   describe 'Bulk Transformation with Compression' do
