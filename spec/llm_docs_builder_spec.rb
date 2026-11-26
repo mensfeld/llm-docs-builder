@@ -467,6 +467,35 @@ RSpec.describe LlmDocsBuilder do
         expect(result).to include('# Config Title')
         expect(result).to include('https://config-test.com/README.md')
       end
+
+      it 'auto-discovers llm-docs-builder.yml in the current directory' do
+        result = Dir.chdir(temp_dir) { LlmDocsBuilder.generate_from_docs(temp_dir) }
+
+        expect(result).to include('# Config Title')
+        expect(result).to include('https://config-test.com/README.md')
+      end
+
+      it 'does not load a config file again for options merged by Config#merge_with_options' do
+        other_config = File.join(temp_dir, 'other.yml')
+        File.write(other_config, "docs: #{temp_dir}\n")
+        merged = LlmDocsBuilder::Config.new(other_config).merge_with_options({})
+
+        result = Dir.chdir(temp_dir) { LlmDocsBuilder.generate_from_docs(merged[:docs], merged) }
+
+        expect(result).not_to include('Config Title')
+        expect(result).not_to include('https://config-test.com')
+      end
+
+      it 'loads an explicit config_file for options merged by Config#merge_with_options' do
+        other_config = File.join(temp_dir, 'other.yml')
+        File.write(other_config, "docs: #{temp_dir}\n")
+        merged = LlmDocsBuilder::Config.new(other_config).merge_with_options({})
+
+        result = LlmDocsBuilder.generate_from_docs(merged[:docs], merged.merge(config_file: config_file))
+
+        expect(result).to include('# Config Title')
+        expect(result).to include('https://config-test.com/README.md')
+      end
     end
 
     describe '.transform_markdown with config file' do

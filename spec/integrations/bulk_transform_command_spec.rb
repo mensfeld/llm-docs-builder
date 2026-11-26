@@ -515,4 +515,26 @@ RSpec.describe 'bulk-transform command' do
     expect(stdout).to include('Config file not found: missing.yml')
     expect(Dir.glob(File.join(temp_dir, '**', '*.llm.md'))).to be_empty
   end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'docs', 'api.md'), "# API\n\nSee [setup](setup.md).\n")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      docs: ./docs
+      base_url: https://main.example
+      custom_instruction: MAIN-ONLY INSTRUCTION
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      docs: ./docs
+    YAML
+
+    _, _stderr, status = run_cli_in(temp_dir, 'bulk-transform', '--config', 'other.yml')
+
+    expect(status.success?).to be true
+    content = File.read(File.join(temp_dir, 'docs', 'api.llm.md'))
+    expect(content).not_to include('MAIN-ONLY INSTRUCTION')
+    expect(content).not_to include('main.example')
+    expect(content).to include('See [setup](setup.md).')
+  end
 end

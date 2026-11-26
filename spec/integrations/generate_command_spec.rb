@@ -601,4 +601,29 @@ RSpec.describe 'generate command' do
     expect(stdout).to include('Config file not found: missing.yml')
     expect(File.exist?(File.join(temp_dir, 'llms.txt'))).to be false
   end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'docs', 'api.md'), "# API\n\nThe api.")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      docs: ./docs
+      title: Main Site
+      description: Main docs
+      base_url: https://main.example
+      body: Main body
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      docs: ./docs
+      output: other-llms.txt
+    YAML
+
+    _, _stderr, status = run_cli_in(temp_dir, 'generate', '--config', 'other.yml')
+
+    expect(status.success?).to be true
+    content = File.read(File.join(temp_dir, 'other-llms.txt'))
+    expect(content).to start_with("# #{File.basename(temp_dir)}\n")
+    expect(content).not_to include('Main')
+    expect(content).to include('- [API](api.md): The api.')
+  end
 end

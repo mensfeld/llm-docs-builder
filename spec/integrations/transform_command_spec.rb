@@ -14,6 +14,13 @@ RSpec.describe 'transform command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
   it 'transforms markdown file with base URL expansion' do
     # Create markdown file with relative links
     input_file = File.join(temp_dir, 'test.md')
@@ -261,5 +268,24 @@ RSpec.describe 'transform command' do
     expect(status.exitstatus).to eq(1)
     expect(stderr).to include('File not found')
     expect(stdout).to be_empty
+  end
+
+  it 'does not mix in llm-docs-builder.yml when --config names another file' do
+    File.write(File.join(temp_dir, 'api.md'), "# API\n\nSee [setup](setup.md).\n")
+
+    File.write(File.join(temp_dir, 'llm-docs-builder.yml'), <<~YAML)
+      base_url: https://main.example
+      custom_instruction: MAIN-ONLY INSTRUCTION
+    YAML
+    File.write(File.join(temp_dir, 'other.yml'), <<~YAML)
+      remove_badges: true
+    YAML
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'transform', '--config', 'other.yml', '--docs', 'api.md')
+
+    expect(status.success?).to be true
+    expect(stdout).not_to include('MAIN-ONLY INSTRUCTION')
+    expect(stdout).not_to include('main.example')
+    expect(stdout).to include('See [setup](setup.md).')
   end
 end
