@@ -493,14 +493,27 @@ RSpec.describe 'bulk-transform command' do
   end
 
   it 'fails when directory does not exist' do
-    stdout, _stderr, status = run_cli(
+    stdout, stderr, status = run_cli(
       'bulk-transform',
       '--docs', '/nonexistent/directory'
     )
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Documentation path not found')
+    expect(stderr).to include('Documentation path not found')
+    expect(stdout).to be_empty
+  end
+
+  it 'fails without writing files when the config file does not exist' do
+    File.write(File.join(temp_dir, 'README.md'), "# README\n\nContent")
+    FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
+    File.write(File.join(temp_dir, 'docs', 'a.md'), "# A\n\nContent")
+
+    stdout, _stderr, status = run_cli_in(temp_dir, 'bulk-transform', '--config', 'missing.yml')
+
+    expect(status.exitstatus).to eq(1)
+    expect(stdout).to include('Config file not found: missing.yml')
+    expect(Dir.glob(File.join(temp_dir, '**', '*.llm.md'))).to be_empty
   end
 
   it 'does not mix in llm-docs-builder.yml when --config names another file' do

@@ -86,7 +86,7 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       # API Documentation
 
 
@@ -95,6 +95,103 @@ RSpec.describe 'transform command' do
       [Click here to see the complete API documentation](./api.md)
 
       api = API.new
+    MD
+  end
+
+  it 'keeps code blocks unchanged when cleaning comments, badges, images and blockquotes' do
+    input_file = File.join(temp_dir, 'test.md')
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      # Embedding
+
+      <!-- outside comment -->
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+
+      > Note: outside quote
+
+      ```html
+      <!-- analytics: keep this comment, the loader reads it -->
+      <div id="app"></div>
+      ```
+
+      ```markdown
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+      > Note: quoted text
+      ```
+    MD
+
+    File.write(config_file, <<~YAML)
+      remove_comments: true
+      remove_badges: true
+      remove_images: true
+      remove_blockquotes: true
+    YAML
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file,
+      '--config', config_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      # Embedding
+
+
+      Note: outside quote
+
+      ```html
+      <!-- analytics: keep this comment, the loader reads it -->
+      <div id="app"></div>
+      ```
+
+      ```markdown
+      [![Build](https://img.shields.io/badge/build-passing.svg)](https://ci.example)
+      ![Diagram](diagram.png)
+      > Note: quoted text
+      ```
+    MD
+  end
+
+  it 'cleans and expands links outside code with base_url' do
+    input_file = File.join(temp_dir, 'test.md')
+    config_file = File.join(temp_dir, 'config.yml')
+    output_file = File.join(temp_dir, 'output.md')
+
+    File.write(input_file, <<~MD)
+      <!-- outside -->
+      See [guide](guide.md).
+
+      ```markdown
+      <!-- inside -->
+      See [guide](guide.md).
+      ```
+    MD
+
+    File.write(config_file, <<~YAML)
+      base_url: https://mysite.com
+    YAML
+
+    _stdout, _stderr, status = run_cli(
+      'transform',
+      '--docs', input_file,
+      '--output', output_file,
+      '--config', config_file
+    )
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to eq(<<~MD.chomp)
+      See [guide](https://mysite.com/guide.md).
+
+      ```markdown
+      <!-- inside -->
+      See [guide](guide.md).
+      ```
     MD
   end
 
@@ -121,17 +218,28 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       [docs](./docs.md)
 
       [complete API guide](./api.md)
     MD
   end
 
+  it 'ends the output file with a newline' do
+    input_file = File.join(temp_dir, 'test.md')
+    output_file = File.join(temp_dir, 'output.md')
+    File.write(input_file, "# Title\n\nThe api.\n")
+
+    _stdout, _stderr, status = run_cli('transform', '--docs', input_file, '--output', output_file)
+
+    expect(status.success?).to be true
+    expect(File.read(output_file)).to end_with("The api.\n")
+  end
+
   it 'fails when file does not exist' do
     output_file = File.join(temp_dir, 'output.md')
 
-    stdout, _stderr, status = run_cli(
+    stdout, stderr, status = run_cli(
       'transform',
       '--docs', '/nonexistent/file.md',
       '--output', output_file
@@ -139,7 +247,27 @@ RSpec.describe 'transform command' do
 
     expect(status.success?).to be false
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('File not found')
+    expect(stderr).to include('File not found')
+    expect(stdout).to be_empty
+  end
+
+  it 'fails when both --docs and --url are given' do
+    input_file = File.join(temp_dir, 'test.md')
+    File.write(input_file, "# Title\n")
+
+    stdout, stderr, status = run_cli('transform', '--docs', input_file, '--url', 'https://example.com/doc.md')
+
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to include('Cannot use both --docs and --url for transform command')
+    expect(stdout).to be_empty
+  end
+
+  it 'keeps errors out of redirected stdout' do
+    stdout, stderr, status = run_cli('transform', '--docs', File.join(temp_dir, 'missing.md'))
+
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to include('File not found')
+    expect(stdout).to be_empty
   end
 
   it 'does not mix in llm-docs-builder.yml when --config names another file' do

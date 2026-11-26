@@ -18,6 +18,10 @@ Metrics/ClassLength:
 Metrics/MethodLength:
   Max: 35
 
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/llm_docs_builder/transformers/code_blocks.rb'
+
 Metrics/AbcSize:
   Max: 40
 
@@ -39,6 +43,11 @@ Style/FrozenStringLiteralComment:
 Style/MultilineBlockChain:
   Exclude:
     - 'spec/**/*'
+
+# CLI errors must reach stderr even with warnings disabled (-W0), which silences warn
+Style/StderrPuts:
+  Exclude:
+    - 'lib/llm_docs_builder/cli.rb'
 
 # Disable predicate method naming rule
 Naming/PredicateMethod:

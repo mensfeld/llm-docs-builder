@@ -46,20 +46,38 @@ module LlmDocsBuilder
       when 'version'
         show_version
       else
-        puts "Unknown command: #{options[:command]}"
-        puts "Run 'llm-docs-builder --help' for usage information"
-        exit 1
+        exit_with_usage_error("Unknown command: #{options[:command]}")
       end
+    rescue OptionParser::ParseError => e
+      exit_with_usage_error("Error: #{e.message}")
     rescue LlmDocsBuilder::Errors::BaseError => e
-      puts "Error: #{e.message}"
-      exit 1
+      exit_with_error("Error: #{e.message}")
     rescue StandardError => e
-      puts "Unexpected error: #{e.message}"
-      puts e.backtrace.join("\n") if options&.fetch(:verbose, false)
-      exit 1
+      lines = ["Unexpected error: #{e.message}"]
+      lines << e.backtrace.join("\n") if options&.fetch(:verbose, false)
+      exit_with_error(*lines)
     end
 
     private
+
+    # Print error lines to stderr and exit
+    #
+    # Uses $stderr directly because Kernel#warn prints nothing when warnings are disabled (-W0).
+    #
+    # @param lines [Array<String>] lines to print
+    # @raise [SystemExit] always, with status 1
+    def exit_with_error(*lines)
+      lines.each { |line| $stderr.puts(line) }
+      exit 1
+    end
+
+    # Print a usage error with a pointer to the help and exit
+    #
+    # @param message [String] error message
+    # @raise [SystemExit] always, with status 1
+    def exit_with_usage_error(message)
+      exit_with_error(message, "Run 'llm-docs-builder --help' for usage information")
+    end
 
     # Parse command-line options using OptionParser
     #
@@ -139,15 +157,12 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if docs path not found
     def generate(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
 
-      unless File.exist?(docs_path)
-        puts "Documentation path not found: #{docs_path}"
-        exit 1
-      end
+      exit_with_error("Documentation path not found: #{docs_path}") unless File.exist?(docs_path)
 
       puts "Generating llms.txt from #{docs_path}..." if merged_options[:verbose]
 
@@ -182,7 +197,7 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if file not found or -d flag missing
     def transform(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       url = options[:url]
@@ -190,16 +205,10 @@ module LlmDocsBuilder
       config_file_path = config['docs']
       file_path = url ? cli_file_path : (cli_file_path || config_file_path)
 
-      if url && cli_file_path
-        puts 'Cannot use both --docs and --url for transform command'
-        exit 1
-      end
+      exit_with_error('Cannot use both --docs and --url for transform command') if url && cli_file_path
 
       unless file_path
-        unless url
-          puts 'File path required for transform command (use -d/--docs)'
-          exit 1
-        end
+        exit_with_error('File path required for transform command (use -d/--docs)') unless url
       end
 
       content =
@@ -211,10 +220,7 @@ module LlmDocsBuilder
           transform_options = merged_options.merge(content: remote_content, docs: nil, source_url: url)
           LlmDocsBuilder.transform_markdown(nil, transform_options)
         else
-          unless File.exist?(file_path)
-            puts "File not found: #{file_path}"
-            exit 1
-          end
+          exit_with_error("File not found: #{file_path}") unless File.exist?(file_path)
 
           puts "Transforming #{file_path}..." if merged_options[:verbose]
 
@@ -223,7 +229,7 @@ module LlmDocsBuilder
         end
 
       if merged_options[:output] && merged_options[:output] != 'llms.txt'
-        File.write(merged_options[:output], content)
+        File.write(merged_options[:output], content.sub(/\n?\z/, "\n"))
         puts "Transformed content saved to #{merged_options[:output]}"
       else
         puts content
@@ -245,19 +251,15 @@ module LlmDocsBuilder
     # @raise [SystemExit] exits with status 1 if directory not found or transformation fails
     def bulk_transform(options)
       # Load config and merge with CLI options
-      config = LlmDocsBuilder::Config.new(options[:config])
+      config = load_config(options[:config])
       merged_options = config.merge_with_options(options)
 
       docs_path = merged_options[:docs]
 
-      unless File.exist?(docs_path)
-        puts "Documentation path not found: #{docs_path}"
-        exit 1
-      end
+      exit_with_error("Documentation path not found: #{docs_path}") unless File.exist?(docs_path)
 
       unless File.directory?(docs_path)
-        puts "Path must be a directory for bulk transformation: #{docs_path}"
-        exit 1
+        exit_with_error("Path must be a directory for bulk transformation: #{docs_path}")
       end
 
       puts "Bulk transforming markdown files in #{docs_path}..." if merged_options[:verbose]
@@ -281,8 +283,7 @@ module LlmDocsBuilder
           end
         end
       rescue LlmDocsBuilder::Errors::BaseError => e
-        puts "Error during bulk transformation: #{e.message}"
-        exit 1
+        exit_with_error("Error during bulk transformation: #{e.message}")
       end
     end
 
@@ -294,24 +295,27 @@ module LlmDocsBuilder
     #
     # @param options [Hash] command options from parse_options
     # @option options [String] :docs path to llms.txt file (defaults to 'llms.txt')
-    # @option options [Boolean] :verbose enable verbose output with link counts
+    # @option options [Boolean] :verbose also list each link under its section count
     # @raise [SystemExit] exits with status 1 if file not found
     def parse(options)
       file_path = options[:docs] || 'llms.txt'
 
-      unless File.exist?(file_path)
-        puts "File not found: #{file_path}"
-        exit 1
-      end
+      exit_with_error("File not found: #{file_path}") unless File.exist?(file_path)
 
       parsed = LlmDocsBuilder.parse(file_path)
 
-      if options[:verbose]
-        puts "Title: #{parsed.title}"
-        puts "Description: #{parsed.description}"
-        puts "Documentation Links: #{parsed.documentation_links.size}"
-        puts "Example Links: #{parsed.example_links.size}" if parsed.respond_to?(:example_links)
-        puts "Optional Links: #{parsed.optional_links.size}" if parsed.respond_to?(:optional_links)
+      puts "Title: #{parsed.title}"
+      puts "Description: #{parsed.description}"
+
+      {
+        'Documentation' => parsed.documentation_links,
+        'Example' => parsed.example_links,
+        'Optional' => parsed.optional_links
+      }.each do |section, links|
+        puts "#{section} Links: #{links.size}"
+        next unless options[:verbose]
+
+        links.each { |link| puts "  - #{link[:title]}: #{link[:url]}" }
       end
     end
 
@@ -330,15 +334,16 @@ module LlmDocsBuilder
       url = options[:url]
 
       unless url
-        puts 'URL required for compare command (use -u/--url)'
-        puts ''
-        puts 'Examples:'
-        puts '  # Compare remote versions (different User-Agents)'
-        puts '  llm-docs-builder compare --url https://example.com/docs/page.html'
-        puts ''
-        puts '  # Compare remote with local file'
-        puts '  llm-docs-builder compare --url https://example.com/docs/page.html --file docs/page.md'
-        exit 1
+        exit_with_error(
+          'URL required for compare command (use -u/--url)',
+          '',
+          'Examples:',
+          '  # Compare remote versions (different User-Agents)',
+          '  llm-docs-builder compare --url https://example.com/docs/page.html',
+          '',
+          '  # Compare remote with local file',
+          '  llm-docs-builder compare --url https://example.com/docs/page.html --file docs/page.md'
+        )
       end
 
       comparator_options = {
@@ -352,8 +357,7 @@ module LlmDocsBuilder
         result = comparator.compare
         OutputFormatter.display_comparison_results(result)
       rescue LlmDocsBuilder::Errors::BaseError => e
-        puts "Error during comparison: #{e.message}"
-        exit 1
+        exit_with_error("Error during comparison: #{e.message}")
       end
     end
 
@@ -369,10 +373,7 @@ module LlmDocsBuilder
     def validate(options)
       file_path = options[:docs] || 'llms.txt'
 
-      unless File.exist?(file_path)
-        puts "File not found: #{file_path}"
-        exit 1
-      end
+      exit_with_error("File not found: #{file_path}") unless File.exist?(file_path)
 
       content = File.read(file_path)
       valid = LlmDocsBuilder.validate(content)
@@ -387,6 +388,19 @@ module LlmDocsBuilder
         end
         exit 1
       end
+    end
+
+    # Load the config file given with --config, or the auto-discovered one
+    #
+    # @param config_path [String, nil] path given with --config, or nil to auto-find
+    # @return [LlmDocsBuilder::Config] loaded configuration
+    # @raise [LlmDocsBuilder::Errors::GenerationError] if the given config file does not exist
+    def load_config(config_path)
+      if config_path && !File.exist?(config_path)
+        raise LlmDocsBuilder::Errors::GenerationError, "Config file not found: #{config_path}"
+      end
+
+      LlmDocsBuilder::Config.new(config_path)
     end
 
     # Display version information

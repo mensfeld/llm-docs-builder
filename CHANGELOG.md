@@ -1,6 +1,12 @@
 # Changelog
 
 ## 1.1.1 (Unreleased)
+- [Fix] **Cleanup Options Keep Code Unchanged** - `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` no longer edit fenced code, indented code or inline code, so HTML and Markdown examples stay intact. With `remove_blockquotes`, code inside a blockquote loses its quote markers like the text around it.
+- [Fix] **Missing `--config` File Fails the Run** - `generate`, `transform` and `bulk-transform` now exit 1 with `Config file not found: <path>` when the file given with `--config` does not exist, and write nothing. Before, they ran with the defaults (`docs: .`), so `bulk-transform` wrote `*.llm.md` next to every Markdown file under the current directory. Without `--config`, a missing `llm-docs-builder.yml` still means the defaults. `Config.new` with a missing file is unchanged.
+- [Fix] **CLI Errors Go to stderr** - Error messages are now printed to stderr instead of stdout, so `transform -d missing.md > out.md` no longer writes the error into `out.md`. The `validate` report ("Invalid llms.txt file" and its errors) stays on stdout, as the command's result. Only CLI output changes, not the Ruby API.
+- [Fix] **Unknown Options Are Usage Errors** - An unknown option (e.g. `transform --foo`) now prints `Error: invalid option: --foo` and a pointer to `--help` instead of `Unexpected error: ...`.
+- [Fix] **`parse` Prints Its Summary Without `--verbose`** - `parse` now always prints the title, description and link counts; `--verbose` also lists each link.
+- [Fix] **`transform --output` Ends the File With a Newline** - The output file now ends with `\n`; one is added only if the content lacks it.
 - [Fix] **`--config` No Longer Mixes In `llm-docs-builder.yml`** - With `--config other.yml`, keys that `other.yml` leaves out (`title`, `description`, `base_url`, `body`, `custom_instruction`) are no longer taken from `llm-docs-builder.yml` in the current directory. The config is now loaded once.
 - [Fix] **`remove_code_examples` No Longer Truncates Documents** - The first line indented by four spaces or a tab no longer deletes everything after it. Only indented code blocks are removed; nested list items and list continuation lines stay.
   - A heading or a fence that is not indented now ends a list, so indented code after it counts as code. `base_url` and `convert_urls` no longer rewrite links in such code either.

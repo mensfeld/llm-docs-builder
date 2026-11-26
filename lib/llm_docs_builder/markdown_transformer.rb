@@ -47,7 +47,7 @@ module LlmDocsBuilder
     #
     # Processes content through specialized transformers in order:
     # 1. ContentCleanupTransformer - Removes unwanted elements
-    # 2. LinkTransformer - Processes links
+    # 2. LinkTransformer - Processes links, on the code detection of step 1
     # 3. HeadingTransformer - Normalizes heading hierarchy (if enabled)
     # 4. TextCompressor - Advanced compression (if enabled)
     # 5. EnhancementTransformer - Adds TOC and instructions
@@ -58,8 +58,9 @@ module LlmDocsBuilder
       content = load_content
 
       # Build and execute transformation pipeline
-      content = cleanup_transformer.transform(content, options)
-      content = link_transformer.transform(content, options)
+      content = cleanup_transformer.transform(content, options) do |text|
+        link_transformer.transform_outside_code(text, options)
+      end
       content = heading_transformer.transform(content, options)
       content = compress_content(content) if should_compress?
       content = enhancement_transformer.transform(content, options)

@@ -359,6 +359,209 @@ RSpec.describe LlmDocsBuilder::Transformers::ContentCleanupTransformer do
       end
     end
 
+    context 'with code in the content' do
+      {
+        remove_comments: ['<!-- keep -->', '<!-- drop -->'],
+        remove_badges: ['[![CI](badge.svg)](https://ci.com)', '[![CI](https://img.shields.io/x.svg)](https://ci.com)'],
+        remove_images: ['![Diagram](diagram.png)', '![Logo](logo.png)'],
+        remove_blockquotes: ['> Note: quoted', '> Outside quote']
+      }.each do |option, (inside, outside)|
+        context "with #{option} option" do
+          it 'keeps the element inside fenced code and removes it outside' do
+            code = "```markdown\n#{inside}\n```\n"
+            content = "#{outside}\n\n#{code}"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to end_with("\n\n#{code}")
+            expect(result).not_to include(outside)
+          end
+
+          it 'keeps the element inside indented code and removes it outside' do
+            code = "    #{inside}\n"
+            content = "#{outside}\n\n#{code}"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to end_with("\n\n#{code}")
+            expect(result).not_to include(outside)
+          end
+
+          it 'keeps the element inside inline code' do
+            content = "Use `#{inside}` here.\n"
+
+            result = transformer.transform(content, option => true)
+
+            expect(result).to eq(content)
+          end
+        end
+      end
+
+      %i[remove_images remove_badges].each do |option|
+        it "does not let #{option} remove code after an unclosed image destination" do
+          content = "![a](badge.svg\n\n```\ncode\n```\n\nSee [b](x.svg).\n"
+
+          result = transformer.transform(content, option => true)
+
+          expect(result).to eq(content)
+        end
+      end
+
+      it 'does not let a linked badge remove code after an unclosed part' do
+        content = <<~MD
+          [![a](badge
+
+          ```
+          first
+          ```
+
+          [![b](c.svg)](d)
+
+          [![e](f.svg)](g
+
+          ```
+          second
+          ```
+
+          See (h).
+        MD
+
+        result = transformer.transform(content, remove_badges: true)
+
+        expect(result).to include("```\nfirst\n```", "```\nsecond\n```")
+        expect(result).not_to include('[![b]')
+      end
+
+      it 'does not end a comment at a closing marker inside code' do
+        content = "```html\n<!-- open\n```\n\nText.\n\n```html\nclose -->\n```\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq(content)
+      end
+
+      it 'removes comments outside code before code examples' do
+        content = "Use `<!--` here.\n\nKeep this.\n\n```\n-->\n```\n\n<!-- c -->\nEnd.\n"
+
+        result = transformer.transform(content, remove_comments: true, remove_code_examples: true)
+
+        expect(result).to eq("Use  here.\n\nKeep this.\n\n\n\n\nEnd.\n")
+      end
+
+      [
+        "<!-- note: ` is odd -->\nRun `make` first.\n",
+        "<!-- don't use ` here --> Use `make` now.\n"
+      ].each do |content|
+        it "removes a comment with an odd backtick: #{content.inspect}" do
+          result = transformer.transform(content, remove_comments: true)
+
+          expect(result).not_to include('<!--', '-->')
+          expect(result).to include('`make`')
+        end
+      end
+
+      it 'removes a comment with an odd backtick before code examples' do
+        content = "<!-- note: ` is odd -->\nRun `make` first.\n"
+
+        result = transformer.transform(content, remove_comments: true, remove_code_examples: true)
+
+        expect(result).to eq("\nRun  first.\n")
+      end
+
+      it 'scans unclosed comments in linear time' do
+        content = Array.new(20_000) { |i| "line #{i} <!-- open `x`\n" }.join
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 1
+        expect(result).to eq(content)
+      end
+
+      it 'removes a comment after an escaped backtick' do
+        result = transformer.transform("\\`<!-- a --> `b`\n", remove_comments: true)
+
+        expect(result).to eq("\\` `b`\n")
+      end
+
+      it 'keeps a comment inside inline code that starts first' do
+        content = "Use `<!-- -->` here.\n<!-- x -->\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq("Use `<!-- -->` here.\n\n")
+      end
+
+      {
+        'an inline image' => [{ remove_images: true }, 'Text ![oops', 'See ![img](i.png)'],
+        'a reference image alt text' => [{ remove_images: true }, 'Text ![oops', 'See ![img][ref]'],
+        'a reference image label' => [{ remove_images: true }, 'Text ![a][oops', 'See ![img][ref]'],
+        'a badge' => [{ remove_badges: true }, 'Text ![oops', 'See ![b](https://img.shields.io/x.svg)'],
+        'a linked badge' => [
+          { remove_badges: true }, 'Text [![oops', 'See [![b](https://img.shields.io/x.svg)](https://ci.com)'
+        ]
+      }.each do |name, (options, opening, image)|
+        it "does not let #{name} cross a code block" do
+          code = "```ruby\na = [1]\n```\n"
+          content = "#{opening}\n\n#{code}\n#{image}\n"
+
+          result = transformer.transform(content, options)
+
+          expect(result).to eq("#{opening}\n\n#{code}\nSee \n")
+        end
+      end
+
+      it 'removes an image whose alt text holds inline code with a bracket' do
+        result = transformer.transform("![a `]` b](i.png) x\n", remove_images: true)
+
+        expect(result).to eq(" x\n")
+      end
+
+      it 'removes a comment around a code block with the code' do
+        content = "<!--\n```\ncode\n```\n-->\nText.\n"
+
+        result = transformer.transform(content, remove_comments: true)
+
+        expect(result).to eq("\nText.\n")
+      end
+
+      it 'removes one quote level from code inside a blockquote' do
+        content = "> Note:\n>\n> ```markdown\n> > quoted\n> <!-- keep -->\n>\n> ```\n"
+
+        result = transformer.transform(content, remove_blockquotes: true, remove_comments: true)
+
+        expect(result).to eq("Note:\n```markdown\n> quoted\n<!-- keep -->\n\n```\n")
+      end
+    end
+
+    context 'with a block' do
+      let(:content) { "<!-- c -->\n[a](a.md)\n\n```\n<!-- kept --> [b](b.md)\n```\n" }
+
+      it 'runs the block on cleaned content with code hidden and restores the code' do
+        seen = nil
+
+        result = transformer.transform(content, remove_comments: true) do |text|
+          seen = text
+          text.sub('a.md', 'x.md')
+        end
+
+        expect(seen).not_to include('<!--', 'b.md')
+        expect(result).to eq("\n[a](x.md)\n\n```\n<!-- kept --> [b](b.md)\n```\n")
+      end
+
+      it 'runs the block when no removal applies' do
+        result = transformer.transform(content) { |text| text.sub('a.md', 'x.md') }
+
+        expect(result).to eq(content.sub('a.md', 'x.md'))
+      end
+
+      it 'runs the block after code examples are removed' do
+        result = transformer.transform(content, remove_code_examples: true) { |text| "#{text}end\n" }
+
+        expect(result).to eq("<!-- c -->\n[a](a.md)\n\n\nend\n")
+      end
+    end
+
     context 'with no options' do
       it 'returns content unchanged' do
         content = <<~MD
