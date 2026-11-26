@@ -14,6 +14,13 @@ RSpec.describe 'transform command' do
     [stdout, stderr, status]
   end
 
+  def run_cli_in(dir, *args)
+    cmd = "bundle exec #{cli_path} #{args.join(' ')}"
+    env = { 'BUNDLE_GEMFILE' => File.expand_path('../../Gemfile', __dir__) }
+    stdout, stderr, status = Open3.capture3(env, cmd, chdir: dir)
+    [stdout, stderr, status]
+  end
+
   it 'transforms markdown file with base URL expansion' do
     # Create markdown file with relative links
     input_file = File.join(temp_dir, 'test.md')
@@ -227,6 +234,34 @@ RSpec.describe 'transform command' do
 
     expect(status.success?).to be true
     expect(File.read(output_file)).to end_with("The api.\n")
+  end
+
+  context 'when the config sets output' do
+    let(:llms_txt) { File.join(temp_dir, 'out', 'llms.txt') }
+
+    before do
+      FileUtils.mkdir_p(File.dirname(llms_txt))
+      File.write(llms_txt, "# Site\n")
+      File.write(File.join(temp_dir, 'README.md'), "# Readme\n\nHello.\n")
+      File.write(File.join(temp_dir, 'llm-docs-builder.yml'), "output: out/llms.txt\n")
+    end
+
+    it 'prints to stdout and leaves the generated llms.txt unchanged' do
+      stdout, _stderr, status = run_cli_in(temp_dir, 'transform', '-d', 'README.md')
+
+      expect(status.success?).to be true
+      expect(stdout).to eq("# Readme\n\nHello.\n")
+      expect(File.read(llms_txt)).to eq("# Site\n")
+    end
+
+    it 'writes llms.txt when given with -o' do
+      stdout, _stderr, status = run_cli_in(temp_dir, 'transform', '-d', 'README.md', '-o', 'llms.txt')
+
+      expect(status.success?).to be true
+      expect(stdout).to eq("Transformed content saved to llms.txt\n")
+      expect(File.read(File.join(temp_dir, 'llms.txt'))).to eq("# Readme\n\nHello.\n")
+      expect(File.read(llms_txt)).to eq("# Site\n")
+    end
   end
 
   it 'fails when file does not exist' do

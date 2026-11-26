@@ -166,6 +166,8 @@ excludes:
 include_hidden: false             # Include files in hidden directories (e.g. .github/)
 ```
 
+**Output file (`output`):** the `llms.txt` path that `generate` writes. `transform` does not use it: it prints to stdout, or writes the file given with `-o`.
+
 **File selection (`generate` and `bulk-transform`):** both commands pick the same `.md` files under `docs`.
 - `excludes` patterns match the path relative to `docs` (`private/a.md`) or the path starting with the `docs` value as written (`./docs/private/a.md`); a trailing `/**` matches files at any depth.
 - Hidden directories (names starting with `.`, e.g. `.github/`) are skipped by default. Set `include_hidden: true` to include their files. Hidden files (e.g. `.notes.md`) are always skipped.

@@ -195,6 +195,40 @@ RSpec.describe LlmDocsBuilder::CLI do
         end.to output(/# Test/).to_stdout
       end
 
+      it 'prints to stdout and ignores the output from the config' do
+        cli = described_class.new
+        config_file = Tempfile.new(['config', '.yml'])
+        config_file.write("output: #{output_file.path}\n")
+        config_file.close
+        File.write(output_file.path, '# Generated')
+
+        expect do
+          expect do
+            cli.run(['transform', '-d', temp_file.path, '-c', config_file.path])
+          end.to output(/# Test/).to_stdout
+        end.not_to raise_error
+
+        expect(File.read(output_file.path)).to eq('# Generated')
+      ensure
+        config_file&.unlink
+      end
+
+      it 'writes to llms.txt when given with -o' do
+        Dir.mktmpdir do |dir|
+          Dir.chdir(dir) do
+            cli = described_class.new
+
+            expect do
+              expect do
+                cli.run(['transform', '-d', temp_file.path, '-o', 'llms.txt'])
+              end.to output(/Transformed content saved to llms.txt/).to_stdout
+            end.not_to raise_error
+
+            expect(File.read('llms.txt')).to include('# Test')
+          end
+        end
+      end
+
       it 'displays verbose output when verbose flag is set' do
         cli = described_class.new
 
