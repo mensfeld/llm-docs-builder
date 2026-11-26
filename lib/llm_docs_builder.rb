@@ -3,6 +3,7 @@
 require 'zeitwerk'
 require 'pathname'
 require 'find'
+require 'strscan'
 
 autoload(:Nokogiri, 'nokogiri')
 autoload(:CGI, 'cgi')
