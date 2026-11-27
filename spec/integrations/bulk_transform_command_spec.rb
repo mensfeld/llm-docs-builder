@@ -509,10 +509,11 @@ RSpec.describe 'bulk-transform command' do
     FileUtils.mkdir_p(File.join(temp_dir, 'docs'))
     File.write(File.join(temp_dir, 'docs', 'a.md'), "# A\n\nContent")
 
-    stdout, _stderr, status = run_cli_in(temp_dir, 'bulk-transform', '--config', 'missing.yml')
+    stdout, stderr, status = run_cli_in(temp_dir, 'bulk-transform', '--config', 'missing.yml')
 
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Config file not found: missing.yml')
+    expect(stderr).to include('Config file not found: missing.yml')
+    expect(stdout).to be_empty
     expect(Dir.glob(File.join(temp_dir, '**', '*.llm.md'))).to be_empty
   end
 end

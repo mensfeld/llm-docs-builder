@@ -595,10 +595,11 @@ RSpec.describe 'generate command' do
   it 'fails without writing llms.txt when the config file does not exist' do
     File.write(File.join(temp_dir, 'README.md'), "# README\n\nContent")
 
-    stdout, _stderr, status = run_cli_in(temp_dir, 'generate', '--config', 'missing.yml')
+    stdout, stderr, status = run_cli_in(temp_dir, 'generate', '--config', 'missing.yml')
 
     expect(status.exitstatus).to eq(1)
-    expect(stdout).to include('Config file not found: missing.yml')
+    expect(stderr).to include('Config file not found: missing.yml')
+    expect(stdout).to be_empty
     expect(File.exist?(File.join(temp_dir, 'llms.txt'))).to be false
   end
 end
