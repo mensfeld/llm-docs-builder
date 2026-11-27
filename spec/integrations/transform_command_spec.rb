@@ -132,7 +132,7 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       # Embedding
 
 
@@ -178,7 +178,7 @@ RSpec.describe 'transform command' do
     )
 
     expect(status.success?).to be true
-    expect(File.read(output_file)).to eq(<<~MD.chomp)
+    expect(File.read(output_file)).to eq(<<~MD)
       See [guide](https://mysite.com/guide.md).
 
       ```markdown
