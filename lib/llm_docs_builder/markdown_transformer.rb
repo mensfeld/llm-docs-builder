@@ -48,8 +48,8 @@ module LlmDocsBuilder
     # Processes content through specialized transformers in order:
     # 1. ContentCleanupTransformer - Removes unwanted elements
     # 2. LinkTransformer - Processes links, on the code detection of step 1
-    # 3. HeadingTransformer - Normalizes heading hierarchy (if enabled)
-    # 4. TextCompressor - Advanced compression (if enabled)
+    # 3. HeadingTransformer - Normalizes heading hierarchy (if enabled), on the code detection of step 1
+    # 4. TextCompressor - Advanced compression (if enabled), on the code detection of step 1
     # 5. EnhancementTransformer - Adds TOC and instructions
     # 6. WhitespaceTransformer - Normalizes whitespace
     #
@@ -59,10 +59,10 @@ module LlmDocsBuilder
 
       # Build and execute transformation pipeline
       content = cleanup_transformer.transform(content, options) do |text|
-        link_transformer.transform_outside_code(text, options)
+        text = link_transformer.transform_outside_code(text, options)
+        text = heading_transformer.transform(text, options)
+        should_compress? ? compress_content(text) : text
       end
-      content = heading_transformer.transform(content, options)
-      content = compress_content(content) if should_compress?
       content = enhancement_transformer.transform(content, options)
       whitespace_transformer.transform(content, options)
     end
@@ -113,15 +113,15 @@ module LlmDocsBuilder
 
     # Compress content using TextCompressor
     #
-    # @param content [String] markdown content
-    # @return [String] compressed content
+    # @param content [String] content with code replaced by {Transformers::CodeBlocks} placeholders
+    # @return [String] compressed content, still with placeholders
     def compress_content(content)
       compressor = TextCompressor.new
       compression_methods = {
         remove_stopwords: options[:remove_stopwords],
         remove_duplicates: options[:remove_duplicates]
       }
-      compressor.compress(content, compression_methods)
+      compressor.compress_outside_code(content, compression_methods)
     end
 
     # Load source content either from provided string or file path
