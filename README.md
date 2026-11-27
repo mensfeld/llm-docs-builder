@@ -427,8 +427,6 @@ All compression features can be used individually for fine-grained control:
 
 `remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` leave code (fenced, indented and inline) unchanged.
 
-`remove_comments`, `remove_badges`, `remove_images` and `remove_blockquotes` leave code (fenced, indented and inline) unchanged.
-
 ### Content Enhancement Options
 
 - `generate_toc: true` - Generate table of contents from headings with anchor links
